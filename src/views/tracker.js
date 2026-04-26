@@ -17,9 +17,6 @@ import {
 import {
   segmentsFromEvents,
   cyclesFromSegments,
-  formatDuration,
-  segmentDurationFromCycle,
-  SEGMENT_KINDS,
   SEGMENT_LABELS,
 } from '../analytics.js';
 
@@ -31,11 +28,23 @@ const BUTTONS = [
   { kind: EVENTS.DOWN, label: 'Down', icon: '▼' },
 ];
 
+const EVENT_LABELS = {
+  [EVENTS.UP]: 'Up',
+  [EVENTS.PAUSE]: 'Pause',
+  [EVENTS.DOWN]: 'Down',
+};
+
+const SEGMENT_KINDS = {
+  UP: 'up_duration',
+  TOP_REST: 'top_rest',
+  DOWN: 'down_duration',
+  BOTTOM_REST: 'bottom_rest',
+};
+
 export async function renderTracker(target) {
   let session = null;
   let events = [];
   let state = STATES.IDLE;
-  let segmentStartTs = null;
 
   const stateLabelEl = el('div', { class: 'tracker-mini-state' }, 'Ready');
   const cycleCountEl = el('div', { class: 'tracker-mini-cycles' }, '');
@@ -91,7 +100,6 @@ export async function renderTracker(target) {
     if (!session) {
       events = [];
       state = STATES.IDLE;
-      segmentStartTs = null;
       render();
       return;
     }
@@ -103,12 +111,10 @@ export async function renderTracker(target) {
       session = null;
       events = [];
       state = STATES.IDLE;
-      segmentStartTs = null;
       render();
       return;
     }
     state = stateFromEvents(events);
-    segmentStartTs = events.length ? events[events.length - 1].ts : session.startedAt;
     render();
     rebuildLog();
   }
@@ -122,7 +128,6 @@ export async function renderTracker(target) {
     session = { id, startedAt: Date.now(), endedAt: null };
     events = [];
     state = STATES.IDLE;
-    segmentStartTs = Date.now();
     toast('Session started');
     render();
   }
@@ -137,7 +142,6 @@ export async function renderTracker(target) {
     session = null;
     events = [];
     state = STATES.IDLE;
-    segmentStartTs = null;
     toast('Session stopped');
     render();
     logList.innerHTML = '';
@@ -155,7 +159,6 @@ export async function renderTracker(target) {
     const ev = await addEvent({ sessionId: session.id, type: kind });
     events.push(ev);
     state = ns;
-    segmentStartTs = ev.ts;
     render();
     addLogEntry(ev);
   }
@@ -184,23 +187,33 @@ export async function renderTracker(target) {
   }
 
   function addLogEntry(ev) {
-    if (events.length < 2) return;
-    const prevEv = events[events.length - 2];
-    const kind = pairKind(prevEv.type, ev.type);
-    if (!kind) return;
+    const prevEv = events.length > 1 ? events[events.length - 2] : null;
+    let duration = null;
+    let segmentKind = null;
 
-    const duration = ev.ts - prevEv.ts;
-    const segments = segmentsFromEvents(events.slice(0, -1));
-    const cycles = cyclesFromSegments(segments);
+    if (prevEv) {
+      duration = ev.ts - prevEv.ts;
+      segmentKind = segmentKindFromPair(prevEv.type, ev.type);
+    }
 
-    const currentCycleIndex = cycles.length;
-    const prevDuration = segmentDurationFromCycle(cycles, currentCycleIndex - 1, kind);
-    const diffMs = prevDuration !== undefined ? duration - prevDuration : null;
+    let diffMs = null;
+    if (segmentKind && duration) {
+      const segments = segmentsFromEvents(events.slice(0, -1));
+      const cycles = cyclesFromSegments(segments);
+
+      if (cycles.length > 1) {
+        const prevCycle = cycles[cycles.length - 2];
+        const prevSeg = prevCycle.segments[segmentKind];
+        if (prevSeg) {
+          diffMs = duration - prevSeg.durationMs;
+        }
+      }
+    }
 
     const row = el('div', { class: 'log-entry' }, [
       el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
-      el('div', { class: 'log-entry-kind' }, SEGMENT_LABELS[kind] || kind),
-      el('div', { class: 'log-entry-duration' }, formatDuration(duration)),
+      el('div', { class: 'log-entry-kind' }, EVENT_LABELS[ev.type] || ev.type),
+      el('div', { class: 'log-entry-duration' }, duration ? formatDuration(duration) : '–'),
     ]);
 
     if (diffMs !== null) {
@@ -218,26 +231,37 @@ export async function renderTracker(target) {
 
   function rebuildLog() {
     logList.innerHTML = '';
-    if (!session || events.length < 2) return;
+    if (!session || events.length === 0) return;
 
-    for (let i = 1; i < events.length; i++) {
-      const prevEv = events[i - 1];
+    for (let i = 0; i < events.length; i++) {
       const ev = events[i];
-      const kind = pairKind(prevEv.type, ev.type);
-      if (!kind) continue;
+      const prevEv = i > 0 ? events[i - 1] : null;
+      let duration = null;
+      let segmentKind = null;
 
-      const duration = ev.ts - prevEv.ts;
-      const currentEventsSlice = events.slice(0, i);
-      const segments = segmentsFromEvents(currentEventsSlice);
-      const cycles = cyclesFromSegments(segments);
-      const currentCycleIndex = cycles.length;
-      const prevDuration = segmentDurationFromCycle(cycles, currentCycleIndex - 1, kind);
-      const diffMs = prevDuration !== undefined ? duration - prevDuration : null;
+      if (prevEv) {
+        duration = ev.ts - prevEv.ts;
+        segmentKind = segmentKindFromPair(prevEv.type, ev.type);
+      }
+
+      let diffMs = null;
+      if (segmentKind && duration) {
+        const segments = segmentsFromEvents(events.slice(0, i + 1));
+        const cycles = cyclesFromSegments(segments);
+
+        if (cycles.length > 1) {
+          const prevCycle = cycles[cycles.length - 2];
+          const prevSeg = prevCycle.segments[segmentKind];
+          if (prevSeg) {
+            diffMs = duration - prevSeg.durationMs;
+          }
+        }
+      }
 
       const row = el('div', { class: 'log-entry' }, [
         el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
-        el('div', { class: 'log-entry-kind' }, SEGMENT_LABELS[kind] || kind),
-        el('div', { class: 'log-entry-duration' }, formatDuration(duration)),
+        el('div', { class: 'log-entry-kind' }, EVENT_LABELS[ev.type] || ev.type),
+        el('div', { class: 'log-entry-duration' }, duration ? formatDuration(duration) : '–'),
       ]);
 
       if (diffMs !== null) {
@@ -245,8 +269,7 @@ export async function renderTracker(target) {
         const diffSec = Math.round(diffMs / 1000);
         const prefix = diffSec > 0 ? '+' : '';
         diffEl.textContent = `${prefix}${diffSec}s`;
-        diffEl.dataset.faster =
-          diffSec < 0 ? 'true' : diffSec > 0 ? 'false' : 'none';
+        diffEl.dataset.faster = diffSec < 0 ? 'true' : diffSec > 0 ? 'false' : 'none';
         row.appendChild(diffEl);
       }
 
@@ -260,10 +283,22 @@ export async function renderTracker(target) {
   return () => {};
 }
 
-function pairKind(a, b) {
+function segmentKindFromPair(a, b) {
   if (a === 'up' && b === 'pause') return SEGMENT_KINDS.UP;
   if (a === 'pause' && b === 'down') return SEGMENT_KINDS.TOP_REST;
   if (a === 'down' && b === 'pause') return SEGMENT_KINDS.DOWN;
   if (a === 'pause' && b === 'up') return SEGMENT_KINDS.BOTTOM_REST;
   return null;
+}
+
+function formatDuration(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return '–';
+  if (ms < 1000) return `${ms} ms`;
+  const totalSec = Math.round(ms / 1000);
+  if (totalSec < 60) {
+    return ms < 60000 ? `${(ms / 1000).toFixed(1)}s` : `${totalSec}s`;
+  }
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}m ${s}s`;
 }
