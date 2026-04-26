@@ -330,6 +330,10 @@ let status = '';
     }
 
     const allowed = new Set(session ? allowedEvents(state) : ['up']);
+    if (session) {
+      if (state === STATES.AT_TOP) allowed.add('down');
+      if (state === STATES.AT_BOTTOM) allowed.add('up');
+    }
     for (const b of BUTTONS) {
       if (b.kind === 'stop') continue;
       const node = buttonNodes[b.kind];
