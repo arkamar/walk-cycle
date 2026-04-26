@@ -70,47 +70,7 @@ export async function renderTracker(target) {
     'Start session'
   );
   
-  let holdStopTimeout = null;
-  const stopBtn = el(
-    'button',
-    { 
-      class: 'btn btn-danger', 
-      type: 'button',
-      onMouseDown: () => {
-        holdStopTimeout = setTimeout(async () => {
-          await onStopSession();
-        }, 1000);
-      },
-      onMouseUp: () => {
-        if (holdStopTimeout) {
-          clearTimeout(holdStopTimeout);
-          holdStopTimeout = null;
-          toast('Hold to stop');
-        }
-      },
-      onMouseLeave: () => {
-        if (holdStopTimeout) {
-          clearTimeout(holdStopTimeout);
-          holdStopTimeout = null;
-        }
-      },
-      onTouchStart: () => {
-        holdStopTimeout = setTimeout(async () => {
-          await onStopSession();
-        }, 1000);
-      },
-      onTouchEnd: () => {
-        if (holdStopTimeout) {
-          clearTimeout(holdStopTimeout);
-          holdStopTimeout = null;
-          toast('Hold to stop');
-        }
-      }
-    },
-'Hold to stop'
-  );
-  
-  const sessionControls = el('div', { class: 'session-controls' }, [startBtn, stopBtn]);
+  const sessionControls = el('div', { class: 'session-controls' }, [startBtn]);
   
   const logHeader = el('div', { class: 'log-header' }, 'Session log');
   const logList = el('div', { class: 'log-list' });
@@ -237,7 +197,6 @@ export async function renderTracker(target) {
     }
 
     startBtn.style.display = session ? 'none' : '';
-    stopBtn.style.display = session ? '' : 'none';
   }
 
   function renderLog(prevToFreezeTs = null) {

@@ -1,7 +1,37 @@
 import { el, toast, formatDateTime } from '../ui.js';
-import { exportAll, importAll, clearAll } from '../db.js';
+import { exportAll, importAll, clearAll, getActiveSession, endSession } from '../db.js';
 
 export async function renderSettings(target) {
+  const stopSessionBtn = el(
+    'button',
+    {
+      class: 'btn btn-danger',
+      type: 'button',
+      style: { display: 'none' },
+      onClick: async () => {
+        if (!confirm('Stop the current session?')) return;
+        const s = await getActiveSession();
+        if (s) {
+          await endSession(s.id);
+          toast('Session stopped');
+          checkActive();
+          window.location.hash = '/';
+        }
+      },
+    },
+    'Stop active session'
+  );
+
+  const sessionCard = el('div', { class: 'card' }, [
+    el('h3', {}, 'Active session'),
+    el(
+      'p',
+      { class: 'muted' },
+      'If you have a session in progress, you can stop it from here.'
+    ),
+    stopSessionBtn,
+  ]);
+
   // ---------- Backup ----------
   const exportBtn = el(
     'button',
@@ -89,6 +119,7 @@ export async function renderSettings(target) {
   target.appendChild(
     el('div', {}, [
       el('h2', { style: { marginBottom: '0.75rem' } }, 'Settings'),
+      sessionCard,
       backupCard,
       dangerCard,
       aboutCard,
@@ -96,6 +127,14 @@ export async function renderSettings(target) {
   );
 
   // ---------- Handlers ----------
+  
+  let hasActiveSession = false;
+  async function checkActive() {
+    const s = await getActiveSession();
+    hasActiveSession = !!s;
+    stopSessionBtn.style.display = hasActiveSession ? '' : 'none';
+  }
+  checkActive();
 
   async function doExport() {
     try {
