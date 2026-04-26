@@ -280,15 +280,13 @@ let status = '';
   }
 
   async function render() {
-    const currentEvents = pausedEvents ?? events;
-    const currentState = pausedState ?? state;
-    stateLabelEl.textContent = currentEvents.length > 0 ? stateLabel(currentState) : 'Ready';
+    stateLabelEl.textContent = events.length > 0 ? stateLabel(state) : 'Ready';
 
-    const upCount = currentEvents.filter(e => e.type === EVENTS.UP).length;
-    cycleCountEl.textContent = (session || currentEvents.length > 0) ? `Cycle ${upCount}` : '';
+    const upCount = events.filter(e => e.type === EVENTS.UP).length;
+    cycleCountEl.textContent = (session || events.length > 0) ? `Cycle ${upCount}` : '';
 
     const goal = getCompetitionGoal();
-    if (goal && (session || currentEvents.length > 0)) {
+    if (goal && (session || events.length > 0)) {
       goalProgressEl.style.display = '';
       let parts = [];
       
