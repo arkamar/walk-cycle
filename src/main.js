@@ -35,10 +35,6 @@ const TABS = [
 
 const app = document.getElementById('app');
 app.innerHTML = `
-  <header class="app-header">
-    <h1>Walk Cycle</h1>
-    <div class="header-actions" id="header-actions"></div>
-  </header>
   <div class="view" id="view"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 `;
