@@ -174,7 +174,7 @@ export async function renderTracker(target) {
       return;
     }
     stopIntervalTimer();
-    await pauseSession(session.id);
+    const updatedSession = await pauseSession(session.id);
     pausedEvents = events;
     pausedState = state;
     const pausedEventsCopy = events;
@@ -182,7 +182,7 @@ export async function renderTracker(target) {
     state = STATES.IDLE;
     lastEventTs = null;
     toast('Session paused');
-    renderLog(pausedEventsCopy[pausedEventsCopy.length - 1]?.ts);
+    renderLog(updatedSession.pausedAt);
     render();
     window.dispatchEvent(new Event('session-ended'));
   }
@@ -359,36 +359,39 @@ let status = '';
   }
 
   function renderLog(prevToFreezeTs = null) {
+    const displayEvents = pausedEvents ?? events;
     logList.innerHTML = '';
     
     const cycleForEvent = (idx) => {
       let cycle = 0;
       for (let j = 0; j <= idx; j++) {
-        if (events[j].type === EVENTS.UP) cycle++;
+        if (displayEvents[j].type === EVENTS.UP) cycle++;
       }
       return cycle;
     };
     
-    for (let i = events.length - 1; i >= 0; i--) {
-      const ev = events[i];
+    for (let i = displayEvents.length - 1; i >= 0; i--) {
+      const ev = displayEvents[i];
       let displayDuration = '–';
       let diffStr = '';
       const thisCycle = cycleForEvent(i);
       
-      const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : null;
+      const thisDuration = i < displayEvents.length - 1 ? displayEvents[i + 1].ts - ev.ts : null;
       
-      if (i === events.length - 1) {
+      if (i === displayEvents.length - 1) {
         if (prevToFreezeTs) {
           displayDuration = formatLive(prevToFreezeTs - ev.ts);
-        } else {
+        } else if (session) {
           displayDuration = '00:00';
+        } else {
+          displayDuration = '–';
         }
       } else {
         displayDuration = formatLive(thisDuration);
       }
       
       const prevSame = findPrevSameType(i, ev.type);
-      if (prevSame && i < events.length - 1) {
+      if (prevSame && i < displayEvents.length - 1) {
         const prevDuration = prevSame.nextTs - prevSame.ts;
         const diffMs = thisDuration - prevDuration;
         if (diffMs !== 0) {
@@ -416,18 +419,19 @@ const row = el('div', { class: 'log-entry' }, [
       logList.appendChild(row);
     }
     
-    for (let i = 0; i < events.length - 1; i++) {
-      events[i].nextTs = events[i + 1].ts;
+    for (let i = 0; i < displayEvents.length - 1; i++) {
+      displayEvents[i].nextTs = displayEvents[i + 1].ts;
     }
-    if (events.length > 0) {
-      events[events.length - 1].nextTs = Date.now();
+    if (displayEvents.length > 0 && session) {
+      displayEvents[displayEvents.length - 1].nextTs = Date.now();
     }
   }
   
   function findPrevSameType(currentIndex, type) {
+    const searchEvents = pausedEvents ?? events;
     for (let i = currentIndex - 1; i >= 0; i--) {
-      if (events[i].type === type && events[i].nextTs) {
-        return events[i];
+      if (searchEvents[i].type === type && searchEvents[i].nextTs) {
+        return searchEvents[i];
       }
     }
     return null;
