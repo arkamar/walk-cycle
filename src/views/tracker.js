@@ -403,8 +403,12 @@ let status = '';
       
       if (session && i === events.length - 1) {
         displayDuration = '00:00';
+      } else if (thisDuration) {
+        displayDuration = formatLive(thisDuration);
+      } else if (!session && events.length > 0) {
+        displayDuration = '–';
       } else {
-        displayDuration = thisDuration ? formatLive(thisDuration) : '–';
+        displayDuration = '–';
       }
       
       const prevSame = findPrevSameType(i, ev.type);
