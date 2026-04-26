@@ -100,6 +100,12 @@ export async function renderTracker(target) {
       return;
     }
     events = await listEventsBySession(session.id);
+    for (let i = 0; i < events.length - 1; i++) {
+      events[i].nextTs = events[i + 1].ts;
+    }
+    if (events.length > 0) {
+      events[events.length - 1].nextTs = Date.now();
+    }
     const lastTs = events.length ? events[events.length - 1].ts : session.startedAt;
     if (Date.now() - lastTs > IDLE_TIMEOUT_MS) {
       await endSession(session.id, lastTs);
@@ -202,10 +208,19 @@ export async function renderTracker(target) {
   function renderLog(prevToFreezeTs = null) {
     logList.innerHTML = '';
     
+    const cycleForEvent = (idx) => {
+      let cycle = 0;
+      for (let j = 0; j <= idx; j++) {
+        if (events[j].type === EVENTS.UP) cycle++;
+      }
+      return cycle;
+    };
+    
     for (let i = events.length - 1; i >= 0; i--) {
       const ev = events[i];
       let displayDuration = '–';
       let diffStr = '';
+      const thisCycle = cycleForEvent(i);
       
       const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : null;
       
@@ -230,7 +245,8 @@ export async function renderTracker(target) {
         }
       }
       
-      const row = el('div', { class: 'log-entry' }, [
+const row = el('div', { class: 'log-entry' }, [
+        el('div', { class: 'log-entry-cycle' }, thisCycle > 0 ? `#${thisCycle}` : ''),
         el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
         el('div', { class: 'log-entry-kind' }, EVENT_LABELS[ev.type] || ev.type),
       ]);
@@ -239,6 +255,8 @@ export async function renderTracker(target) {
         const diffEl = el('div', { class: 'log-entry-diff' }, diffStr);
         diffEl.dataset.faster = diffStr.startsWith('+') ? 'false' : 'true';
         row.appendChild(diffEl);
+      } else {
+        row.appendChild(el('div', { class: 'log-entry-diff' }));
       }
       
       row.appendChild(el('div', { class: 'log-entry-duration' }, displayDuration));
