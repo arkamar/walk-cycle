@@ -3,6 +3,7 @@ import {
   getSession,
   listEventsBySession,
   deleteSession,
+  resumeSession,
 } from '../db.js';
 import {
   segmentsFromEvents,
@@ -63,6 +64,19 @@ export async function renderHistoryDetail(target, { id }) {
       { class: 'btn btn-ghost', href: '#/history' },
       '← Back'
     ),
+    session.endedAt ? el(
+      'button',
+      {
+        class: 'btn btn-primary',
+        type: 'button',
+        onClick: async () => {
+          await resumeSession(id);
+          toast('Session resumed');
+          window.location.hash = '/';
+        },
+      },
+      'Resume'
+    ) : null,
     el(
       'button',
       {

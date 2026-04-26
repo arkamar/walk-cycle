@@ -69,13 +69,49 @@ export async function renderTracker(target) {
     { class: 'btn btn-primary', type: 'button', onClick: onStartSession },
     'Start session'
   );
+  
+  let holdStopTimeout = null;
   const stopBtn = el(
     'button',
-    { class: 'btn btn-danger', type: 'button', onClick: onStopSession },
-    'Stop session'
+    { 
+      class: 'btn btn-danger', 
+      type: 'button',
+      onMouseDown: () => {
+        holdStopTimeout = setTimeout(async () => {
+          await onStopSession();
+        }, 1000);
+      },
+      onMouseUp: () => {
+        if (holdStopTimeout) {
+          clearTimeout(holdStopTimeout);
+          holdStopTimeout = null;
+          toast('Hold to stop');
+        }
+      },
+      onMouseLeave: () => {
+        if (holdStopTimeout) {
+          clearTimeout(holdStopTimeout);
+          holdStopTimeout = null;
+        }
+      },
+      onTouchStart: () => {
+        holdStopTimeout = setTimeout(async () => {
+          await onStopSession();
+        }, 1000);
+      },
+      onTouchEnd: () => {
+        if (holdStopTimeout) {
+          clearTimeout(holdStopTimeout);
+          holdStopTimeout = null;
+          toast('Hold to stop');
+        }
+      }
+    },
+'Hold to stop'
   );
+  
   const sessionControls = el('div', { class: 'session-controls' }, [startBtn, stopBtn]);
-
+  
   const logHeader = el('div', { class: 'log-header' }, 'Session log');
   const logList = el('div', { class: 'log-list' });
   const logCard = el('div', { class: 'card log-card', style: { overflowY: 'auto' } }, [logHeader, logList]);
@@ -144,7 +180,7 @@ export async function renderTracker(target) {
       return;
     }
     if (!confirm('Stop the current session?')) return;
-    stopTimer();
+    stopIntervalTimer();
     await endSession(session.id);
     session = null;
     events = [];
@@ -296,11 +332,11 @@ const row = el('div', { class: 'log-entry' }, [
   }
 
   function startTimer() {
-    stopTimer();
+    stopIntervalTimer();
     timerInterval = setInterval(updateLiveTimer, 250);
   }
 
-  function stopTimer() {
+  function stopIntervalTimer() {
     if (timerInterval) {
       clearInterval(timerInterval);
       timerInterval = null;
@@ -310,6 +346,6 @@ const row = el('div', { class: 'log-entry' }, [
   await loadActiveSession();
 
   return () => {
-    stopTimer();
+    stopIntervalTimer();
   };
 }
