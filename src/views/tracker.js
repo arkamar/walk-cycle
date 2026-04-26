@@ -45,7 +45,6 @@ export async function renderTracker(target) {
   let state = STATES.IDLE;
   let timerInterval = null;
   let lastEventTs = null;
-  let isPaused = false;
 
   const stateLabelEl = el('div', { class: 'tracker-mini-state' }, 'Ready');
   const cycleCountEl = el('div', { class: 'tracker-mini-cycles' }, '');
@@ -99,13 +98,10 @@ export async function renderTracker(target) {
     
     if (active) {
       session = active;
-      isPaused = false;
     } else if (paused) {
       session = paused;
-      isPaused = true;
     } else {
       session = null;
-      isPaused = false;
     }
     
     if (!session) {
@@ -122,14 +118,15 @@ export async function renderTracker(target) {
       events[i].nextTs = events[i + 1].ts;
     }
     if (events.length > 0) {
-      events[events.length - 1].nextTs = isPaused ? session.pausedAt : Date.now();
+      events[events.length - 1].nextTs = session.pausedAt || Date.now();
     }
     state = stateFromEvents(events);
     lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
     render();
     renderLog();
-    renderGoalProgress();
-    if (session && !isPaused) {
+    
+    if (active) {
+      renderGoalProgress();
       startTimer();
     }
   }
@@ -151,12 +148,13 @@ export async function renderTracker(target) {
 
   async function onStopSession() {
     if (!session) {
-      const lastSession = await getPausedSession();
-      if (!lastSession) {
+      const paused = await getPausedSession();
+      if (!paused) {
         toast('No session to resume');
         return;
       }
-      session = await resumeSession(lastSession.id);
+      const resumed = await resumeSession(paused.id);
+      session = resumed;
       events = await listEventsBySession(session.id);
       for (let i = 0; i < events.length - 1; i++) {
         events[i].nextTs = events[i + 1].ts;
@@ -174,9 +172,9 @@ export async function renderTracker(target) {
       return;
     }
     stopIntervalTimer();
-    const updatedSession = await pauseSession(session.id);
+    const paused = await pauseSession(session.id);
     if (events.length > 0) {
-      events[events.length - 1].nextTs = updatedSession.pausedAt;
+      events[events.length - 1].nextTs = paused.pausedAt;
     }
     session = null;
     state = STATES.IDLE;
@@ -360,8 +358,11 @@ let status = '';
       node.dataset.active = isAllowed ? 'true' : 'false';
     }
 
+    const isRunning = session && !session.pausedAt;
+    const isPaused = session && session.pausedAt;
+    
     const stopNode = buttonNodes['stop'];
-    if (session && !isPaused) {
+    if (isRunning) {
       stopNode.disabled = false;
       stopNode.style.display = '';
       stopNode.dataset.active = 'true';
@@ -401,7 +402,10 @@ let status = '';
       
       const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : null;
       
-      if (session && !isPaused && i === events.length - 1) {
+      const isRunning = session && !session.pausedAt;
+      const isPaused = session && session.pausedAt;
+      
+      if (isRunning && i === events.length - 1) {
         displayDuration = '00:00';
       } else if (thisDuration) {
         displayDuration = formatLive(thisDuration);
