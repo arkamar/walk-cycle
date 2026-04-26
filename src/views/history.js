@@ -1,5 +1,5 @@
-import { el, formatDateTime } from '../ui.js';
-import { listSessions, listEventsBySession } from '../db.js';
+import { el, formatDateTime, toast } from '../ui.js';
+import { listSessions, listEventsBySession, deleteSession } from '../db.js';
 import {
   segmentsFromEvents,
   cyclesFromSegments,
@@ -41,14 +41,9 @@ export async function renderHistory(target) {
   );
 
   for (const { session: s, cycleCount, durationMs } of summaries) {
-    const item = el(
-      'a',
-      {
-        class: 'list-item',
-        href: `#/history/${s.id}`,
-      },
-      [
-        el('div', {}, [
+    const item = el('div', { class: 'list-item' }, [
+      el('div', { style: { flex: 1 } }, [
+        el('a', { href: `#/history/${s.id}`, style: { textDecoration: 'none', color: 'inherit', display: 'block' } }, [
           el('div', {}, formatDateTime(s.startedAt)),
           el(
             'div',
@@ -58,9 +53,19 @@ export async function renderHistory(target) {
             }`
           ),
         ]),
-        el('div', { class: 'meta' }, '›'),
-      ]
-    );
+      ]),
+      el('button', {
+        class: 'btn btn-ghost',
+        style: { color: 'var(--danger)', padding: '0.5rem' },
+        onClick: async () => {
+          if (!confirm('Delete this session?')) return;
+          await deleteSession(s.id);
+          toast('Session deleted');
+          target.innerHTML = '';
+          renderHistory(target);
+        }
+      }, '🗑'),
+    ]);
     list.appendChild(item);
   }
 }
