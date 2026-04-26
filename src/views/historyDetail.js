@@ -1,4 +1,4 @@
-import { el, formatDateTime, toast } from '../ui.js';
+import { el, formatDateTime, toast, formatTime } from '../ui.js';
 import {
   getSession,
   listEventsBySession,
@@ -9,6 +9,7 @@ import {
   cyclesFromSegments,
   aggregateBySegmentKind,
   formatDuration,
+  formatLive,
   SEGMENT_KINDS,
   SEGMENT_LABELS,
   SEGMENT_COLORS,
@@ -34,6 +35,27 @@ export async function renderHistoryDetail(target, { id }) {
   const segments = segmentsFromEvents(events);
   const cycles = cyclesFromSegments(segments);
   const { byKind } = aggregateBySegmentKind(segments);
+
+  const EVENT_LABELS = {
+    up: 'Up',
+    pause: 'Pause',
+    down: 'Down',
+  };
+
+  // Build nextTs for each event (for duration calculation)
+  for (let i = 0; i < events.length - 1; i++) {
+    events[i].nextTs = events[i + 1].ts;
+  }
+  if (events.length > 0) {
+    events[events.length - 1].nextTs = session.endedAt || events[events.length - 1].ts;
+  }
+
+  function findPrevSameType(idx, type, evts) {
+    for (let i = idx - 1; i >= 0; i--) {
+      if (evts[i].type === type && evts[i].nextTs) return evts[i];
+    }
+    return null;
+  }
 
   const headerRow = el('div', { class: 'row between' }, [
     el(
@@ -66,6 +88,57 @@ export async function renderHistoryDetail(target, { id }) {
       `${cycles.length} ${cycles.length === 1 ? 'cycle' : 'cycles'} · ${events.length} presses`,
     ]),
   ]);
+
+  // Session log
+  const logCard = el('div', { class: 'card' }, [
+    el('h3', {}, 'Session log'),
+    el('div', { class: 'log-list' }),
+  ]);
+  const logList = logCard.querySelector('.log-list');
+  
+  const cycleCounts = [];
+  let cycleNum = 0;
+  for (let i = 0; i < events.length; i++) {
+    if (events[i].type === 'up') cycleNum++;
+    cycleCounts[i] = cycleNum;
+  }
+  
+  for (let i = events.length - 1; i >= 0; i--) {
+    const ev = events[i];
+    let diffStr = '';
+    const thisDuration = ev.nextTs ? ev.nextTs - ev.ts : null;
+    
+    const prevSame = findPrevSameType(i, ev.type, events);
+    if (prevSame && prevSame.nextTs) {
+      const prevDuration = prevSame.nextTs - prevSame.ts;
+      if (thisDuration && prevDuration) {
+        const diffMs = thisDuration - prevDuration;
+        if (diffMs !== 0) {
+          const sign = diffMs > 0 ? '+' : '-';
+          diffStr = sign + formatLive(Math.abs(diffMs));
+        }
+      }
+    }
+    
+    const thisCycle = cycleCounts[i];
+    
+    const row = el('div', { class: 'log-entry' }, [
+      el('div', { class: 'log-entry-cycle' }, thisCycle > 0 ? `#${thisCycle}` : ''),
+      el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
+      el('div', { class: 'log-entry-kind' }, EVENT_LABELS[ev.type] || ev.type),
+    ]);
+    
+    if (diffStr) {
+      const diffEl = el('div', { class: 'log-entry-diff' }, diffStr);
+      diffEl.dataset.faster = diffStr.startsWith('+') ? 'false' : 'true';
+      row.appendChild(diffEl);
+    } else {
+      row.appendChild(el('div', { class: 'log-entry-diff' }));
+    }
+    
+    row.appendChild(el('div', { class: 'log-entry-duration' }, thisDuration ? formatLive(thisDuration) : '–'));
+    logList.appendChild(row);
+  }
 
   // Per-segment averages
   const statsCard = el('div', { class: 'card' }, [
@@ -131,5 +204,5 @@ export async function renderHistoryDetail(target, { id }) {
     }
   }
 
-  target.appendChild(el('div', {}, [headerRow, headerCard, statsCard, cyclesCard]));
+  target.appendChild(el('div', {}, [headerRow, headerCard, logCard, statsCard, cyclesCard]));
 }
