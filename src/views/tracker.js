@@ -259,13 +259,13 @@ let status = '';
   }
 
   async function render() {
-    stateLabelEl.textContent = session ? stateLabel(state) : 'Ready';
+    stateLabelEl.textContent = events.length > 0 ? stateLabel(state) : 'Ready';
 
     const upCount = events.filter(e => e.type === EVENTS.UP).length;
-    cycleCountEl.textContent = session ? `Cycle ${upCount}` : '';
+    cycleCountEl.textContent = (session || events.length > 0) ? `Cycle ${upCount}` : '';
 
     const goal = getCompetitionGoal();
-    if (goal && session) {
+    if (goal && (session || events.length > 0)) {
       goalProgressEl.style.display = '';
       let parts = [];
       
