@@ -342,8 +342,9 @@ let status = '';
       goalProgressEl.style.display = 'none';
     }
 
-    const allowed = session ? [...allowedEvents(state)] : ['up'];
-    if (session) {
+    const hasPausedData = !session && events.length > 0;
+    const allowed = (session || hasPausedData) ? [...allowedEvents(state)] : ['up'];
+    if (session || hasPausedData) {
       if (state === STATES.GOING_UP) allowed.push('down');
       if (state === STATES.AT_TOP) allowed.push('down');
       if (state === STATES.GOING_DOWN) allowed.push('up');
@@ -368,7 +369,7 @@ let status = '';
       stopNode.dataset.active = 'true';
       stopNode.querySelector('.action-icon').textContent = '■';
       stopNode.querySelector('span:last-child').textContent = 'Pause';
-    } else if (isPaused) {
+    } else if (isPaused || hasPausedData) {
       stopNode.disabled = false;
       stopNode.style.display = '';
       stopNode.dataset.active = 'true';

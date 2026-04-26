@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tracker Test</title>
+</head>
+<body>
+  <h1>Tracker Test</h1>
+  <pre id="output"></pre>
+  <script type="module">
+    import { getPausedSession, listSessions } from './src/db.js';
+    
+    const output = document.getElementById('output');
+    
+    function log(msg) {
+      output.textContent += msg + '\n';
+      console.log(msg);
+    }
+    
+    async function runTests() {
+      log('=== Tracker Test ===\n');
+      
+      // Test 1: List all sessions
+      log('--- All Sessions ---');
+      const sessions = await listSessions();
+      log(JSON.stringify(sessions.map(s => ({
+        id: s.id,
+        startedAt: s.startedAt,
+        pausedAt: s.pausedAt,
+        endedAt: s.endedAt
+      })), null, 2));
+      
+      // Test 2: Get paused session
+      log('\n--- getPausedSession ---');
+      const paused = await getPausedSession();
+      log(JSON.stringify(paused, null, 2));
+      
+      log('\n=== Done ===');
+    }
+    
+    runTests().catch(err => {
+      log('Error: ' + err.message);
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
