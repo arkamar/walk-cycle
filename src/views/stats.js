@@ -48,10 +48,23 @@ const VIEWS = [
 
 const CSS_DARK = matchMedia('(prefers-color-scheme: dark)');
 
+const STATS_KEY = 'walk-cycle-stats';
+
+function loadPrefs() {
+  const stored = localStorage.getItem(STATS_KEY);
+  return stored ? JSON.parse(stored) : {};
+}
+
+function savePrefs(prefs) {
+  const current = loadPrefs();
+  localStorage.setItem(STATS_KEY, JSON.stringify({ ...current, ...prefs }));
+}
+
 export async function renderStats(target) {
+  const prefs = loadPrefs();
   let chart = null;
-  let range = 'all';
-  let view = 'cycles';
+  let range = prefs.range || 'all';
+  let view = prefs.view || 'cycles';
 
   // ---------- Toolbar ----------
   const rangeSel = el(
@@ -60,6 +73,7 @@ export async function renderStats(target) {
       class: 'btn',
       onChange: (e) => {
         range = e.target.value;
+        savePrefs({ range });
         rerender();
       },
     },
@@ -73,6 +87,7 @@ export async function renderStats(target) {
       class: 'btn',
       onChange: (e) => {
         view = e.target.value;
+        savePrefs({ view });
         rerender();
       },
     },
