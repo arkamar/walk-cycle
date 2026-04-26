@@ -79,7 +79,7 @@ export async function getActiveSession() {
   const db = await getDB();
   const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');
   for (let i = all.length - 1; i >= 0; i--) {
-    if (!all[i].endedAt) return all[i];
+    if (!all[i].endedAt && !all[i].pausedAt) return all[i];
   }
   return null;
 }
