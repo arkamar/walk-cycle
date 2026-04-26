@@ -78,7 +78,7 @@ export async function renderTracker(target) {
 
   const logHeader = el('div', { class: 'log-header' }, 'Session log');
   const logList = el('div', { class: 'log-list' });
-  const logCard = el('div', { class: 'card log-card' }, [logHeader, logList]);
+  const logCard = el('div', { class: 'card log-card', style: { overflowY: 'auto' } }, [logHeader, logList]);
 
   target.appendChild(
     el('div', { class: 'tracker' }, [
