@@ -1,13 +1,21 @@
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';
 import { createRouter } from './router.js';
-import { renderTracker } from './views/tracker.js';
-import { renderHistory } from './views/history.js';
-import { renderHistoryDetail } from './views/historyDetail.js';
-import { renderStats } from './views/stats.js';
-import { renderSettings } from './views/settings.js';
 
 registerSW({ immediate: true });
+
+// Lazy-load views so the initial bundle stays small (Chart.js, etc.).
+const lazy = (loader) => async (target, ctx) => {
+  const mod = await loader();
+  const fnName = Object.keys(mod).find((k) => typeof mod[k] === 'function');
+  return mod[fnName](target, ctx);
+};
+
+const renderTracker = lazy(() => import('./views/tracker.js'));
+const renderHistory = lazy(() => import('./views/history.js'));
+const renderHistoryDetail = lazy(() => import('./views/historyDetail.js'));
+const renderStats = lazy(() => import('./views/stats.js'));
+const renderSettings = lazy(() => import('./views/settings.js'));
 
 const TABS = [
   { path: '/', label: 'Track', icon: '⏱' },
