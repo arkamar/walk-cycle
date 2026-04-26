@@ -99,6 +99,21 @@ export async function renderTracker(target) {
     pausedState = null;
     session = await getActiveSession();
     if (!session) {
+      const paused = await getPausedSession();
+      if (paused) {
+        pausedEvents = await listEventsBySession(paused.id);
+        for (let i = 0; i < pausedEvents.length - 1; i++) {
+          pausedEvents[i].nextTs = pausedEvents[i + 1].ts;
+        }
+        if (pausedEvents.length > 0) {
+          pausedEvents[pausedEvents.length - 1].nextTs = paused.pausedAt;
+        }
+        pausedState = stateFromEvents(pausedEvents);
+        lastEventTs = pausedEvents.length > 0 ? pausedEvents[pausedEvents.length - 1].ts : null;
+        renderLog(paused.pausedAt);
+        render();
+        return;
+      }
       events = [];
       state = STATES.IDLE;
       lastEventTs = null;
@@ -160,13 +175,14 @@ export async function renderTracker(target) {
     }
     stopIntervalTimer();
     await pauseSession(session.id);
-    const pausedEvents = events;
-    const pausedState = state;
+    pausedEvents = events;
+    pausedState = state;
+    const pausedEventsCopy = events;
     session = null;
     state = STATES.IDLE;
     lastEventTs = null;
     toast('Session paused');
-    renderLog();
+    renderLog(pausedEventsCopy[pausedEventsCopy.length - 1]?.ts);
     render();
     window.dispatchEvent(new Event('session-ended'));
   }
