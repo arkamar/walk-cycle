@@ -130,6 +130,17 @@ export function aggregateBySegmentKind(segments) {
 }
 
 /**
+ * Find the duration of a segment kind from a specific cycle index.
+ * Returns undefined if that cycle doesn't have the segment.
+ */
+export function segmentDurationFromCycle(cycles, cycleIndex, kind) {
+  const cyc = cycles[cycleIndex];
+  if (!cyc) return undefined;
+  const seg = cyc.segments[kind];
+  return seg?.durationMs;
+}
+
+/**
  * Format a duration in ms as a human-readable string.
  *   12345  -> "12.3s"
  *   72000  -> "1m 12s"

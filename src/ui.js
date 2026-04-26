@@ -50,6 +50,18 @@ export function toast(message, ms = 1800) {
 }
 
 /**
+ * Format a Date or timestamp as a short locale-aware time string (no date).
+ */
+export function formatTime(ts) {
+  const d = ts instanceof Date ? ts : new Date(ts);
+  return d.toLocaleString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+/**
  * Format a Date or timestamp as a short locale-aware date+time string.
  */
 export function formatDateTime(ts) {

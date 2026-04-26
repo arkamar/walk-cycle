@@ -307,6 +307,90 @@ h3 { font-size: 1rem; }
   margin-top: 0.25rem;
 }
 
+/* ---------- Log ---------- */
+
+.tracker-mini-state {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.tracker-mini-cycles {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--fg);
+  text-align: center;
+  margin-bottom: 0.25rem;
+}
+
+.log-card {
+  display: none;
+}
+
+.log-header {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.log-list {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.log-entry {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr 3.5rem auto;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.5rem;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.log-entry-time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+}
+
+.log-entry-kind {
+  font-weight: 500;
+}
+
+.log-entry-duration {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.log-entry-diff {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: right;
+  min-width: 2.5rem;
+}
+
+.log-entry-diff[data-faster='true'] {
+  color: var(--success);
+}
+
+.log-entry-diff[data-faster='false'] {
+  color: var(--danger);
+}
+
+.log-entry-diff[data-faster='none'] {
+  color: var(--muted);
+}
+
 /* ---------- Lists ---------- */
 
 .list {

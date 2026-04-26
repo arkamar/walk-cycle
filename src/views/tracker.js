@@ -1,4 +1,4 @@
-import { el, toast } from '../ui.js';
+import { el, toast, formatTime } from '../ui.js';
 import {
   STATES,
   EVENTS,
@@ -17,10 +17,13 @@ import {
 import {
   segmentsFromEvents,
   cyclesFromSegments,
-  formatLive,
+  formatDuration,
+  segmentDurationFromCycle,
+  SEGMENT_KINDS,
+  SEGMENT_LABELS,
 } from '../analytics.js';
 
-const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // auto-close session after 30 min idle
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
 const BUTTONS = [
   { kind: EVENTS.UP, label: 'Up', icon: '▲' },
@@ -29,22 +32,13 @@ const BUTTONS = [
 ];
 
 export async function renderTracker(target) {
-  // ---------- Local state ----------
-  let session = null;            // active session row from DB
-  let events = [];               // chronological events for the session
-  let state = STATES.IDLE;       // current FSM state
-  let segmentStartTs = null;     // when the active segment started (last event ts)
-  let timerInterval = null;
+  let session = null;
+  let events = [];
+  let state = STATES.IDLE;
+  let segmentStartTs = null;
 
-  // ---------- DOM ----------
-  const stateLabelEl = el('div', { class: 'tracker-state' }, '—');
-  const timerEl = el('div', { class: 'tracker-timer' }, '00:00');
-  const cyclesEl = el('div', { class: 'tracker-cycles' }, '');
-  const statusCard = el('div', { class: 'card tracker-status' }, [
-    stateLabelEl,
-    timerEl,
-    cyclesEl,
-  ]);
+  const stateLabelEl = el('div', { class: 'tracker-mini-state' }, 'Ready');
+  const cycleCountEl = el('div', { class: 'tracker-mini-cycles' }, '');
 
   const buttonNodes = {};
   const actionGrid = el('div', { class: 'action-buttons' });
@@ -78,26 +72,19 @@ export async function renderTracker(target) {
   );
   const sessionControls = el('div', { class: 'session-controls' }, [startBtn, stopBtn]);
 
-  const helpCard = el('div', { class: 'card' }, [
-    el('h3', {}, 'How it works'),
-    el('p', { class: 'muted' }, [
-      'Press ',
-      el('strong', { style: { color: 'var(--success)' } }, 'Up'),
-      ' to start climbing. Press ',
-      el('strong', { style: { color: 'var(--warning)' } }, 'Pause'),
-      ' when you reach the top. Press ',
-      el('strong', { style: { color: 'var(--danger)' } }, 'Down'),
-      ' to head back. Press ',
-      el('strong', { style: { color: 'var(--warning)' } }, 'Pause'),
-      ' again at the start. Repeat.',
-    ]),
-  ]);
+  const logHeader = el('div', { class: 'log-header' }, 'Session log');
+  const logList = el('div', { class: 'log-list' });
+  const logCard = el('div', { class: 'card log-card' }, [logHeader, logList]);
 
   target.appendChild(
-    el('div', { class: 'tracker' }, [statusCard, actionGrid, sessionControls, helpCard])
+    el('div', { class: 'tracker' }, [
+      stateLabelEl,
+      cycleCountEl,
+      actionGrid,
+      sessionControls,
+      logCard,
+    ])
   );
-
-  // ---------- Logic ----------
 
   async function loadActiveSession() {
     session = await getActiveSession();
@@ -108,7 +95,6 @@ export async function renderTracker(target) {
       render();
       return;
     }
-    // Auto-close stale sessions (idle > timeout).
     events = await listEventsBySession(session.id);
     const lastTs = events.length ? events[events.length - 1].ts : session.startedAt;
     if (Date.now() - lastTs > IDLE_TIMEOUT_MS) {
@@ -124,6 +110,7 @@ export async function renderTracker(target) {
     state = stateFromEvents(events);
     segmentStartTs = events.length ? events[events.length - 1].ts : session.startedAt;
     render();
+    rebuildLog();
   }
 
   async function onStartSession() {
@@ -153,11 +140,11 @@ export async function renderTracker(target) {
     segmentStartTs = null;
     toast('Session stopped');
     render();
+    logList.innerHTML = '';
   }
 
   async function onPress(kind) {
     if (!session) {
-      // Auto-start session on first press for convenience.
       await onStartSession();
     }
     const ns = nextState(state, kind);
@@ -170,21 +157,19 @@ export async function renderTracker(target) {
     state = ns;
     segmentStartTs = ev.ts;
     render();
+    addLogEntry(ev);
   }
 
   function render() {
-    // State label
-    stateLabelEl.textContent = session ? stateLabel(state) : 'No active session';
+    stateLabelEl.textContent = session ? stateLabel(state) : 'Ready';
 
-    // Cycle count + timer base
     const segments = segmentsFromEvents(events);
     const cycles = cyclesFromSegments(segments);
     const completed = cycles.length;
-    cyclesEl.textContent = session
-      ? `${completed} ${completed === 1 ? 'cycle' : 'cycles'} completed`
-      : 'Press a button to begin';
+    cycleCountEl.textContent = session
+      ? `Cycle ${completed + 1}`
+      : '';
 
-    // Allowed buttons
     const allowed = new Set(session ? allowedEvents(state) : []);
     for (const b of BUTTONS) {
       const node = buttonNodes[b.kind];
@@ -193,28 +178,92 @@ export async function renderTracker(target) {
       node.dataset.active = isAllowed ? 'true' : 'false';
     }
 
-    // Buttons / start-stop visibility
     startBtn.style.display = session ? 'none' : '';
     stopBtn.style.display = session ? '' : 'none';
-
-    updateTimer();
+    logCard.style.display = session ? '' : 'none';
   }
 
-  function updateTimer() {
-    if (!session || !segmentStartTs) {
-      timerEl.textContent = '00:00';
-      return;
+  function addLogEntry(ev) {
+    if (events.length < 2) return;
+    const prevEv = events[events.length - 2];
+    const kind = pairKind(prevEv.type, ev.type);
+    if (!kind) return;
+
+    const duration = ev.ts - prevEv.ts;
+    const segments = segmentsFromEvents(events.slice(0, -1));
+    const cycles = cyclesFromSegments(segments);
+
+    const currentCycleIndex = cycles.length;
+    const prevDuration = segmentDurationFromCycle(cycles, currentCycleIndex - 1, kind);
+    const diffMs = prevDuration !== undefined ? duration - prevDuration : null;
+
+    const row = el('div', { class: 'log-entry' }, [
+      el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
+      el('div', { class: 'log-entry-kind' }, SEGMENT_LABELS[kind] || kind),
+      el('div', { class: 'log-entry-duration' }, formatDuration(duration)),
+    ]);
+
+    if (diffMs !== null) {
+      const diffEl = el('div', { class: 'log-entry-diff' });
+      const diffSec = Math.round(diffMs / 1000);
+      const prefix = diffSec > 0 ? '+' : '';
+      diffEl.textContent = `${prefix}${diffSec}s`;
+      diffEl.dataset.faster = diffSec < 0 ? 'true' : diffSec > 0 ? 'false' : 'none';
+      row.appendChild(diffEl);
     }
-    timerEl.textContent = formatLive(Date.now() - segmentStartTs);
+
+    logList.appendChild(row);
+    logList.scrollTop = logList.scrollHeight;
   }
 
-  // ---------- Lifecycle ----------
+  function rebuildLog() {
+    logList.innerHTML = '';
+    if (!session || events.length < 2) return;
+
+    for (let i = 1; i < events.length; i++) {
+      const prevEv = events[i - 1];
+      const ev = events[i];
+      const kind = pairKind(prevEv.type, ev.type);
+      if (!kind) continue;
+
+      const duration = ev.ts - prevEv.ts;
+      const currentEventsSlice = events.slice(0, i);
+      const segments = segmentsFromEvents(currentEventsSlice);
+      const cycles = cyclesFromSegments(segments);
+      const currentCycleIndex = cycles.length;
+      const prevDuration = segmentDurationFromCycle(cycles, currentCycleIndex - 1, kind);
+      const diffMs = prevDuration !== undefined ? duration - prevDuration : null;
+
+      const row = el('div', { class: 'log-entry' }, [
+        el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
+        el('div', { class: 'log-entry-kind' }, SEGMENT_LABELS[kind] || kind),
+        el('div', { class: 'log-entry-duration' }, formatDuration(duration)),
+      ]);
+
+      if (diffMs !== null) {
+        const diffEl = el('div', { class: 'log-entry-diff' });
+        const diffSec = Math.round(diffMs / 1000);
+        const prefix = diffSec > 0 ? '+' : '';
+        diffEl.textContent = `${prefix}${diffSec}s`;
+        diffEl.dataset.faster =
+          diffSec < 0 ? 'true' : diffSec > 0 ? 'false' : 'none';
+        row.appendChild(diffEl);
+      }
+
+      logList.appendChild(row);
+    }
+    logList.scrollTop = logList.scrollHeight;
+  }
 
   await loadActiveSession();
-  timerInterval = setInterval(updateTimer, 250);
 
-  // Cleanup callback returned to the router.
-  return () => {
-    if (timerInterval) clearInterval(timerInterval);
-  };
+  return () => {};
+}
+
+function pairKind(a, b) {
+  if (a === 'up' && b === 'pause') return SEGMENT_KINDS.UP;
+  if (a === 'pause' && b === 'down') return SEGMENT_KINDS.TOP_REST;
+  if (a === 'down' && b === 'pause') return SEGMENT_KINDS.DOWN;
+  if (a === 'pause' && b === 'up') return SEGMENT_KINDS.BOTTOM_REST;
+  return null;
 }
