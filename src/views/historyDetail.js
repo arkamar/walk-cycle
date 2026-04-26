@@ -189,9 +189,9 @@ export async function renderHistoryDetail(target, { id }) {
     el('h3', {}, 'Cycles'),
   ]);
 
-  if (!cycles.length) {
+  if (!cycles.length && events.filter(e => e.type === 'up').length === 0) {
     cyclesCard.appendChild(
-      el('p', { class: 'muted' }, 'No completed cycles yet.')
+      el('p', { class: 'muted' }, 'No cycles yet.')
     );
   } else {
     const list = el('div', { class: 'list' });
@@ -213,6 +213,34 @@ export async function renderHistoryDetail(target, { id }) {
             ),
           ]),
           el('div', { class: 'meta' }, formatDuration(c.totalMs)),
+        ])
+      );
+    }
+    
+    // Show ongoing partial cycle (last Up without full cycle)
+    const upEvents = events.filter(e => e.type === 'up');
+    if (upEvents.length > cycles.length) {
+      const lastUp = upEvents[upEvents.length - 1];
+      const lastUpIdx = events.indexOf(lastUp);
+      let parts = [];
+      let partialDuration = 0;
+      for (let i = lastUpIdx + 1; i < events.length; i++) {
+        const seg = events[i];
+        const segType = seg.type === 'pause' ? (i === lastUpIdx + 1 ? 'top' : 'bot') : 'down';
+        const dur = seg.ts - events[i-1].ts;
+        parts.push(`${segType} ${formatDuration(dur)}`);
+        partialDuration += dur;
+      }
+      if (lastUp.nextTs) {
+        partialDuration = lastUp.nextTs - lastUp.ts;
+      }
+      list.appendChild(
+        el('div', { class: 'list-item', style: { opacity: 0.7 } }, [
+          el('div', {}, [
+            el('div', {}, `Cycle ${upEvents.length} (partial)`),
+            el('div', { class: 'meta' }, parts.join(' · ') || 'in progress'),
+          ]),
+          el('div', { class: 'meta' }, partialDuration ? formatDuration(partialDuration) : '–'),
         ])
       );
     }

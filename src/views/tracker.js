@@ -183,10 +183,8 @@ export async function renderTracker(target) {
   function render() {
     stateLabelEl.textContent = session ? stateLabel(state) : 'Ready';
 
-    const segments = segmentsFromEvents(events);
-    const cycles = cyclesFromSegments(segments);
-    const completed = cycles.length;
-    cycleCountEl.textContent = session ? `Cycle ${completed + 1}` : '';
+    const upCount = events.filter(e => e.type === EVENTS.UP).length;
+    cycleCountEl.textContent = session ? `Cycle ${upCount + 1}` : '';
 
     const allowed = new Set(session ? allowedEvents(state) : []);
     for (const b of BUTTONS) {
