@@ -17,7 +17,7 @@ import {
 import {
   segmentsFromEvents,
   cyclesFromSegments,
-  SEGMENT_LABELS,
+  formatLive,
 } from '../analytics.js';
 
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
@@ -34,17 +34,12 @@ const EVENT_LABELS = {
   [EVENTS.DOWN]: 'Down',
 };
 
-const SEGMENT_KINDS = {
-  UP: 'up_duration',
-  TOP_REST: 'top_rest',
-  DOWN: 'down_duration',
-  BOTTOM_REST: 'bottom_rest',
-};
-
 export async function renderTracker(target) {
   let session = null;
   let events = [];
   let state = STATES.IDLE;
+  let timerInterval = null;
+  let lastEventTs = null;
 
   const stateLabelEl = el('div', { class: 'tracker-mini-state' }, 'Ready');
   const cycleCountEl = el('div', { class: 'tracker-mini-cycles' }, '');
@@ -100,6 +95,7 @@ export async function renderTracker(target) {
     if (!session) {
       events = [];
       state = STATES.IDLE;
+      lastEventTs = null;
       render();
       return;
     }
@@ -111,12 +107,15 @@ export async function renderTracker(target) {
       session = null;
       events = [];
       state = STATES.IDLE;
+      lastEventTs = null;
       render();
       return;
     }
     state = stateFromEvents(events);
+    lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
     render();
-    rebuildLog();
+    renderLog();
+    startTimer();
   }
 
   async function onStartSession() {
@@ -128,6 +127,7 @@ export async function renderTracker(target) {
     session = { id, startedAt: Date.now(), endedAt: null };
     events = [];
     state = STATES.IDLE;
+    lastEventTs = null;
     toast('Session started');
     render();
   }
@@ -138,10 +138,12 @@ export async function renderTracker(target) {
       return;
     }
     if (!confirm('Stop the current session?')) return;
+    stopTimer();
     await endSession(session.id);
     session = null;
     events = [];
     state = STATES.IDLE;
+    lastEventTs = null;
     toast('Session stopped');
     render();
     logList.innerHTML = '';
@@ -150,17 +152,31 @@ export async function renderTracker(target) {
   async function onPress(kind) {
     if (!session) {
       await onStartSession();
+      const ev = await addEvent({ sessionId: session.id, type: kind });
+      events.push(ev);
+      state = nextState(state, kind);
+      lastEventTs = ev.ts;
+      render();
+      renderLog();
+      startTimer();
+      return;
     }
+
     const ns = nextState(state, kind);
     if (!ns) {
       toast('Not allowed in current state');
       return;
     }
-    const ev = await addEvent({ sessionId: session.id, type: kind });
-    events.push(ev);
+
+    const prevTs = lastEventTs;
+    const newEv = await addEvent({ sessionId: session.id, type: kind });
+    events.push(newEv);
     state = ns;
+    lastEventTs = newEv.ts;
+
     render();
-    addLogEntry(ev);
+    renderLog(prevTs);
+    startTimer();
   }
 
   function render() {
@@ -169,9 +185,7 @@ export async function renderTracker(target) {
     const segments = segmentsFromEvents(events);
     const cycles = cyclesFromSegments(segments);
     const completed = cycles.length;
-    cycleCountEl.textContent = session
-      ? `Cycle ${completed + 1}`
-      : '';
+    cycleCountEl.textContent = session ? `Cycle ${completed + 1}` : '';
 
     const allowed = new Set(session ? allowedEvents(state) : []);
     for (const b of BUTTONS) {
@@ -185,118 +199,64 @@ export async function renderTracker(target) {
     stopBtn.style.display = session ? '' : 'none';
   }
 
-  function addLogEntry(ev) {
-    const prevEv = events.length > 1 ? events[events.length - 2] : null;
-    let duration = null;
-    let segmentKind = null;
-
-    if (prevEv) {
-      duration = ev.ts - prevEv.ts;
-      segmentKind = segmentKindFromPair(prevEv.type, ev.type);
-    }
-
-    let diffMs = null;
-    if (segmentKind && duration) {
-      const segments = segmentsFromEvents(events.slice(0, -1));
-      const cycles = cyclesFromSegments(segments);
-
-      if (cycles.length > 1) {
-        const prevCycle = cycles[cycles.length - 2];
-        const prevSeg = prevCycle.segments[segmentKind];
-        if (prevSeg) {
-          diffMs = duration - prevSeg.durationMs;
-        }
-      }
-    }
-
-    const row = el('div', { class: 'log-entry' }, [
-      el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
-      el('div', { class: 'log-entry-kind' }, EVENT_LABELS[ev.type] || ev.type),
-      el('div', { class: 'log-entry-duration' }, duration ? formatDuration(duration) : '–'),
-    ]);
-
-    if (diffMs !== null) {
-      const diffEl = el('div', { class: 'log-entry-diff' });
-      const diffSec = Math.round(diffMs / 1000);
-      const prefix = diffSec > 0 ? '+' : '';
-      diffEl.textContent = `${prefix}${diffSec}s`;
-      diffEl.dataset.faster = diffSec < 0 ? 'true' : diffSec > 0 ? 'false' : 'none';
-      row.appendChild(diffEl);
-    }
-
-    logList.insertBefore(row, logList.firstChild);
-  }
-
-  function rebuildLog() {
+  function renderLog(prevToFreezeTs = null) {
     logList.innerHTML = '';
-    if (!session || events.length === 0) return;
-
+    
     for (let i = events.length - 1; i >= 0; i--) {
       const ev = events[i];
-      const prevEv = i > 0 ? events[i - 1] : null;
-      let duration = null;
-      let segmentKind = null;
-
-      if (prevEv) {
-        duration = ev.ts - prevEv.ts;
-        segmentKind = segmentKindFromPair(prevEv.type, ev.type);
-      }
-
-      let diffMs = null;
-      if (segmentKind && duration) {
-        const segments = segmentsFromEvents(events.slice(0, i + 1));
-        const cycles = cyclesFromSegments(segments);
-
-        if (cycles.length > 1) {
-          const prevCycle = cycles[cycles.length - 2];
-          const prevSeg = prevCycle.segments[segmentKind];
-          if (prevSeg) {
-            diffMs = duration - prevSeg.durationMs;
-          }
+      let displayDuration = '–';
+      
+      if (i === events.length - 1) {
+        if (prevToFreezeTs) {
+          displayDuration = formatLive(prevToFreezeTs - events[i].ts);
+        } else {
+          displayDuration = '0:00';
         }
+      } else if (i < events.length - 1) {
+        displayDuration = formatLive(events[i + 1].ts - events[i].ts);
       }
-
+      
       const row = el('div', { class: 'log-entry' }, [
         el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
         el('div', { class: 'log-entry-kind' }, EVENT_LABELS[ev.type] || ev.type),
-        el('div', { class: 'log-entry-duration' }, duration ? formatDuration(duration) : '–'),
+        el('div', { class: 'log-entry-duration' }, displayDuration),
       ]);
-
-      if (diffMs !== null) {
-        const diffEl = el('div', { class: 'log-entry-diff' });
-        const diffSec = Math.round(diffMs / 1000);
-        const prefix = diffSec > 0 ? '+' : '';
-        diffEl.textContent = `${prefix}${diffSec}s`;
-        diffEl.dataset.faster = diffSec < 0 ? 'true' : diffSec > 0 ? 'false' : 'none';
-        row.appendChild(diffEl);
-      }
-
-      logList.insertBefore(row, logList.firstChild);
+      
+      logList.appendChild(row);
     }
-    logList.scrollTop = 0;
+  }
+
+  function updateLiveTimer() {
+    if (!session || !lastEventTs || events.length === 0) return;
+    
+    const firstRow = logList.firstChild;
+    if (!firstRow) return;
+    
+    const startTs = events[events.length - 1].ts;
+    const now = Date.now();
+    const elapsed = now - startTs;
+    
+    const durationEl = firstRow.querySelector('.log-entry-duration');
+    if (durationEl) {
+      durationEl.textContent = formatLive(elapsed);
+    }
+  }
+
+  function startTimer() {
+    stopTimer();
+    timerInterval = setInterval(updateLiveTimer, 250);
+  }
+
+  function stopTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
   }
 
   await loadActiveSession();
 
-  return () => {};
-}
-
-function segmentKindFromPair(a, b) {
-  if (a === 'up' && b === 'pause') return SEGMENT_KINDS.UP;
-  if (a === 'pause' && b === 'down') return SEGMENT_KINDS.TOP_REST;
-  if (a === 'down' && b === 'pause') return SEGMENT_KINDS.DOWN;
-  if (a === 'pause' && b === 'up') return SEGMENT_KINDS.BOTTOM_REST;
-  return null;
-}
-
-function formatDuration(ms) {
-  if (!Number.isFinite(ms) || ms < 0) return '–';
-  if (ms < 1000) return `${ms} ms`;
-  const totalSec = Math.round(ms / 1000);
-  if (totalSec < 60) {
-    return ms < 60000 ? `${(ms / 1000).toFixed(1)}s` : `${totalSec}s`;
-  }
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}m ${s}s`;
+  return () => {
+    stopTimer();
+  };
 }
