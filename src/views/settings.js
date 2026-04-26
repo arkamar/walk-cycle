@@ -40,7 +40,9 @@ export async function renderSettings(target) {
         if (s) {
           await endSession(s.id);
           toast('Session stopped');
-          checkActive();
+checkActive();
+
+  window.addEventListener('session-started', checkActive);
           window.location.hash = '/';
         }
       },

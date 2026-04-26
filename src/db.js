@@ -54,21 +54,11 @@ export async function endSession(id, endedAt = Date.now()) {
 }
 
 export async function resumeSession(id) {
-  const db = await getDB();
-  const session = await db.get(STORE_SESSIONS, id);
-  if (!session) return null;
-  session.endedAt = null;
-  await db.put(STORE_SESSIONS, session);
-  return session;
+  return updateSession(id, { pausedAt: null });
 }
 
-export async function updateSession(id, patch) {
-  const db = await getDB();
-  const session = await db.get(STORE_SESSIONS, id);
-  if (!session) return null;
-  Object.assign(session, patch);
-  await db.put(STORE_SESSIONS, session);
-  return session;
+export async function pauseSession(id) {
+  return updateSession(id, { pausedAt: Date.now() });
 }
 
 export async function getSession(id) {
@@ -81,6 +71,24 @@ export async function getActiveSession() {
   const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');
   for (let i = all.length - 1; i >= 0; i--) {
     if (!all[i].endedAt) return all[i];
+  }
+  return null;
+}
+
+export async function getLatestEndedSession() {
+  const db = await getDB();
+  const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');
+  for (let i = all.length - 1; i >= 0; i--) {
+    if (all[i].endedAt) return all[i];
+  }
+  return null;
+}
+
+export async function getPausedSession() {
+  const db = await getDB();
+  const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');
+  for (let i = all.length - 1; i >= 0; i--) {
+    if (all[i].pausedAt && !all[i].endedAt) return all[i];
   }
   return null;
 }

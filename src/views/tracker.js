@@ -14,6 +14,10 @@ import {
   addEvent,
   getActiveSession,
   listEventsBySession,
+  getLatestEndedSession,
+  getPausedSession,
+  resumeSession,
+  pauseSession,
 } from '../db.js';
 import {
   segmentsFromEvents,
@@ -25,12 +29,14 @@ const BUTTONS = [
   { kind: EVENTS.UP, label: 'Up', icon: '▲' },
   { kind: EVENTS.PAUSE, label: 'Pause', icon: '❚❚' },
   { kind: EVENTS.DOWN, label: 'Down', icon: '▼' },
+  { kind: 'stop', label: 'Stop', icon: '■' },
 ];
 
 const EVENT_LABELS = {
   [EVENTS.UP]: 'Up',
   [EVENTS.PAUSE]: 'Pause',
   [EVENTS.DOWN]: 'Down',
+  stop: 'Stop',
 };
 
 export async function renderTracker(target) {
@@ -47,13 +53,21 @@ export async function renderTracker(target) {
   const buttonNodes = {};
   const actionGrid = el('div', { class: 'action-buttons' });
   for (const b of BUTTONS) {
+    let onClick;
+    if (b.kind === 'stop') {
+      onClick = onStopSession;
+    } else if (b.kind === 'start') {
+      onClick = onStartSession;
+    } else {
+      onClick = () => onPress(b.kind);
+    }
     const btn = el(
       'button',
       {
         class: 'action-btn',
         type: 'button',
         dataset: { kind: b.kind },
-        onClick: () => onPress(b.kind),
+        onClick,
       },
       [
         el('span', { class: 'action-icon' }, b.icon),
@@ -64,14 +78,6 @@ export async function renderTracker(target) {
     actionGrid.appendChild(btn);
   }
 
-  const startBtn = el(
-    'button',
-    { class: 'btn btn-primary', type: 'button', onClick: onStartSession },
-    'Start session'
-  );
-  
-  const sessionControls = el('div', { class: 'session-controls' }, [startBtn]);
-  
   const logHeader = el('div', { class: 'log-header' }, 'Session log');
   const logList = el('div', { class: 'log-list' });
   const logCard = el('div', { class: 'card log-card', style: { overflowY: 'auto' } }, [logHeader, logList]);
@@ -82,7 +88,6 @@ export async function renderTracker(target) {
       cycleCountEl,
       goalProgressEl,
       actionGrid,
-      sessionControls,
       logCard,
     ])
   );
@@ -123,22 +128,41 @@ export async function renderTracker(target) {
     lastEventTs = null;
     toast('Session started');
     render();
+    window.dispatchEvent(new Event('session-started'));
   }
 
   async function onStopSession() {
     if (!session) {
-      toast('No active session');
+      const lastSession = await getLatestEndedSession();
+      if (!lastSession) {
+        toast('No session to resume');
+        return;
+      }
+      session = await resumeSession(lastSession.id);
+      events = await listEventsBySession(session.id);
+      for (let i = 0; i < events.length - 1; i++) {
+        events[i].nextTs = events[i + 1].ts;
+      }
+      if (events.length > 0) {
+        events[events.length - 1].nextTs = Date.now();
+      }
+      state = stateFromEvents(events);
+      lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
+      toast('Session resumed');
+      render();
+      renderLog();
+      startTimer();
       return;
     }
-    if (!confirm('Stop the current session?')) return;
     stopIntervalTimer();
-    await endSession(session.id);
+    await pauseSession(session.id);
     session = null;
     events = [];
     state = STATES.IDLE;
     lastEventTs = null;
-    toast('Session stopped');
+    toast('Session paused');
     render();
+    window.dispatchEvent(new Event('session-ended'));
   }
 
   async function onPress(kind) {
@@ -234,7 +258,7 @@ let status = '';
     }
   }
 
-  function render() {
+  async function render() {
     stateLabelEl.textContent = session ? stateLabel(state) : 'Ready';
 
     const upCount = events.filter(e => e.type === EVENTS.UP).length;
@@ -279,13 +303,35 @@ let status = '';
 
     const allowed = new Set(session ? allowedEvents(state) : []);
     for (const b of BUTTONS) {
+      if (b.kind === 'stop') continue;
       const node = buttonNodes[b.kind];
       const isAllowed = allowed.has(b.kind);
       node.disabled = !isAllowed;
       node.dataset.active = isAllowed ? 'true' : 'false';
     }
 
-    startBtn.style.display = session ? 'none' : '';
+    const stopNode = buttonNodes['stop'];
+    if (session) {
+      stopNode.disabled = false;
+      stopNode.style.display = '';
+      stopNode.dataset.active = 'true';
+      stopNode.querySelector('.action-icon').textContent = '■';
+      stopNode.querySelector('span:last-child').textContent = 'Pause';
+    } else {
+      const canResume = await getPausedSession();
+      stopNode.style.display = '';
+      if (canResume) {
+        stopNode.disabled = false;
+        stopNode.dataset.active = 'true';
+        stopNode.querySelector('.action-icon').textContent = '▶';
+        stopNode.querySelector('span:last-child').textContent = 'Resume';
+      } else {
+        stopNode.disabled = true;
+        stopNode.dataset.active = 'false';
+        stopNode.querySelector('.action-icon').textContent = '■';
+        stopNode.querySelector('span:last-child').textContent = 'Stop';
+      }
+    }
   }
 
   function renderLog(prevToFreezeTs = null) {

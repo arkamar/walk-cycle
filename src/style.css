@@ -278,8 +278,8 @@ h3 { font-size: 1rem; }
 
 .action-buttons {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 0.75rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
 }
 
 .action-btn {
@@ -322,6 +322,14 @@ h3 { font-size: 1rem; }
 }
 .action-btn[data-kind="down"] {
   color: var(--danger);
+}
+
+.action-btn[data-kind="stop"] {
+  color: var(--danger);
+}
+
+.action-btn[data-kind="start"] {
+  color: var(--success);
 }
 
 .action-btn:disabled {
