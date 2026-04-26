@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0f172a"/>
+  <!-- Up arrow -->
+  <path d="M128 256 L192 192 L192 224 L256 224 L256 288 L192 288 L192 320 Z" fill="#4ade80" transform="rotate(-90 192 256)"/>
+  <!-- Down arrow -->
+  <path d="M256 256 L320 192 L320 224 L384 224 L384 288 L320 288 L320 320 Z" fill="#f87171" transform="rotate(90 320 256)"/>
+  <!-- Pause bars in middle -->
+  <rect x="240" y="208" width="14" height="96" rx="3" fill="#fbbf24"/>
+  <rect x="258" y="208" width="14" height="96" rx="3" fill="#fbbf24"/>
+</svg>
