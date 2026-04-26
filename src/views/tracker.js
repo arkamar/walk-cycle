@@ -239,9 +239,8 @@ export async function renderTracker(target) {
         const prevDuration = prevSame.nextTs - prevSame.ts;
         const diffMs = thisDuration - prevDuration;
         if (diffMs !== 0) {
-          const diffSec = Math.round(diffMs / 1000);
-          const prefix = diffSec > 0 ? '+' : '';
-          diffStr = `${prefix}${diffSec}s`;
+          const sign = diffMs > 0 ? '+' : '-';
+          diffStr = sign + formatLive(Math.abs(diffMs));
         }
       }
       
