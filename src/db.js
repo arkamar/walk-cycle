@@ -53,6 +53,15 @@ export async function endSession(id, endedAt = Date.now()) {
   return session;
 }
 
+export async function updateSession(id, patch) {
+  const db = await getDB();
+  const session = await db.get(STORE_SESSIONS, id);
+  if (!session) return null;
+  Object.assign(session, patch);
+  await db.put(STORE_SESSIONS, session);
+  return session;
+}
+
 export async function resumeSession(id) {
   return updateSession(id, { pausedAt: null });
 }
