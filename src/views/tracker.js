@@ -201,8 +201,15 @@ export async function renderTracker(target) {
 
     const ns = nextState(state, kind);
     if (!ns) {
-      toast('Not allowed in current state');
-      return;
+      if (kind === EVENTS.DOWN || kind === EVENTS.UP) {
+        const pauseEv = await addEvent({ sessionId: session.id, type: EVENTS.PAUSE });
+        events.push(pauseEv);
+        state = nextState(state, EVENTS.PAUSE);
+        lastEventTs = pauseEv.ts;
+      } else {
+        toast('Not allowed in current state');
+        return;
+      }
     }
 
     const prevTs = lastEventTs;
