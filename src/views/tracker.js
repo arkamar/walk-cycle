@@ -43,6 +43,8 @@ export async function renderTracker(target) {
   let session = null;
   let events = [];
   let state = STATES.IDLE;
+  let pausedEvents = null;
+  let pausedState = null;
   let timerInterval = null;
   let lastEventTs = null;
 
@@ -93,6 +95,8 @@ export async function renderTracker(target) {
   );
 
   async function loadActiveSession() {
+    pausedEvents = null;
+    pausedState = null;
     session = await getActiveSession();
     if (!session) {
       events = [];
@@ -156,11 +160,13 @@ export async function renderTracker(target) {
     }
     stopIntervalTimer();
     await pauseSession(session.id);
+    const pausedEvents = events;
+    const pausedState = state;
     session = null;
-    events = [];
     state = STATES.IDLE;
     lastEventTs = null;
     toast('Session paused');
+    renderLog();
     render();
     window.dispatchEvent(new Event('session-ended'));
   }
@@ -259,13 +265,15 @@ let status = '';
   }
 
   async function render() {
-    stateLabelEl.textContent = events.length > 0 ? stateLabel(state) : 'Ready';
+    const currentEvents = pausedEvents ?? events;
+    const currentState = pausedState ?? state;
+    stateLabelEl.textContent = currentEvents.length > 0 ? stateLabel(currentState) : 'Ready';
 
-    const upCount = events.filter(e => e.type === EVENTS.UP).length;
-    cycleCountEl.textContent = (session || events.length > 0) ? `Cycle ${upCount}` : '';
+    const upCount = currentEvents.filter(e => e.type === EVENTS.UP).length;
+    cycleCountEl.textContent = (session || currentEvents.length > 0) ? `Cycle ${upCount}` : '';
 
     const goal = getCompetitionGoal();
-    if (goal && (session || events.length > 0)) {
+    if (goal && (session || currentEvents.length > 0)) {
       goalProgressEl.style.display = '';
       let parts = [];
       
