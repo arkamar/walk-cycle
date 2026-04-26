@@ -330,10 +330,9 @@ let status = '';
     }
 
     const allowed = new Set(session ? allowedEvents(state) : ['up']);
-    const hasPaused = !session && events.length > 0;
-    if (session || hasPaused) {
-      if (state === STATES.AT_TOP) allowed.add('down');
-      if (state === STATES.AT_BOTTOM) allowed.add('up');
+    if (!session && events.length > 0 && state !== STATES.IDLE) {
+      allowed.add('up');
+      allowed.add('down');
     }
     for (const b of BUTTONS) {
       if (b.kind === 'stop') continue;
