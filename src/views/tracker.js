@@ -45,6 +45,7 @@ export async function renderTracker(target) {
   let state = STATES.IDLE;
   let timerInterval = null;
   let lastEventTs = null;
+  let isPaused = false;
 
   const stateLabelEl = el('div', { class: 'tracker-mini-state' }, 'Ready');
   const cycleCountEl = el('div', { class: 'tracker-mini-cycles' }, '');
@@ -93,43 +94,44 @@ export async function renderTracker(target) {
   );
 
   async function loadActiveSession() {
-    session = await getActiveSession();
+    const active = await getActiveSession();
+    const paused = await getPausedSession();
+    
+    if (active) {
+      session = active;
+      isPaused = false;
+    } else if (paused) {
+      session = paused;
+      isPaused = true;
+    } else {
+      session = null;
+      isPaused = false;
+    }
+    
     if (!session) {
-      const paused = await getPausedSession();
-      if (paused) {
-        session = paused;
-        events = await listEventsBySession(paused.id);
-        for (let i = 0; i < events.length - 1; i++) {
-          events[i].nextTs = events[i + 1].ts;
-        }
-        if (events.length > 0) {
-          events[events.length - 1].nextTs = paused.pausedAt;
-        }
-        state = stateFromEvents(events);
-        lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
-        render();
-        renderLog();
-        return;
-      }
       events = [];
       state = STATES.IDLE;
       lastEventTs = null;
       render();
+      renderLog();
       return;
     }
+    
     events = await listEventsBySession(session.id);
     for (let i = 0; i < events.length - 1; i++) {
       events[i].nextTs = events[i + 1].ts;
     }
     if (events.length > 0) {
-      events[events.length - 1].nextTs = Date.now();
+      events[events.length - 1].nextTs = isPaused ? session.pausedAt : Date.now();
     }
     state = stateFromEvents(events);
     lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
     render();
     renderLog();
     renderGoalProgress();
-    startTimer();
+    if (session && !isPaused) {
+      startTimer();
+    }
   }
 
   async function onStartSession() {
@@ -359,26 +361,24 @@ let status = '';
     }
 
     const stopNode = buttonNodes['stop'];
-    if (session) {
+    if (session && !isPaused) {
       stopNode.disabled = false;
       stopNode.style.display = '';
       stopNode.dataset.active = 'true';
       stopNode.querySelector('.action-icon').textContent = '■';
       stopNode.querySelector('span:last-child').textContent = 'Pause';
-    } else {
-      const canResume = await getPausedSession();
+    } else if (isPaused) {
+      stopNode.disabled = false;
       stopNode.style.display = '';
-      if (canResume) {
-        stopNode.disabled = false;
-        stopNode.dataset.active = 'true';
-        stopNode.querySelector('.action-icon').textContent = '▶';
-        stopNode.querySelector('span:last-child').textContent = 'Resume';
-      } else {
-        stopNode.disabled = true;
-        stopNode.dataset.active = 'false';
-        stopNode.querySelector('.action-icon').textContent = '■';
-        stopNode.querySelector('span:last-child').textContent = 'Stop';
-      }
+      stopNode.dataset.active = 'true';
+      stopNode.querySelector('.action-icon').textContent = '▶';
+      stopNode.querySelector('span:last-child').textContent = 'Resume';
+    } else {
+      stopNode.disabled = true;
+      stopNode.style.display = '';
+      stopNode.dataset.active = 'false';
+      stopNode.querySelector('.action-icon').textContent = '■';
+      stopNode.querySelector('span:last-child').textContent = 'Stop';
     }
   }
 
@@ -401,11 +401,11 @@ let status = '';
       
       const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : null;
       
-      if (session && i === events.length - 1) {
+      if (session && !isPaused && i === events.length - 1) {
         displayDuration = '00:00';
       } else if (thisDuration) {
         displayDuration = formatLive(thisDuration);
-      } else if (!session && events.length > 0) {
+      } else if (isPaused || events.length > 0) {
         displayDuration = '–';
       } else {
         displayDuration = '–';
