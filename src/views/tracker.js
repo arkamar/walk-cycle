@@ -45,6 +45,7 @@ export async function renderTracker(target) {
   let state = STATES.IDLE;
   let timerInterval = null;
   let lastEventTs = null;
+  let isProcessing = false;
 
   const stateLabelEl = el('div', { class: 'tracker-mini-state' }, 'Ready');
   const cycleCountEl = el('div', { class: 'tracker-mini-cycles' }, '');
@@ -147,42 +148,48 @@ export async function renderTracker(target) {
   }
 
   async function onStopSession() {
-    if (!session) {
-      const paused = await getPausedSession();
-      if (!paused) {
-        toast('No session to resume');
-        return;
+    if (isProcessing) return;
+    isProcessing = true;
+    try {
+      if (!session || session.pausedAt) {
+        const paused = await getPausedSession();
+        if (!paused) {
+          toast('No session to resume');
+          return;
+        }
+        const resumed = await resumeSession(paused.id);
+        session = resumed;
+        events = await listEventsBySession(session.id);
+        for (let i = 0; i < events.length - 1; i++) {
+          events[i].nextTs = events[i + 1].ts;
+        }
+        if (events.length > 0) {
+          events[events.length - 1].nextTs = Date.now();
+        }
+        state = stateFromEvents(events);
+        lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
+        toast('Session resumed');
+        render();
+        renderLog();
+        renderGoalProgress();
+        startTimer();
+      } else {
+        stopIntervalTimer();
+        const paused = await pauseSession(session.id);
+        if (events.length > 0) {
+          events[events.length - 1].nextTs = paused.pausedAt;
+        }
+        session = null;
+        state = STATES.IDLE;
+        lastEventTs = null;
+        toast('Session paused');
+        render();
+        renderLog();
+        window.dispatchEvent(new Event('session-ended'));
       }
-      const resumed = await resumeSession(paused.id);
-      session = resumed;
-      events = await listEventsBySession(session.id);
-      for (let i = 0; i < events.length - 1; i++) {
-        events[i].nextTs = events[i + 1].ts;
-      }
-      if (events.length > 0) {
-        events[events.length - 1].nextTs = Date.now();
-      }
-      state = stateFromEvents(events);
-      lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
-      toast('Session resumed');
-      render();
-      renderLog();
-      renderGoalProgress();
-      startTimer();
-      return;
+    } finally {
+      isProcessing = false;
     }
-    stopIntervalTimer();
-    const paused = await pauseSession(session.id);
-    if (events.length > 0) {
-      events[events.length - 1].nextTs = paused.pausedAt;
-    }
-    session = null;
-    state = STATES.IDLE;
-    lastEventTs = null;
-    toast('Session paused');
-    render();
-    renderLog();
-    window.dispatchEvent(new Event('session-ended'));
   }
 
   async function onPress(kind) {
