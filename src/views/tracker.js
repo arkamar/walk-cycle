@@ -301,7 +301,7 @@ let status = '';
       goalProgressEl.style.display = 'none';
     }
 
-    const allowed = new Set(session ? allowedEvents(state) : []);
+    const allowed = new Set(session ? allowedEvents(state) : ['up']);
     for (const b of BUTTONS) {
       if (b.kind === 'stop') continue;
       const node = buttonNodes[b.kind];
