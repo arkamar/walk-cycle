@@ -74,7 +74,11 @@ function pairKind(a, b) {
  * in order: up, top_rest, down, bottom_rest. Returns an array of:
  *   { index, startTs, endTs, totalMs, segments: { up, top_rest, down, bottom_rest } }
  */
-export function cyclesFromSegments(segments) {
+/**
+ * Returns an array of cycles from segments.
+ * If includeIncomplete is true, also returns partial cycles.
+ */
+export function cyclesFromSegments(segments, includeIncomplete = true) {
   const cycles = [];
   let current = null;
 
@@ -88,7 +92,6 @@ export function cyclesFromSegments(segments) {
 
   for (const seg of segments) {
     if (seg.kind === SEGMENT_KINDS.UP) {
-      // start a new cycle
       current = open(seg);
       current.segments[SEGMENT_KINDS.UP] = seg;
     } else if (current) {
@@ -101,6 +104,14 @@ export function cyclesFromSegments(segments) {
       }
     }
   }
+
+  if (includeIncomplete && current) {
+    const lastSeg = Object.values(current.segments).pop();
+    current.endTs = lastSeg?.endTs || current.startTs;
+    current.totalMs = current.endTs - current.startTs;
+    cycles.push(current);
+  }
+
   return cycles;
 }
 
