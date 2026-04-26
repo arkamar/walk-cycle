@@ -48,7 +48,7 @@ export async function renderHistoryDetail(target, { id }) {
     events[i].nextTs = events[i + 1].ts;
   }
   if (events.length > 0) {
-    events[events.length - 1].nextTs = session.endedAt || events[events.length - 1].ts;
+    events[events.length - 1].nextTs = session.pausedAt || session.endedAt || events[events.length - 1].ts;
   }
 
   function findPrevSameType(idx, type, evts) {
