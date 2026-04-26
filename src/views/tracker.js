@@ -207,6 +207,12 @@ export async function renderTracker(target) {
         const newState = nextState(state, EVENTS.PAUSE);
         if (newState) state = newState;
         lastEventTs = pauseEv.ts;
+        
+        const newEv = await addEvent({ sessionId: session.id, type: kind });
+        events.push(newEv);
+        state = nextState(state, kind);
+        lastEventTs = newEv.ts;
+        
         await renderAndContinue(kind);
         return;
       } else {
