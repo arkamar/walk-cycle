@@ -21,8 +21,6 @@ import {
   formatLive,
 } from '../analytics.js';
 
-const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
-
 const BUTTONS = [
   { kind: EVENTS.UP, label: 'Up', icon: '▲' },
   { kind: EVENTS.PAUSE, label: 'Pause', icon: '❚❚' },
@@ -104,17 +102,6 @@ export async function renderTracker(target) {
     }
     if (events.length > 0) {
       events[events.length - 1].nextTs = Date.now();
-    }
-    const lastTs = events.length ? events[events.length - 1].ts : session.startedAt;
-    if (Date.now() - lastTs > IDLE_TIMEOUT_MS) {
-      await endSession(session.id, lastTs);
-      toast('Stale session auto-closed');
-      session = null;
-      events = [];
-      state = STATES.IDLE;
-      lastEventTs = null;
-      render();
-      return;
     }
     state = stateFromEvents(events);
     lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;

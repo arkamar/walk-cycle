@@ -25,4 +25,4 @@ npm run preview   # Serve dist/ locally with SW enabled
 
 ## State recovery
 
-App recovers state from IndexedDB on reload. Sessions idle >30 min are auto-closed.
+App recovers state from IndexedDB on reload.
