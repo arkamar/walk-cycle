@@ -189,7 +189,20 @@ export async function renderTracker(target) {
 
   async function onPress(kind) {
     if (!session) {
-      await onStartSession();
+      if (pausedEvents) {
+        const lastSession = await getPausedSession();
+        if (lastSession) {
+          session = await resumeSession(lastSession.id);
+          events = pausedEvents;
+          state = pausedState;
+          pausedEvents = null;
+          pausedState = null;
+          lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
+        }
+      }
+      if (!session) {
+        await onStartSession();
+      }
       const ev = await addEvent({ sessionId: session.id, type: kind });
       events.push(ev);
       state = nextState(state, kind);
