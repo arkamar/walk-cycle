@@ -183,7 +183,6 @@ export async function renderTracker(target) {
 
     startBtn.style.display = session ? 'none' : '';
     stopBtn.style.display = session ? '' : 'none';
-    logCard.style.display = session ? '' : 'none';
   }
 
   function addLogEntry(ev) {
