@@ -43,8 +43,6 @@ export async function renderTracker(target) {
   let session = null;
   let events = [];
   let state = STATES.IDLE;
-  let pausedEvents = null;
-  let pausedState = null;
   let timerInterval = null;
   let lastEventTs = null;
 
@@ -95,23 +93,22 @@ export async function renderTracker(target) {
   );
 
   async function loadActiveSession() {
-    pausedEvents = null;
-    pausedState = null;
     session = await getActiveSession();
     if (!session) {
       const paused = await getPausedSession();
       if (paused) {
-        pausedEvents = await listEventsBySession(paused.id);
-        for (let i = 0; i < pausedEvents.length - 1; i++) {
-          pausedEvents[i].nextTs = pausedEvents[i + 1].ts;
+        session = paused;
+        events = await listEventsBySession(paused.id);
+        for (let i = 0; i < events.length - 1; i++) {
+          events[i].nextTs = events[i + 1].ts;
         }
-        if (pausedEvents.length > 0) {
-          pausedEvents[pausedEvents.length - 1].nextTs = paused.pausedAt;
+        if (events.length > 0) {
+          events[events.length - 1].nextTs = paused.pausedAt;
         }
-        pausedState = stateFromEvents(pausedEvents);
-        lastEventTs = pausedEvents.length > 0 ? pausedEvents[pausedEvents.length - 1].ts : null;
-        renderLog(paused.pausedAt);
+        state = stateFromEvents(events);
+        lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
         render();
+        renderLog();
         return;
       }
       events = [];
@@ -168,47 +165,36 @@ export async function renderTracker(target) {
       state = stateFromEvents(events);
       lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
       toast('Session resumed');
-      renderLog();
-      startTimer();
       render();
+      renderLog();
+      renderGoalProgress();
+      startTimer();
       return;
     }
     stopIntervalTimer();
     const updatedSession = await pauseSession(session.id);
-    pausedEvents = events;
-    pausedState = state;
-    const pausedEventsCopy = events;
+    if (events.length > 0) {
+      events[events.length - 1].nextTs = updatedSession.pausedAt;
+    }
     session = null;
     state = STATES.IDLE;
     lastEventTs = null;
     toast('Session paused');
-    renderLog(updatedSession.pausedAt);
     render();
+    renderLog();
     window.dispatchEvent(new Event('session-ended'));
   }
 
   async function onPress(kind) {
     if (!session) {
-      if (pausedEvents) {
-        const lastSession = await getPausedSession();
-        if (lastSession) {
-          session = await resumeSession(lastSession.id);
-          events = pausedEvents;
-          state = pausedState;
-          pausedEvents = null;
-          pausedState = null;
-          lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
-        }
-      }
-      if (!session) {
-        await onStartSession();
-      }
+      await onStartSession();
       const ev = await addEvent({ sessionId: session.id, type: kind });
       events.push(ev);
       state = nextState(state, kind);
       lastEventTs = ev.ts;
       render();
       renderLog();
+      renderGoalProgress();
       startTimer();
       return;
     }
@@ -371,40 +357,33 @@ let status = '';
     }
   }
 
-  function renderLog(prevToFreezeTs = null) {
-    const displayEvents = pausedEvents ?? events;
+  function renderLog() {
     logList.innerHTML = '';
     
     const cycleForEvent = (idx) => {
       let cycle = 0;
       for (let j = 0; j <= idx; j++) {
-        if (displayEvents[j].type === EVENTS.UP) cycle++;
+        if (events[j].type === EVENTS.UP) cycle++;
       }
       return cycle;
     };
     
-    for (let i = displayEvents.length - 1; i >= 0; i--) {
-      const ev = displayEvents[i];
+    for (let i = events.length - 1; i >= 0; i--) {
+      const ev = events[i];
       let displayDuration = '–';
       let diffStr = '';
       const thisCycle = cycleForEvent(i);
       
-      const thisDuration = i < displayEvents.length - 1 ? displayEvents[i + 1].ts - ev.ts : null;
+      const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : null;
       
-      if (i === displayEvents.length - 1) {
-        if (prevToFreezeTs) {
-          displayDuration = formatLive(prevToFreezeTs - ev.ts);
-        } else if (session) {
-          displayDuration = '00:00';
-        } else {
-          displayDuration = '–';
-        }
+      if (session && i === events.length - 1) {
+        displayDuration = '00:00';
       } else {
-        displayDuration = formatLive(thisDuration);
+        displayDuration = thisDuration ? formatLive(thisDuration) : '–';
       }
       
       const prevSame = findPrevSameType(i, ev.type);
-      if (prevSame && i < displayEvents.length - 1) {
+      if (prevSame && i < events.length - 1 && prevSame.nextTs) {
         const prevDuration = prevSame.nextTs - prevSame.ts;
         const diffMs = thisDuration - prevDuration;
         if (diffMs !== 0) {
@@ -413,7 +392,7 @@ let status = '';
         }
       }
       
-const row = el('div', { class: 'log-entry' }, [
+      const row = el('div', { class: 'log-entry' }, [
         el('div', { class: 'log-entry-cycle' }, thisCycle > 0 ? `#${thisCycle}` : ''),
         el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
         el('div', { class: 'log-entry-kind' }, EVENT_LABELS[ev.type] || ev.type),
@@ -432,32 +411,30 @@ const row = el('div', { class: 'log-entry' }, [
       logList.appendChild(row);
     }
     
-    for (let i = 0; i < displayEvents.length - 1; i++) {
-      displayEvents[i].nextTs = displayEvents[i + 1].ts;
+    for (let i = 0; i < events.length - 1; i++) {
+      events[i].nextTs = events[i + 1].ts;
     }
-    if (displayEvents.length > 0 && session) {
-      displayEvents[displayEvents.length - 1].nextTs = Date.now();
+    if (events.length > 0 && session) {
+      events[events.length - 1].nextTs = Date.now();
     }
   }
   
   function findPrevSameType(currentIndex, type) {
-    const searchEvents = pausedEvents ?? events;
     for (let i = currentIndex - 1; i >= 0; i--) {
-      if (searchEvents[i].type === type && searchEvents[i].nextTs) {
-        return searchEvents[i];
+      if (events[i].type === type && events[i].nextTs) {
+        return events[i];
       }
     }
     return null;
   }
 
   function updateLiveTimer() {
-    const currentEvents = pausedEvents ?? events;
-    if ((!session && !pausedEvents) || !lastEventTs || currentEvents.length === 0) return;
+    if (!session || !lastEventTs || events.length === 0) return;
     
     const firstRow = logList.firstChild;
     if (!firstRow) return;
     
-    const startTs = currentEvents[currentEvents.length - 1].ts;
+    const startTs = events[events.length - 1].ts;
     const now = Date.now();
     const elapsed = now - startTs;
     
