@@ -190,12 +190,33 @@ render();
     if (goal && session) {
       goalProgressEl.style.display = '';
       let parts = [];
+let status = '';
       
       if (goal.ups) {
-        const upCount = events.filter(e => e.type === EVENTS.UP).length;
-        const remaining = goal.ups - upCount;
+        const completedUps = countCompletedUps(goal.ups);
+        const remaining = goal.ups - completedUps;
         if (remaining > 0) {
           parts.push(`${remaining} up${remaining === 1 ? '' : 's'}`);
+          
+          if (goal.endTime && completedUps >= 2) {
+            const now = new Date();
+            const [h, m] = goal.endTime.split(':').map(Number);
+            const target = new Date(now);
+            target.setHours(h, m, 0, 0);
+            if (target < now) target.setDate(target.getDate() + 1);
+            const timeLeftMs = target - now;
+            
+            const avgCycle = calcAvgCycleTime();
+            if (avgCycle > 0 && timeLeftMs > 0) {
+              const requiredPerUp = timeLeftMs / remaining;
+              if (avgCycle <= requiredPerUp) {
+                status = 'on pace';
+              } else {
+                const needed = formatLive(avgCycle - requiredPerUp);
+                status = `need -${needed}`;
+              }
+            }
+          }
         } else if (remaining < 0) {
           parts.push(`${-remaining} over`);
         }
@@ -216,7 +237,8 @@ render();
       }
       
       if (parts.length > 0) {
-        goalProgressEl.textContent = parts.join(' · ');
+        const display = status ? `${parts.join(' · ')} (${status})` : parts.join(' · ');
+        goalProgressEl.textContent = display;
       } else {
         goalProgressEl.style.display = 'none';
       }
@@ -386,6 +408,35 @@ const row = el('div', { class: 'log-entry' }, [
   }
 
   await loadActiveSession();
+
+  function calcAvgCycleTime() {
+    const upEvents = events.filter(e => e.type === EVENTS.UP);
+    if (upEvents.length < 2) return 0;
+    
+    let totalMs = 0;
+    for (let i = 1; i < upEvents.length; i++) {
+      const prev = upEvents[i-1];
+      const curr = upEvents[i];
+      if (curr.ts && prev.ts) {
+        totalMs += curr.ts - prev.ts;
+      }
+    }
+    const cycles = upEvents.length - 1;
+    return cycles > 0 ? totalMs / cycles : 0;
+  }
+
+  function countCompletedUps(targetUps) {
+    const upEvents = events.filter(e => e.type === EVENTS.UP);
+    let completed = 0;
+    for (let i = 0; i < upEvents.length; i++) {
+      const upEv = upEvents[i];
+      const nextEv = events.find(e => e.ts > upEv.ts);
+      if (nextEv && nextEv.type === EVENTS.PAUSE) {
+        completed++;
+      }
+    }
+    return completed;
+  }
 
   return () => {
     stopIntervalTimer();
