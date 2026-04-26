@@ -329,9 +329,10 @@ let status = '';
       goalProgressEl.style.display = 'none';
     }
 
-    const allowed = session ? allowedEvents(state) : ['up'];
+    const allowed = session ? [...allowedEvents(state)] : ['up'];
     if (session) {
-      allowed.push('up', 'pause', 'down');
+      if (state === STATES.AT_TOP) allowed.push('down');
+      if (state === STATES.AT_BOTTOM) allowed.push('up');
     }
     const allowedSet = new Set(allowed);
     for (const b of BUTTONS) {
