@@ -205,25 +205,62 @@ export async function renderTracker(target) {
     for (let i = events.length - 1; i >= 0; i--) {
       const ev = events[i];
       let displayDuration = '–';
+      let diffStr = '';
+      
+      const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : null;
       
       if (i === events.length - 1) {
         if (prevToFreezeTs) {
-          displayDuration = formatLive(prevToFreezeTs - events[i].ts);
+          displayDuration = formatLive(prevToFreezeTs - ev.ts);
         } else {
           displayDuration = '0:00';
         }
-      } else if (i < events.length - 1) {
-        displayDuration = formatLive(events[i + 1].ts - events[i].ts);
+      } else {
+        displayDuration = formatLive(thisDuration);
+      }
+      
+      const prevSame = findPrevSameType(i, ev.type);
+      if (prevSame && i < events.length - 1) {
+        const prevDuration = prevSame.nextTs - prevSame.ts;
+        const diffMs = thisDuration - prevDuration;
+        if (diffMs !== 0) {
+          const diffSec = Math.round(diffMs / 1000);
+          const prefix = diffSec > 0 ? '+' : '';
+          diffStr = `${prefix}${diffSec}s`;
+        }
       }
       
       const row = el('div', { class: 'log-entry' }, [
         el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
         el('div', { class: 'log-entry-kind' }, EVENT_LABELS[ev.type] || ev.type),
-        el('div', { class: 'log-entry-duration' }, displayDuration),
       ]);
+      
+      if (diffStr) {
+        const diffEl = el('div', { class: 'log-entry-diff' }, diffStr);
+        diffEl.dataset.faster = diffStr.startsWith('+') ? 'false' : 'true';
+        row.appendChild(diffEl);
+      }
+      
+      row.appendChild(el('div', { class: 'log-entry-duration' }, displayDuration));
       
       logList.appendChild(row);
     }
+    
+    for (let i = 0; i < events.length - 1; i++) {
+      events[i].nextTs = events[i + 1].ts;
+    }
+    if (events.length > 0) {
+      events[events.length - 1].nextTs = Date.now();
+    }
+  }
+  
+  function findPrevSameType(currentIndex, type) {
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      if (events[i].type === type && events[i].nextTs) {
+        return events[i];
+      }
+    }
+    return null;
   }
 
   function updateLiveTimer() {
