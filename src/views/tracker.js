@@ -329,15 +329,15 @@ let status = '';
       goalProgressEl.style.display = 'none';
     }
 
-    const allowed = new Set(session ? allowedEvents(state) : ['up']);
-    if (!session && events.length > 0 && state !== STATES.IDLE) {
-      allowed.add('up');
-      allowed.add('down');
+    const allowed = session ? allowedEvents(state) : ['up'];
+    if (session) {
+      allowed.push('up', 'pause', 'down');
     }
+    const allowedSet = new Set(allowed);
     for (const b of BUTTONS) {
       if (b.kind === 'stop') continue;
       const node = buttonNodes[b.kind];
-      const isAllowed = allowed.has(b.kind);
+      const isAllowed = allowedSet.has(b.kind);
       node.disabled = !isAllowed;
       node.dataset.active = isAllowed ? 'true' : 'false';
     }
