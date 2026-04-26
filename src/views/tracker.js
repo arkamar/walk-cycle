@@ -1,4 +1,5 @@
 import { el, toast, formatTime } from '../ui.js';
+import { getCompetitionGoal } from './settings.js';
 import {
   STATES,
   EVENTS,
@@ -43,6 +44,7 @@ export async function renderTracker(target) {
 
   const stateLabelEl = el('div', { class: 'tracker-mini-state' }, 'Ready');
   const cycleCountEl = el('div', { class: 'tracker-mini-cycles' }, '');
+  const goalProgressEl = el('div', { class: 'tracker-goal-progress', style: { display: 'none' } }, '');
 
   const buttonNodes = {};
   const actionGrid = el('div', { class: 'action-buttons' });
@@ -80,6 +82,7 @@ export async function renderTracker(target) {
     el('div', { class: 'tracker' }, [
       stateLabelEl,
       cycleCountEl,
+      goalProgressEl,
       actionGrid,
       sessionControls,
       logCard,
@@ -117,6 +120,7 @@ export async function renderTracker(target) {
     lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
     render();
     renderLog();
+    renderGoalProgress();
     startTimer();
   }
 
@@ -175,9 +179,44 @@ export async function renderTracker(target) {
     state = ns;
     lastEventTs = newEv.ts;
 
-    render();
-    renderLog(prevTs);
+render();
+    renderLog();
+    renderGoalProgress();
     startTimer();
+  }
+
+  function renderGoalProgress() {
+    const goal = getCompetitionGoal();
+    if (goal && session) {
+      goalProgressEl.style.display = '';
+      if (goal.type === 'ups') {
+        const upCount = events.filter(e => e.type === EVENTS.UP).length;
+        const remaining = goal.value - upCount;
+        if (remaining > 0) {
+          goalProgressEl.textContent = `${remaining} up${remaining === 1 ? '' : 's'} to go`;
+        } else if (remaining === 0) {
+          goalProgressEl.textContent = 'Goal reached! 🎉';
+        } else {
+          goalProgressEl.textContent = `${-remaining} over goal`;
+        }
+      } else if (goal.type === 'endTime') {
+        const now = new Date();
+        const [h, m] = goal.value.split(':').map(Number);
+        const target = new Date(now);
+        target.setHours(h, m, 0, 0);
+        if (target < now) target.setDate(target.getDate() + 1);
+        const diffMs = target - now;
+        if (diffMs > 0) {
+          const mins = Math.floor(diffMs / 60000);
+          const secs = Math.floor((diffMs % 60000) / 1000);
+          goalProgressEl.textContent = `${mins}:${secs.toString().padStart(2, '0')} remaining`;
+        } else {
+          goalProgressEl.textContent = 'Time is up!';
+        }
+      }
+    } else {
+      goalProgressEl.style.display = 'none';
+    }
   }
 
   function render() {
@@ -185,6 +224,37 @@ export async function renderTracker(target) {
 
     const upCount = events.filter(e => e.type === EVENTS.UP).length;
     cycleCountEl.textContent = session ? `Cycle ${upCount + 1}` : '';
+
+    const goal = getCompetitionGoal();
+    if (goal && session) {
+      goalProgressEl.style.display = '';
+      if (goal.type === 'ups') {
+        const remaining = goal.value - upCount;
+        if (remaining > 0) {
+          goalProgressEl.textContent = `${remaining} up${remaining === 1 ? '' : 's'} to go`;
+        } else if (remaining === 0) {
+          goalProgressEl.textContent = 'Goal reached! 🎉';
+        } else {
+          goalProgressEl.textContent = `${-remaining} over goal`;
+        }
+      } else if (goal.type === 'endTime') {
+        const now = new Date();
+        const [h, m] = goal.value.split(':').map(Number);
+        const target = new Date(now);
+        target.setHours(h, m, 0, 0);
+        if (target < now) target.setDate(target.getDate() + 1);
+        const diffMs = target - now;
+        if (diffMs > 0) {
+          const mins = Math.floor(diffMs / 60000);
+          const secs = Math.floor((diffMs % 60000) / 1000);
+          goalProgressEl.textContent = `${mins}:${secs.toString().padStart(2, '0')} remaining`;
+        } else {
+          goalProgressEl.textContent = 'Time is up!';
+        }
+      }
+    } else {
+      goalProgressEl.style.display = 'none';
+    }
 
     const allowed = new Set(session ? allowedEvents(state) : []);
     for (const b of BUTTONS) {
@@ -290,7 +360,10 @@ const row = el('div', { class: 'log-entry' }, [
 
   function startTimer() {
     stopIntervalTimer();
-    timerInterval = setInterval(updateLiveTimer, 250);
+    timerInterval = setInterval(() => {
+      updateLiveTimer();
+      renderGoalProgress();
+    }, 250);
   }
 
   function stopIntervalTimer() {

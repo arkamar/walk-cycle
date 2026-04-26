@@ -5,17 +5,26 @@ import { createRouter } from './router.js';
 registerSW({ immediate: true });
 
 // Lazy-load views so the initial bundle stays small (Chart.js, etc.).
-const lazy = (loader) => async (target, ctx) => {
-  const mod = await loader();
-  const fnName = Object.keys(mod).find((k) => typeof mod[k] === 'function');
-  return mod[fnName](target, ctx);
+const lazy = (loader, name) => async (target, ctx) => {
+  try {
+    const mod = await loader();
+    const render = mod[name];
+    if (!render) {
+      throw new Error(`Missing export: ${name}`);
+    }
+    console.log('lazy loaded', name, 'for', ctx?.path);
+    return render(target, ctx);
+  } catch (err) {
+    console.error('lazy load error:', err);
+    target.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+  }
 };
 
-const renderTracker = lazy(() => import('./views/tracker.js'));
-const renderHistory = lazy(() => import('./views/history.js'));
-const renderHistoryDetail = lazy(() => import('./views/historyDetail.js'));
-const renderStats = lazy(() => import('./views/stats.js'));
-const renderSettings = lazy(() => import('./views/settings.js'));
+const renderTracker = lazy(() => import('./views/tracker.js'), 'renderTracker');
+const renderHistory = lazy(() => import('./views/history.js'), 'renderHistory');
+const renderHistoryDetail = lazy(() => import('./views/historyDetail.js'), 'renderHistoryDetail');
+const renderStats = lazy(() => import('./views/stats.js'), 'renderStats');
+const renderSettings = lazy(() => import('./views/settings.js'), 'renderSettings');
 
 const TABS = [
   { path: '/', label: 'Track', icon: '⏱' },

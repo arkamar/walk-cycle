@@ -1,7 +1,36 @@
 import { el, toast, formatDateTime } from '../ui.js';
 import { exportAll, importAll, clearAll, getActiveSession, endSession } from '../db.js';
 
+const CFG_KEY = 'walk-cycle-config';
+
+function getConfig() {
+  try {
+    return JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function setConfig(cfg) {
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+}
+
+export function getCompetitionGoal() {
+  const cfg = getConfig();
+  return cfg.competitionGoal || null;
+}
+
+export function setCompetitionGoal(goal) {
+  const cfg = getConfig();
+  cfg.competitionGoal = goal;
+  setConfig(cfg);
+}
+
 export async function renderSettings(target) {
+  target.innerHTML = '';  // Force clear
+  target.textContent = 'Loading...';
+  await new Promise(r => setTimeout(r, 100));
+  target.innerHTML = '';
   const stopSessionBtn = el(
     'button',
     {
@@ -30,6 +59,72 @@ export async function renderSettings(target) {
       'If you have a session in progress, you can stop it from here.'
     ),
     stopSessionBtn,
+  ]);
+
+  // ---------- Competition goal ----------
+  const goalTypeSel = el('select', { id: 'goal-type' });
+  goalTypeSel.appendChild(el('option', { value: '' }, 'None'));
+  goalTypeSel.appendChild(el('option', { value: 'ups' }, 'Target Up count'));
+  goalTypeSel.appendChild(el('option', { value: 'endTime' }, 'Target end time'));
+
+  const goalValInput = el('input', {
+    type: 'number',
+    id: 'goal-value',
+    min: '1',
+    placeholder: '9',
+    style: { width: '80px' },
+  });
+
+  const goalTimeInput = el('input', {
+    type: 'time',
+    id: 'goal-time',
+    style: { display: 'none' },
+  });
+
+  const goalRow = el('div', { class: 'row', style: { gap: '0.5rem', alignItems: 'center' } }, [
+    goalTypeSel,
+    goalValInput,
+    goalTimeInput,
+  ]);
+
+  const initGoal = getCompetitionGoal();
+  if (initGoal) {
+    goalTypeSel.value = initGoal.type;
+    if (initGoal.type === 'ups') {
+      goalValInput.value = initGoal.value;
+    } else if (initGoal.type === 'endTime') {
+      goalTimeInput.style.display = '';
+      goalTimeInput.value = initGoal.value;
+      goalValInput.style.display = 'none';
+    }
+  }
+
+  goalTypeSel.onchange = () => {
+    const type = goalTypeSel.value;
+    goalValInput.style.display = type === 'ups' ? '' : 'none';
+    goalTimeInput.style.display = type === 'endTime' ? '' : 'none';
+    saveGoal();
+  };
+  goalValInput.onchange = saveGoal;
+  goalTimeInput.onchange = saveGoal;
+
+  function saveGoal() {
+    const type = goalTypeSel.value;
+    if (!type) {
+      setCompetitionGoal(null);
+    } else if (type === 'ups') {
+      const val = parseInt(goalValInput.value, 10);
+      setCompetitionGoal({ type: 'ups', value: val || 9 });
+    } else if (type === 'endTime') {
+      setCompetitionGoal({ type: 'endTime', value: goalTimeInput.value });
+    }
+    toast('Goal saved');
+  }
+
+  const compCard = el('div', { class: 'card' }, [
+    el('h3', {}, 'Competition goal'),
+    el('p', { class: 'muted' }, 'Set a target to track your progress.'),
+    goalRow,
   ]);
 
   // ---------- Backup ----------
@@ -120,6 +215,7 @@ export async function renderSettings(target) {
     el('div', {}, [
       el('h2', { style: { marginBottom: '0.75rem' } }, 'Settings'),
       sessionCard,
+      compCard,
       backupCard,
       dangerCard,
       aboutCard,
