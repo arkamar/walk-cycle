@@ -331,7 +331,9 @@ let status = '';
 
     const allowed = session ? [...allowedEvents(state)] : ['up'];
     if (session) {
+      if (state === STATES.GOING_UP) allowed.push('down');
       if (state === STATES.AT_TOP) allowed.push('down');
+      if (state === STATES.GOING_DOWN) allowed.push('up');
       if (state === STATES.AT_BOTTOM) allowed.push('up');
     }
     const allowedSet = new Set(allowed);
