@@ -189,30 +189,36 @@ render();
     const goal = getCompetitionGoal();
     if (goal && session) {
       goalProgressEl.style.display = '';
-      if (goal.type === 'ups') {
+      let parts = [];
+      
+      if (goal.ups) {
         const upCount = events.filter(e => e.type === EVENTS.UP).length;
-        const remaining = goal.value - upCount;
+        const remaining = goal.ups - upCount;
         if (remaining > 0) {
-          goalProgressEl.textContent = `${remaining} up${remaining === 1 ? '' : 's'} to go`;
-        } else if (remaining === 0) {
-          goalProgressEl.textContent = 'Goal reached! 🎉';
-        } else {
-          goalProgressEl.textContent = `${-remaining} over goal`;
+          parts.push(`${remaining} up${remaining === 1 ? '' : 's'}`);
+        } else if (remaining < 0) {
+          parts.push(`${-remaining} over`);
         }
-      } else if (goal.type === 'endTime') {
+      }
+      
+      if (goal.endTime) {
         const now = new Date();
-        const [h, m] = goal.value.split(':').map(Number);
+        const [h, m] = goal.endTime.split(':').map(Number);
         const target = new Date(now);
         target.setHours(h, m, 0, 0);
         if (target < now) target.setDate(target.getDate() + 1);
         const diffMs = target - now;
         if (diffMs > 0) {
-          const mins = Math.floor(diffMs / 60000);
-          const secs = Math.floor((diffMs % 60000) / 1000);
-          goalProgressEl.textContent = `${mins}:${secs.toString().padStart(2, '0')} remaining`;
+          parts.push(formatLive(diffMs));
         } else {
-          goalProgressEl.textContent = 'Time is up!';
+          parts.push('time up');
         }
+      }
+      
+      if (parts.length > 0) {
+        goalProgressEl.textContent = parts.join(' · ');
+      } else {
+        goalProgressEl.style.display = 'none';
       }
     } else {
       goalProgressEl.style.display = 'none';
@@ -228,29 +234,35 @@ render();
     const goal = getCompetitionGoal();
     if (goal && session) {
       goalProgressEl.style.display = '';
-      if (goal.type === 'ups') {
-        const remaining = goal.value - upCount;
+      let parts = [];
+      
+      if (goal.ups) {
+        const remaining = goal.ups - upCount;
         if (remaining > 0) {
-          goalProgressEl.textContent = `${remaining} up${remaining === 1 ? '' : 's'} to go`;
-        } else if (remaining === 0) {
-          goalProgressEl.textContent = 'Goal reached! 🎉';
-        } else {
-          goalProgressEl.textContent = `${-remaining} over goal`;
+          parts.push(`${remaining} up`);
+        } else if (remaining < 0) {
+          parts.push(`${-remaining} over`);
         }
-      } else if (goal.type === 'endTime') {
+      }
+      
+      if (goal.endTime) {
         const now = new Date();
-        const [h, m] = goal.value.split(':').map(Number);
+        const [h, m] = goal.endTime.split(':').map(Number);
         const target = new Date(now);
         target.setHours(h, m, 0, 0);
         if (target < now) target.setDate(target.getDate() + 1);
         const diffMs = target - now;
         if (diffMs > 0) {
-          const mins = Math.floor(diffMs / 60000);
-          const secs = Math.floor((diffMs % 60000) / 1000);
-          goalProgressEl.textContent = `${mins}:${secs.toString().padStart(2, '0')} remaining`;
+          parts.push(formatLive(diffMs));
         } else {
-          goalProgressEl.textContent = 'Time is up!';
+          parts.push('time up');
         }
+      }
+      
+      if (parts.length > 0) {
+        goalProgressEl.textContent = parts.join(' · ');
+      } else {
+        goalProgressEl.style.display = 'none';
       }
     } else {
       goalProgressEl.style.display = 'none';

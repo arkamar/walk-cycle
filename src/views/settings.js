@@ -27,9 +27,6 @@ export function setCompetitionGoal(goal) {
 }
 
 export async function renderSettings(target) {
-  target.innerHTML = '';  // Force clear
-  target.textContent = 'Loading...';
-  await new Promise(r => setTimeout(r, 100));
   target.innerHTML = '';
   const stopSessionBtn = el(
     'button',
@@ -62,68 +59,56 @@ export async function renderSettings(target) {
   ]);
 
   // ---------- Competition goal ----------
-  const goalTypeSel = el('select', { id: 'goal-type' });
-  goalTypeSel.appendChild(el('option', { value: '' }, 'None'));
-  goalTypeSel.appendChild(el('option', { value: 'ups' }, 'Target Up count'));
-  goalTypeSel.appendChild(el('option', { value: 'endTime' }, 'Target end time'));
-
-  const goalValInput = el('input', {
+  const goalUpsInput = el('input', {
     type: 'number',
-    id: 'goal-value',
+    id: 'goal-ups',
     min: '1',
     placeholder: '9',
-    style: { width: '80px' },
+    style: { width: '60px' },
   });
 
   const goalTimeInput = el('input', {
     type: 'time',
     id: 'goal-time',
-    style: { display: 'none' },
+    style: { width: '100px' },
   });
 
-  const goalRow = el('div', { class: 'row', style: { gap: '0.5rem', alignItems: 'center' } }, [
-    goalTypeSel,
-    goalValInput,
-    goalTimeInput,
+  const goalRow = el('div', { class: 'row', style: { gap: '0.75rem', flexWrap: 'wrap' } }, [
+    el('div', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
+      'Up target:',
+      goalUpsInput,
+    ]),
+    el('div', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
+      'End by:',
+      goalTimeInput,
+    ]),
   ]);
 
-  const initGoal = getCompetitionGoal();
-  if (initGoal) {
-    goalTypeSel.value = initGoal.type;
-    if (initGoal.type === 'ups') {
-      goalValInput.value = initGoal.value;
-    } else if (initGoal.type === 'endTime') {
-      goalTimeInput.style.display = '';
-      goalTimeInput.value = initGoal.value;
-      goalValInput.style.display = 'none';
+  function loadGoals() {
+    const cfg = getCompetitionGoal();
+    if (cfg) {
+      goalUpsInput.value = cfg.ups || '';
+      goalTimeInput.value = cfg.endTime || '';
     }
   }
+  loadGoals();
 
-  goalTypeSel.onchange = () => {
-    const type = goalTypeSel.value;
-    goalValInput.style.display = type === 'ups' ? '' : 'none';
-    goalTimeInput.style.display = type === 'endTime' ? '' : 'none';
-    saveGoal();
-  };
-  goalValInput.onchange = saveGoal;
-  goalTimeInput.onchange = saveGoal;
-
-  function saveGoal() {
-    const type = goalTypeSel.value;
-    if (!type) {
+  function saveGoals() {
+    const ups = parseInt(goalUpsInput.value, 10) || null;
+    const endTime = goalTimeInput.value || null;
+    if (!ups && !endTime) {
       setCompetitionGoal(null);
-    } else if (type === 'ups') {
-      const val = parseInt(goalValInput.value, 10);
-      setCompetitionGoal({ type: 'ups', value: val || 9 });
-    } else if (type === 'endTime') {
-      setCompetitionGoal({ type: 'endTime', value: goalTimeInput.value });
+    } else {
+      setCompetitionGoal({ ups, endTime });
     }
-    toast('Goal saved');
   }
+
+  goalUpsInput.onchange = saveGoals;
+  goalTimeInput.onchange = saveGoals;
 
   const compCard = el('div', { class: 'card' }, [
     el('h3', {}, 'Competition goal'),
-    el('p', { class: 'muted' }, 'Set a target to track your progress.'),
+    el('p', { class: 'muted' }, 'Set your targets for this session.'),
     goalRow,
   ]);
 
