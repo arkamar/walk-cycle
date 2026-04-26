@@ -204,8 +204,11 @@ export async function renderTracker(target) {
       if (kind === EVENTS.DOWN || kind === EVENTS.UP) {
         const pauseEv = await addEvent({ sessionId: session.id, type: EVENTS.PAUSE });
         events.push(pauseEv);
-        state = nextState(state, EVENTS.PAUSE);
+        const newState = nextState(state, EVENTS.PAUSE);
+        if (newState) state = newState;
         lastEventTs = pauseEv.ts;
+        await renderAndContinue(kind);
+        return;
       } else {
         toast('Not allowed in current state');
         return;
@@ -218,7 +221,11 @@ export async function renderTracker(target) {
     state = ns;
     lastEventTs = newEv.ts;
 
-render();
+    await renderAndContinue(kind);
+  }
+
+  async function renderAndContinue(kind) {
+    render();
     renderLog();
     renderGoalProgress();
     startTimer();
