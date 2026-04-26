@@ -133,7 +133,7 @@ export async function renderTracker(target) {
 
   async function onStopSession() {
     if (!session) {
-      const lastSession = await getLatestEndedSession();
+      const lastSession = await getPausedSession();
       if (!lastSession) {
         toast('No session to resume');
         return;
@@ -149,9 +149,9 @@ export async function renderTracker(target) {
       state = stateFromEvents(events);
       lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
       toast('Session resumed');
-      render();
       renderLog();
       startTimer();
+      render();
       return;
     }
     stopIntervalTimer();
