@@ -228,7 +228,7 @@ export async function renderTracker(target) {
         if (prevToFreezeTs) {
           displayDuration = formatLive(prevToFreezeTs - ev.ts);
         } else {
-          displayDuration = '0:00';
+          displayDuration = '00:00';
         }
       } else {
         displayDuration = formatLive(thisDuration);
