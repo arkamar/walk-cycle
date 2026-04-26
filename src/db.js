@@ -93,6 +93,15 @@ export async function getLatestEndedSession() {
   return null;
 }
 
+export async function getCurrentSession() {
+  const db = await getDB();
+  const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');
+  for (let i = all.length - 1; i >= 0; i--) {
+    if (!all[i].endedAt) return all[i];
+  }
+  return null;
+}
+
 export async function getPausedSession() {
   const db = await getDB();
   const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');

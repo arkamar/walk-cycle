@@ -11,7 +11,7 @@ import {
   Title,
   Filler,
 } from 'chart.js';
-import { listSessions, listEventsBySession } from '../db.js';
+import { listSessions, listEventsBySession, getCurrentSession } from '../db.js';
 import {
   segmentsFromEvents,
   cyclesFromSegments,
@@ -38,6 +38,7 @@ const RANGES = [
   { value: 'all', label: 'All time' },
   { value: '7d', label: 'Last 7 days' },
   { value: '30d', label: 'Last 30 days' },
+  { value: 'session', label: 'Current session' },
 ];
 
 const VIEWS = [
@@ -119,6 +120,15 @@ export async function renderStats(target) {
   // ---------- Logic ----------
 
   async function loadCycles() {
+    if (range === 'session') {
+      const session = await getCurrentSession();
+      if (!session) return [];
+      const events = await listEventsBySession(session.id);
+      const segs = segmentsFromEvents(events);
+      const cs = cyclesFromSegments(segs);
+      return cs.map(c => ({ ...c, sessionId: session.id }));
+    }
+    
     const sessions = await listSessions({ limit: 500 });
     const cutoff = computeCutoff(range);
     const cycles = [];
@@ -132,7 +142,6 @@ export async function renderStats(target) {
         cycles.push({ ...c, sessionId: s.id });
       }
     }
-    // Sort cycles chronologically across sessions.
     cycles.sort((a, b) => a.startTs - b.startTs);
     return cycles;
   }
