@@ -152,7 +152,6 @@ export async function renderTracker(target) {
     lastEventTs = null;
     toast('Session stopped');
     render();
-    logList.innerHTML = '';
   }
 
   async function onPress(kind) {
