@@ -224,15 +224,14 @@ export async function renderTracker(target) {
       row.appendChild(diffEl);
     }
 
-    logList.appendChild(row);
-    logList.scrollTop = logList.scrollHeight;
+    logList.insertBefore(row, logList.firstChild);
   }
 
   function rebuildLog() {
     logList.innerHTML = '';
     if (!session || events.length === 0) return;
 
-    for (let i = 0; i < events.length; i++) {
+    for (let i = events.length - 1; i >= 0; i--) {
       const ev = events[i];
       const prevEv = i > 0 ? events[i - 1] : null;
       let duration = null;
@@ -272,9 +271,9 @@ export async function renderTracker(target) {
         row.appendChild(diffEl);
       }
 
-      logList.appendChild(row);
+      logList.insertBefore(row, logList.firstChild);
     }
-    logList.scrollTop = logList.scrollHeight;
+    logList.scrollTop = 0;
   }
 
   await loadActiveSession();
