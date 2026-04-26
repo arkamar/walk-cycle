@@ -418,12 +418,13 @@ const row = el('div', { class: 'log-entry' }, [
   }
 
   function updateLiveTimer() {
-    if (!session || !lastEventTs || events.length === 0) return;
+    const currentEvents = pausedEvents ?? events;
+    if ((!session && !pausedEvents) || !lastEventTs || currentEvents.length === 0) return;
     
     const firstRow = logList.firstChild;
     if (!firstRow) return;
     
-    const startTs = events[events.length - 1].ts;
+    const startTs = currentEvents[currentEvents.length - 1].ts;
     const now = Date.now();
     const elapsed = now - startTs;
     
