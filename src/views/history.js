@@ -44,13 +44,13 @@ export async function renderHistory(target) {
     const item = el('div', { class: 'list-item' }, [
       el('div', { style: { flex: 1 } }, [
         el('a', { href: `#/history/${s.id}`, style: { textDecoration: 'none', color: 'inherit', display: 'block' } }, [
-          el('div', {}, formatDateTime(s.startedAt)),
+          el('div', {}, s.name || formatDateTime(s.startedAt)),
           el(
             'div',
             { class: 'meta' },
-            `${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'} · ${formatDuration(durationMs)}${
-              s.endedAt ? '' : ' · active'
-            }`
+            s.name 
+              ? `${formatDateTime(s.startedAt)} · ${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'} · ${formatDuration(durationMs)}${s.endedAt ? '' : ' · active'}`
+              : `${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'} · ${formatDuration(durationMs)}${s.endedAt ? '' : ' · active'}`
           ),
         ]),
       ]),

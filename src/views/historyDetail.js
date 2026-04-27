@@ -5,6 +5,7 @@ import {
   listEventsBySession,
   deleteSession,
   resumeSession,
+  updateSession,
 } from '../db.js';
 import {
   segmentsFromEvents,
@@ -95,7 +96,19 @@ export async function renderHistoryDetail(target, { id }) {
   ]);
 
   const headerCard = el('div', { class: 'card' }, [
-    el('h2', {}, formatDateTime(session.startedAt)),
+    el('div', { style: { display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' } }, [
+      el('input', {
+        type: 'text',
+        placeholder: 'Session name',
+        value: session.name || '',
+        style: { flex: 1, fontSize: '1.25rem', fontWeight: 'bold', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.25rem 0.5rem', background: 'var(--bg-elev)', color: 'var(--fg)' },
+        onChange: async (e) => {
+          await updateSession(id, { name: e.target.value });
+          session.name = e.target.value;
+        },
+      }),
+    ]),
+    el('h2', { style: { fontSize: '1rem', fontWeight: 'normal', color: 'var(--muted)' } }, formatDateTime(session.startedAt)),
     el('p', { class: 'muted' }, [
       session.endedAt
         ? `Ended ${formatDateTime(session.endedAt)} · `
