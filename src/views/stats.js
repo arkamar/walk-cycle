@@ -1,16 +1,5 @@
 import { el } from '../ui.js';
-import {
-  Chart,
-  LineController,
-  LineElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Tooltip,
-  Legend,
-  Title,
-  Filler,
-} from 'chart.js';
+import { Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Title, Filler } from 'chart.js';
 import { listSessions, listEventsBySession, getCurrentSession } from '../db.js';
 import {
   segmentsFromEvents,
@@ -21,6 +10,7 @@ import {
   SEGMENT_LABELS,
   SEGMENT_COLORS,
 } from '../analytics.js';
+import { createTrendChart } from '../chart.js';
 
 Chart.register(
   LineController,
@@ -306,41 +296,7 @@ export async function renderStats(target) {
       }
     }
 
-    chart = new Chart(ctx, {
-      type: 'line',
-      data: { labels, datasets },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { color: fg, boxWidth: 12, font: { size: 11 } },
-          },
-          tooltip: {
-            callbacks: {
-              label: (ctx) =>
-                ` ${ctx.dataset.label}: ${formatDuration(ctx.parsed.y * 1000)}`,
-            },
-          },
-        },
-        scales: {
-          x: {
-            ticks: { color: muted, maxTicksLimit: 10 },
-            grid: { color: grid },
-          },
-          y: {
-            ticks: {
-              color: muted,
-              callback: (v) => formatDuration(v * 1000),
-            },
-            grid: { color: grid },
-            title: { display: true, text: 'Duration', color: muted },
-          },
-        },
-      },
-    });
+    chart = createTrendChart(ctx, labels, datasets);
   }
 }
 

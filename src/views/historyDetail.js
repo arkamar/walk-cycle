@@ -1,14 +1,5 @@
 import { el, formatDateTime, toast, formatTime } from '../ui.js';
-import {
-  Chart,
-  LineController,
-  LineElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Tooltip,
-  Filler,
-} from 'chart.js';
+import { createTrendChart } from '../chart.js';
 import {
   getSession,
   listEventsBySession,
@@ -25,16 +16,6 @@ import {
   SEGMENT_LABELS,
   SEGMENT_COLORS,
 } from '../analytics.js';
-
-Chart.register(
-  LineController,
-  LineElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Tooltip,
-  Filler
-);
 
 export async function renderHistoryDetail(target, { id }) {
   const session = await getSession(id);
@@ -241,40 +222,7 @@ export async function renderHistoryDetail(target, { id }) {
       }
     }
     
-    new Chart(ctx, {
-      type: 'line',
-      data: { labels, datasets },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { color: fg, boxWidth: 12, font: { size: 11 } },
-          },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => ` ${ctx.dataset.label}: ${formatDuration(ctx.parsed.y * 1000)}`,
-            },
-          },
-        },
-        scales: {
-          x: {
-            ticks: { color: muted, maxTicksLimit: 10 },
-            grid: { color: grid },
-          },
-          y: {
-            ticks: {
-              color: muted,
-              callback: (v) => formatDuration(v * 1000),
-            },
-            grid: { color: grid },
-            title: { display: true, text: 'Duration', color: muted },
-          },
-        },
-      },
-    });
+    createTrendChart(cycleChartCanvas, labels, datasets);
   }
 
   // Per-cycle table
