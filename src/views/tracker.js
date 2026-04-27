@@ -23,6 +23,7 @@ import {
   segmentsFromEvents,
   cyclesFromSegments,
   formatLive,
+  formatDuration,
 } from '../analytics.js';
 
 const BUTTONS = [
@@ -257,7 +258,7 @@ let status = '';
         if (remaining > 0) {
           parts.push(`${remaining} up${remaining === 1 ? '' : 's'}`);
           
-          if (goal.endTime && completedUps >= 2) {
+          if (goal.endTime && completedUps >= 2 && session && !session.pausedAt) {
             const now = new Date();
             const [h, m] = goal.endTime.split(':').map(Number);
             const target = new Date(now);
@@ -265,14 +266,16 @@ let status = '';
             if (target < now) target.setDate(target.getDate() + 1);
             const timeLeftMs = target - now;
             
-            const avgCycle = calcAvgCycleTime();
-            if (avgCycle > 0 && timeLeftMs > 0) {
+            const { avg, trend, trendDir } = calcCycleTrend();
+            if (avg > 0 && timeLeftMs > 0) {
+              const projected = avg + trend * (remaining - 1) * 0.5;
               const requiredPerUp = timeLeftMs / remaining;
-              if (avgCycle <= requiredPerUp) {
-                status = 'on pace';
+              const diff = projected - requiredPerUp;
+              if (diff >= -requiredPerUp * 0.05) {
+                const ahead = requiredPerUp - projected;
+                status = ahead > 0 ? `+${formatDuration(ahead)}` : 'on target';
               } else {
-                const needed = formatLive(avgCycle - requiredPerUp);
-                status = `need -${needed}`;
+                status = `-${formatDuration(Math.abs(diff))}`;
               }
             }
           }
@@ -516,6 +519,35 @@ let status = '';
     }
     const cycles = upEvents.length - 1;
     return cycles > 0 ? totalMs / cycles : 0;
+  }
+
+  function calcCycleTrend() {
+    const upEvents = events.filter(e => e.type === EVENTS.UP);
+    if (upEvents.length < 2) return { avg: 0, trend: 0, trendDir: 'flat' };
+    
+    const recent = upEvents.slice(-5);
+    const cycles = [];
+    for (let i = 1; i < recent.length; i++) {
+      cycles.push(recent[i].ts - recent[i-1].ts);
+    }
+    if (cycles.length < 2) return { avg: 0, trend: 0, trendDir: 'flat' };
+    
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    for (let i = 0; i < cycles.length; i++) {
+      sumX += i;
+      sumY += cycles[i];
+      sumXY += i * cycles[i];
+      sumX2 += i * i;
+    }
+    const n = cycles.length;
+    const slope = sumX2 !== sumX * sumX ? (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX) : 0;
+    
+    const avg = cycles.reduce((a, b) => a + b, 0) / n;
+    let trendDir = 'flat';
+    if (slope > 500) trendDir = 'slower';
+    else if (slope < -500) trendDir = 'faster';
+    
+    return { avg, trend: slope, trendDir };
   }
 
   function countCompletedUps(targetUps) {
