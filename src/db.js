@@ -141,6 +141,11 @@ export async function addEvent({ sessionId, type, ts = Date.now() }) {
   return { id, sessionId, type, ts };
 }
 
+export async function deleteEvent(id) {
+  const db = await getDB();
+  await db.delete(STORE_EVENTS, id);
+}
+
 export async function listEventsBySession(sessionId) {
   const db = await getDB();
   const events = await db.getAllFromIndex(STORE_EVENTS, 'sessionId', sessionId);

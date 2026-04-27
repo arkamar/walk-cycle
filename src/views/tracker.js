@@ -12,6 +12,7 @@ import {
   createSession,
   endSession,
   addEvent,
+  deleteEvent,
   getActiveSession,
   listEventsBySession,
   getLatestEndedSession,
@@ -80,7 +81,18 @@ export async function renderTracker(target) {
     actionGrid.appendChild(btn);
   }
 
-  const logHeader = el('div', { class: 'log-header' }, 'Session log');
+  const undoBtn = el('button', {
+    class: 'btn',
+    type: 'button',
+    textContent: 'Undo',
+    onClick: onUndo,
+    style: { marginLeft: 'auto' },
+  });
+
+  const logHeader = el('div', { class: 'log-header' }, [
+    'Session log',
+    undoBtn,
+  ]);
   const logList = el('div', { class: 'log-list' });
   const logCard = el('div', { class: 'card log-card', style: { overflowY: 'auto' } }, [logHeader, logList]);
 
@@ -146,6 +158,23 @@ export async function renderTracker(target) {
     toast('Session started');
     render();
     window.dispatchEvent(new Event('session-started'));
+  }
+
+  async function onUndo() {
+    if (events.length === 0) return;
+    const lastEvent = events[events.length - 1];
+    if (confirm(`Undo last ${lastEvent.type}?`)) {
+      await deleteEvent(lastEvent.id);
+      events.pop();
+      state = stateFromEvents(events);
+      lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
+      if (events.length > 0) {
+        events[events.length - 1].nextTs = Date.now();
+      }
+      render();
+      renderLog();
+      renderGoalProgress();
+    }
   }
 
   async function onStopSession() {
@@ -371,6 +400,7 @@ let status = '';
 
     const isRunning = session && !session.pausedAt;
     const isPaused = session && session.pausedAt;
+    undoBtn.style.display = (session || events.length > 0) ? 'inline-block' : 'none';
     
     const stopNode = buttonNodes['stop'];
     if (isRunning) {
