@@ -1,5 +1,15 @@
 import { el, formatDateTime, toast, formatTime } from '../ui.js';
 import {
+  Chart,
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Filler,
+} from 'chart.js';
+import {
   getSession,
   listEventsBySession,
   deleteSession,
@@ -15,6 +25,16 @@ import {
   SEGMENT_LABELS,
   SEGMENT_COLORS,
 } from '../analytics.js';
+
+Chart.register(
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Filler
+);
 
 export async function renderHistoryDetail(target, { id }) {
   const session = await getSession(id);
@@ -184,6 +204,79 @@ export async function renderHistoryDetail(target, { id }) {
     ),
   ]);
 
+// Per-cycle table
+  const cycleChartCanvas = el('canvas');
+  
+  // Trend chart in separate card
+  const trendsCard = el('div', { class: 'card' }, [
+    el('h3', {}, 'Trend'),
+    el('div', { class: 'chart-wrap' }, [
+      cycleChartCanvas,
+    ]),
+  ]);
+
+  if (cycles.length >= 2) {
+    const ctx = cycleChartCanvas.getContext('2d');
+    
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const fg = isDark ? '#ddd' : '#333';
+    const muted = isDark ? '#888' : '#666';
+    const grid = isDark ? '#333' : '#eee';
+    
+    const labels = cycles.map((_, i) => `C${i + 1}`);
+    const datasets = [];
+    
+    for (const k of Object.values(SEGMENT_KINDS)) {
+      const data = cycles.map(c => (c.segments[k]?.durationMs || 0) / 1000);
+      if (data.some(d => d !== null && d > 0)) {
+        datasets.push({
+          label: SEGMENT_LABELS[k],
+          data,
+          borderColor: SEGMENT_COLORS[k],
+          backgroundColor: SEGMENT_COLORS[k],
+          tension: 0.25,
+          spanGaps: true,
+          pointRadius: 3,
+        });
+      }
+    }
+    
+    new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: fg, boxWidth: 12, font: { size: 11 } },
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${ctx.dataset.label}: ${formatDuration(ctx.parsed.y * 1000)}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: muted, maxTicksLimit: 10 },
+            grid: { color: grid },
+          },
+          y: {
+            ticks: {
+              color: muted,
+              callback: (v) => formatDuration(v * 1000),
+            },
+            grid: { color: grid },
+            title: { display: true, text: 'Duration', color: muted },
+          },
+        },
+      },
+    });
+  }
+
   // Per-cycle table
   const cyclesCard = el('div', { class: 'card' }, [
     el('h3', {}, 'Cycles'),
@@ -246,5 +339,5 @@ export async function renderHistoryDetail(target, { id }) {
     }
   }
 
-  target.appendChild(el('div', {}, [headerRow, headerCard, logCard, statsCard, cyclesCard]));
+  target.appendChild(el('div', {}, [headerRow, headerCard, logCard, statsCard, trendsCard, cyclesCard]));
 }
