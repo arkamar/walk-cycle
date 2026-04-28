@@ -5,6 +5,8 @@ import {
   listEventsBySession,
   deleteSession,
   resumeSession,
+  stopSession,
+  getActiveSession,
   updateSession,
 } from '../db.js';
 import {
@@ -60,18 +62,31 @@ export async function renderHistoryDetail(target, { id }) {
     return null;
   }
 
+  // Resume is offered for stopped sessions (matches the tracker's 4th
+  // button vocabulary: Stop / Resume operate on `session.stoppedAt`).
+  // If another session is currently running, stop it first so we never
+  // end up with two non-stopped sessions in the DB simultaneously.
+  const isStopped = !!session.stoppedAt && !session.endedAt;
+
   const headerRow = el('div', { class: 'row between' }, [
     el(
       'a',
       { class: 'btn btn-ghost', href: '#/history' },
       '← Back'
     ),
-    session.endedAt ? el(
+    isStopped ? el(
       'button',
       {
         class: 'btn btn-primary',
         type: 'button',
         onClick: async () => {
+          const active = await getActiveSession();
+          if (active && active.id !== id) {
+            if (!confirm(
+              'Another session is currently running. Stop it and resume this one?'
+            )) return;
+            await stopSession(active.id);
+          }
           await resumeSession(id);
           toast('Session resumed');
           window.location.hash = '/';
@@ -112,7 +127,9 @@ export async function renderHistoryDetail(target, { id }) {
     el('p', { class: 'muted' }, [
       session.endedAt
         ? `Ended ${formatDateTime(session.endedAt)} · `
-        : 'Still active · ',
+        : session.stoppedAt
+          ? `Stopped ${formatDateTime(session.stoppedAt)} · `
+          : 'Active · ',
       `${cycles.length} ${cycles.length === 1 ? 'cycle' : 'cycles'} · ${events.length} presses`,
     ]),
   ]);
