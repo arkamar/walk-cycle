@@ -153,7 +153,7 @@ checkActive();
     el(
       'p',
       { class: 'muted' },
-      'All data is stored locally on this device (IndexedDB). Export regularly so you don\'t lose history.'
+      'All data is stored locally on this device (IndexedDB). Export regularly so you don\'t lose your sessions.'
     ),
     el('div', { class: 'row wrap', style: { gap: '0.5rem' } }, [
       exportBtn,

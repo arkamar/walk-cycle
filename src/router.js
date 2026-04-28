@@ -3,7 +3,7 @@
 // Usage:
 //   const router = createRouter({
 //     '/': renderTracker,
-//     '/history': renderHistory,
+//     '/sessions': renderSessions,
 //     '/stats': renderStats,
 //   }, { mount: '#view', notFound: renderTracker });
 //   router.start();

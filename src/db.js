@@ -133,7 +133,7 @@ export async function getStoppedSession() {
  *   1. Stops any other session that is currently active (stoppedAt = now).
  *   2. Clears `stoppedAt` and `endedAt` on the target so it shows as active.
  *
- * Used by history list/detail to "Resume" or "Set as current". Preserves
+ * Used by sessions list/detail to "Resume" or "Set as current". Preserves
  * the invariant that at most one session has neither stoppedAt nor endedAt.
  *
  * @returns the updated target session, or null if not found.

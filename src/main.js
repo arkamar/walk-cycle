@@ -21,14 +21,14 @@ const lazy = (loader, name) => async (target, ctx) => {
 };
 
 const renderTracker = lazy(() => import('./views/tracker.js'), 'renderTracker');
-const renderHistory = lazy(() => import('./views/history.js'), 'renderHistory');
-const renderHistoryDetail = lazy(() => import('./views/historyDetail.js'), 'renderHistoryDetail');
+const renderSessions = lazy(() => import('./views/sessions.js'), 'renderSessions');
+const renderSessionDetail = lazy(() => import('./views/sessionDetail.js'), 'renderSessionDetail');
 const renderStats = lazy(() => import('./views/stats.js'), 'renderStats');
 const renderSettings = lazy(() => import('./views/settings.js'), 'renderSettings');
 
 const TABS = [
   { path: '/', label: 'Track', icon: '⏱' },
-  { path: '/history', label: 'History', icon: '📋' },
+  { path: '/sessions', label: 'Sessions', icon: '📋' },
   { path: '/stats', label: 'Stats', icon: '📈' },
   { path: '/settings', label: 'Settings', icon: '⚙️' },
 ];
@@ -52,7 +52,7 @@ for (const t of TABS) {
 document.addEventListener('route:changed', (e) => {
   const path = e.detail.path;
   // Detail routes still highlight their parent tab.
-  const tabPath = path.startsWith('/history') ? '/history' : path;
+  const tabPath = path.startsWith('/sessions') ? '/sessions' : path;
   for (const a of tabBar.querySelectorAll('.tab')) {
     if (a.dataset.path === tabPath) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
@@ -62,16 +62,21 @@ document.addEventListener('route:changed', (e) => {
 const router = createRouter(
   {
     '/': renderTracker,
-    '/history': renderHistory,
+    '/sessions': renderSessions,
     '/stats': renderStats,
     '/settings': renderSettings,
   },
   {
     mount: '#view',
     notFound: (target, ctx) => {
-      // Detail routes like /history/:id
-      const m = ctx.path.match(/^\/history\/(\d+)$/);
-      if (m) return renderHistoryDetail(target, { id: Number(m[1]) });
+      // Detail routes like /sessions/:id (also accept legacy /history/:id)
+      const m = ctx.path.match(/^\/(?:sessions|history)\/(\d+)$/);
+      if (m) return renderSessionDetail(target, { id: Number(m[1]) });
+      // Legacy /history -> /sessions redirect.
+      if (ctx.path === '/history') {
+        window.location.hash = '/sessions';
+        return;
+      }
       return renderTracker(target, ctx);
     },
   }

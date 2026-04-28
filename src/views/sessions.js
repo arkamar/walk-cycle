@@ -13,8 +13,8 @@ import {
 } from '../analytics.js';
 import { sessionStatus } from '../stateMachine.js';
 
-export async function renderHistory(target) {
-  const heading = el('h2', {}, 'History');
+export async function renderSessions(target) {
+  const heading = el('h2', {}, 'Sessions');
   const subheading = el('p', { class: 'muted' }, 'Loading…');
   const list = el('div', { class: 'list' });
   target.appendChild(el('div', {}, [heading, subheading, list]));
@@ -26,7 +26,7 @@ export async function renderHistory(target) {
     list.appendChild(
       el('div', { class: 'empty' }, [
         el('p', {}, 'No sessions yet.'),
-        el('p', { class: 'muted' }, 'Start tracking to see your history here.'),
+        el('p', { class: 'muted' }, 'Start tracking to see your sessions here.'),
       ])
     );
     return;
@@ -69,7 +69,7 @@ export async function renderHistory(target) {
 
     const children = [
       el('div', { style: { flex: 1 } }, [
-        el('a', { href: `#/history/${s.id}`, style: { textDecoration: 'none', color: 'inherit', display: 'block' } }, [
+        el('a', { href: `#/sessions/${s.id}`, style: { textDecoration: 'none', color: 'inherit', display: 'block' } }, [
           el('div', {}, s.name || formatDateTime(s.startedAt)),
           el('div', { class: 'meta' }, metaText),
         ]),
@@ -107,7 +107,7 @@ export async function renderHistory(target) {
         await deleteSession(s.id);
         toast('Session deleted');
         target.innerHTML = '';
-        renderHistory(target);
+        renderSessions(target);
       }
     }, '🗑'));
 

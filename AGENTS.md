@@ -34,7 +34,7 @@ Three distinct concepts to keep separate:
 - **Stop / Resume** — session-level. `session.stoppedAt` (DB field) marks a session as stopped; `resumeSession()` clears it. The 4th tracker button is labeled "Stop" while running and "Resume" while stopped (Resume is essentially an undo, for misclicks). Pressing **Up** while stopped starts a *new* session.
 - **Current session** — the single session that has neither `stoppedAt` nor `endedAt` set. `getActiveSession()` returns it; the tracker view renders it. The DB invariant (enforced by `setCurrentSession()`) is that at most one such session exists at any time.
 
-`setCurrentSession(id)` is the atomic primitive used by the History list/detail "Resume" / "Set as current" buttons: in a single transaction it stops any other active session and clears `stoppedAt`/`endedAt` on the target.
+`setCurrentSession(id)` is the atomic primitive used by the Sessions list/detail "Resume" / "Set as current" buttons: in a single transaction it stops any other active session and clears `stoppedAt`/`endedAt` on the target.
 
 ## State recovery
 

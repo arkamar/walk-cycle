@@ -76,7 +76,7 @@ export function stateLabel(state) {
 /**
  * Classify a session record by its lifecycle state. Single source of truth
  * for "is this session active / stopped / ended" used by the tracker view,
- * history list and history detail.
+ * sessions list and session detail.
  *
  * @param {{ stoppedAt?: number|null, endedAt?: number|null }|null|undefined} session
  * @returns {'none'|'ended'|'stopped'|'active'}

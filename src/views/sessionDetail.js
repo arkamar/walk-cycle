@@ -20,7 +20,7 @@ import {
 } from '../analytics.js';
 import { sessionStatus } from '../stateMachine.js';
 
-export async function renderHistoryDetail(target, { id }) {
+export async function renderSessionDetail(target, { id }) {
   const session = await getSession(id);
   if (!session) {
     target.appendChild(
@@ -28,8 +28,8 @@ export async function renderHistoryDetail(target, { id }) {
         el('h2', {}, 'Session not found'),
         el(
           'a',
-          { class: 'btn', href: '#/history' },
-          '← Back to history'
+          { class: 'btn', href: '#/sessions' },
+          '← Back to sessions'
         ),
       ])
     );
@@ -76,7 +76,7 @@ export async function renderHistoryDetail(target, { id }) {
   const headerRow = el('div', { class: 'row between' }, [
     el(
       'a',
-      { class: 'btn btn-ghost', href: '#/history' },
+      { class: 'btn btn-ghost', href: '#/sessions' },
       '← Back'
     ),
     !isCurrent ? el(
@@ -106,7 +106,7 @@ export async function renderHistoryDetail(target, { id }) {
           if (!confirm('Delete this session and all its events?')) return;
           await deleteSession(id);
           toast('Session deleted');
-          window.location.hash = '/history';
+          window.location.hash = '/sessions';
         },
       },
       'Delete'
