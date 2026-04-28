@@ -16,9 +16,9 @@ import {
   getActiveSession,
   listEventsBySession,
   getLatestEndedSession,
-  getPausedSession,
+  getStoppedSession,
   resumeSession,
-  pauseSession,
+  stopSession,
 } from '../db.js';
 import {
   segmentsFromEvents,
@@ -108,12 +108,12 @@ export async function renderTracker(target) {
 
   async function loadActiveSession() {
     const active = await getActiveSession();
-    const paused = await getPausedSession();
+    const stopped = await getStoppedSession();
     
     if (active) {
       session = active;
-    } else if (paused) {
-      session = paused;
+    } else if (stopped) {
+      session = stopped;
     } else {
       session = null;
     }
@@ -132,7 +132,7 @@ export async function renderTracker(target) {
       events[i].nextTs = events[i + 1].ts;
     }
     if (events.length > 0) {
-      events[events.length - 1].nextTs = session.pausedAt || Date.now();
+      events[events.length - 1].nextTs = session.stoppedAt || Date.now();
     }
     state = stateFromEvents(events);
     lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
@@ -181,13 +181,13 @@ export async function renderTracker(target) {
     if (isProcessing) return;
     isProcessing = true;
     try {
-      if (!session || session.pausedAt) {
-        const paused = await getPausedSession();
-        if (!paused) {
+      if (!session || session.stoppedAt) {
+        const stopped = await getStoppedSession();
+        if (!stopped) {
           toast('No session to resume');
           return;
         }
-        const resumed = await resumeSession(paused.id);
+        const resumed = await resumeSession(stopped.id);
         session = resumed;
         events = await listEventsBySession(session.id);
         for (let i = 0; i < events.length - 1; i++) {
@@ -205,14 +205,14 @@ export async function renderTracker(target) {
         startTimer();
       } else {
         stopIntervalTimer();
-        const paused = await pauseSession(session.id);
+        const stopped = await stopSession(session.id);
         if (events.length > 0) {
-          events[events.length - 1].nextTs = paused.pausedAt;
+          events[events.length - 1].nextTs = stopped.stoppedAt;
         }
         session = null;
         state = STATES.IDLE;
         lastEventTs = null;
-        toast('Session paused');
+        toast('Session stopped');
         render();
         renderLog();
         window.dispatchEvent(new Event('session-ended'));
@@ -287,7 +287,7 @@ let status = '';
         if (remaining > 0) {
           parts.push(`${remaining} up${remaining === 1 ? '' : 's'}`);
           
-          if (goal.endTime && completedUps >= 2 && session && !session.pausedAt) {
+          if (goal.endTime && completedUps >= 2 && session && !session.stoppedAt) {
             const now = new Date();
             const [h, m] = goal.endTime.split(':').map(Number);
             const target = new Date(now);
@@ -381,9 +381,9 @@ let status = '';
       goalProgressEl.style.display = 'none';
     }
 
-    const hasPausedData = !session && events.length > 0;
-    const allowed = (session || hasPausedData) ? [...allowedEvents(state)] : ['up'];
-    if (session || hasPausedData) {
+    const hasStoppedData = !session && events.length > 0;
+    const allowed = (session || hasStoppedData) ? [...allowedEvents(state)] : ['up'];
+    if (session || hasStoppedData) {
       if (state === STATES.GOING_UP) allowed.push('down');
       if (state === STATES.AT_TOP) allowed.push('down');
       if (state === STATES.GOING_DOWN) allowed.push('up');
@@ -398,8 +398,8 @@ let status = '';
       node.dataset.active = isAllowed ? 'true' : 'false';
     }
 
-    const isRunning = session && !session.pausedAt;
-    const isPaused = session && session.pausedAt;
+    const isRunning = session && !session.stoppedAt;
+    const isStopped = session && session.stoppedAt;
     undoBtn.style.display = (session || events.length > 0) ? 'inline-block' : 'none';
     
     const stopNode = buttonNodes['stop'];
@@ -408,8 +408,8 @@ let status = '';
       stopNode.style.display = '';
       stopNode.dataset.active = 'true';
       stopNode.querySelector('.action-icon').textContent = '■';
-      stopNode.querySelector('span:last-child').textContent = 'Pause';
-    } else if (isPaused || hasPausedData) {
+      stopNode.querySelector('span:last-child').textContent = 'Stop';
+    } else if (isStopped || hasStoppedData) {
       stopNode.disabled = false;
       stopNode.style.display = '';
       stopNode.dataset.active = 'true';
@@ -443,14 +443,14 @@ let status = '';
       
       const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : null;
       
-      const isRunning = session && !session.pausedAt;
-      const isPaused = session && session.pausedAt;
+      const isRunning = session && !session.stoppedAt;
+      const isStopped = session && session.stoppedAt;
       
       if (isRunning && i === events.length - 1) {
         displayDuration = '00:00';
       } else if (thisDuration) {
         displayDuration = formatLive(thisDuration);
-      } else if (isPaused || events.length > 0) {
+      } else if (isStopped || events.length > 0) {
         displayDuration = '–';
       } else {
         displayDuration = '–';

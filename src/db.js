@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'walk-cycle';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export const STORE_SESSIONS = 'sessions';
 export const STORE_EVENTS = 'events';
@@ -11,7 +11,7 @@ let dbPromise;
 function getDB() {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
+      async upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           const sessions = db.createObjectStore(STORE_SESSIONS, {
             keyPath: 'id',
@@ -25,6 +25,21 @@ function getDB() {
           });
           events.createIndex('sessionId', 'sessionId');
           events.createIndex('ts', 'ts');
+        }
+        if (oldVersion < 2) {
+          // Rename `pausedAt` -> `stoppedAt` on existing sessions to match the
+          // UI vocabulary (the 4th button is now "Stop" / "Resume").
+          const store = tx.objectStore(STORE_SESSIONS);
+          let cursor = await store.openCursor();
+          while (cursor) {
+            const s = cursor.value;
+            if (Object.prototype.hasOwnProperty.call(s, 'pausedAt')) {
+              s.stoppedAt = s.pausedAt;
+              delete s.pausedAt;
+              await cursor.update(s);
+            }
+            cursor = await cursor.continue();
+          }
         }
       },
     });
@@ -63,11 +78,11 @@ export async function updateSession(id, patch) {
 }
 
 export async function resumeSession(id) {
-  return updateSession(id, { pausedAt: null });
+  return updateSession(id, { stoppedAt: null });
 }
 
-export async function pauseSession(id) {
-  return updateSession(id, { pausedAt: Date.now() });
+export async function stopSession(id) {
+  return updateSession(id, { stoppedAt: Date.now() });
 }
 
 export async function getSession(id) {
@@ -79,7 +94,7 @@ export async function getActiveSession() {
   const db = await getDB();
   const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');
   for (let i = all.length - 1; i >= 0; i--) {
-    if (!all[i].endedAt && !all[i].pausedAt) return all[i];
+    if (!all[i].endedAt && !all[i].stoppedAt) return all[i];
   }
   return null;
 }
@@ -102,11 +117,11 @@ export async function getCurrentSession() {
   return null;
 }
 
-export async function getPausedSession() {
+export async function getStoppedSession() {
   const db = await getDB();
   const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');
   for (let i = all.length - 1; i >= 0; i--) {
-    if (all[i].pausedAt && !all[i].endedAt) return all[i];
+    if (all[i].stoppedAt && !all[i].endedAt) return all[i];
   }
   return null;
 }
