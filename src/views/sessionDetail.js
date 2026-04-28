@@ -6,6 +6,7 @@ import {
   deleteSession,
   getActiveSession,
   setCurrentSession,
+  stopSession,
   updateSession,
 } from '../db.js';
 import {
@@ -79,7 +80,22 @@ export async function renderSessionDetail(target, { id }) {
       { class: 'btn btn-ghost', href: '#/sessions' },
       '← Back'
     ),
-    !isCurrent ? el(
+    isCurrent ? el(
+      'button',
+      {
+        class: 'btn btn-primary',
+        type: 'button',
+        onClick: async () => {
+          await stopSession(id);
+          toast('Session stopped');
+          // Re-render the detail view in place so the button flips to
+          // "Resume" without yanking the user back to the tracker.
+          target.innerHTML = '';
+          renderSessionDetail(target, { id });
+        },
+      },
+      'Stop'
+    ) : el(
       'button',
       {
         class: 'btn btn-primary',
@@ -96,7 +112,7 @@ export async function renderSessionDetail(target, { id }) {
         },
       },
       promoteLabel
-    ) : null,
+    ),
     el(
       'button',
       {
