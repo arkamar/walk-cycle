@@ -126,6 +126,44 @@ export async function getStoppedSession() {
   return null;
 }
 
+/**
+ * Make the given session the single active session.
+ *
+ * Atomically:
+ *   1. Stops any other session that is currently active (stoppedAt = now).
+ *   2. Clears `stoppedAt` and `endedAt` on the target so it shows as active.
+ *
+ * Used by history list/detail to "Resume" or "Set as current". Preserves
+ * the invariant that at most one session has neither stoppedAt nor endedAt.
+ *
+ * @returns the updated target session, or null if not found.
+ */
+export async function setCurrentSession(id) {
+  const db = await getDB();
+  const tx = db.transaction(STORE_SESSIONS, 'readwrite');
+  const store = tx.objectStore(STORE_SESSIONS);
+  const target = await store.get(id);
+  if (!target) {
+    await tx.done;
+    return null;
+  }
+  const now = Date.now();
+  let cursor = await store.openCursor();
+  while (cursor) {
+    const s = cursor.value;
+    if (s.id !== id && !s.stoppedAt && !s.endedAt) {
+      s.stoppedAt = now;
+      await cursor.update(s);
+    }
+    cursor = await cursor.continue();
+  }
+  target.stoppedAt = null;
+  target.endedAt = null;
+  await store.put(target);
+  await tx.done;
+  return target;
+}
+
 export async function listSessions({ limit = 100 } = {}) {
   const db = await getDB();
   const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');

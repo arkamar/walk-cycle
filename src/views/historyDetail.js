@@ -4,9 +4,8 @@ import {
   getSession,
   listEventsBySession,
   deleteSession,
-  resumeSession,
-  stopSession,
   getActiveSession,
+  setCurrentSession,
   updateSession,
 } from '../db.js';
 import {
@@ -19,7 +18,7 @@ import {
   SEGMENT_LABELS,
   SEGMENT_COLORS,
 } from '../analytics.js';
-import { isResumable, sessionStatus } from '../stateMachine.js';
+import { sessionStatus } from '../stateMachine.js';
 
 export async function renderHistoryDetail(target, { id }) {
   const session = await getSession(id);
@@ -63,35 +62,40 @@ export async function renderHistoryDetail(target, { id }) {
     return null;
   }
 
-  // Resume is offered for stopped sessions (matches the tracker's 4th
-  // button vocabulary: Stop / Resume operate on `session.stoppedAt`).
-  // If another session is currently running, stop it first so we never
-  // end up with two non-stopped sessions in the DB simultaneously.
+  // Any session that isn't already the single current/active one can be
+  // promoted to current. For stopped sessions the action is labeled
+  // "Resume" (familiar wording, identical mechanic). For other non-current
+  // sessions (e.g. an old active that lost its 'current' status, or a
+  // future ended session) it shows as "Set as current".
+  // setCurrentSession() is atomic: it stops any other active session and
+  // clears stoppedAt/endedAt on the target in a single transaction.
+  const currentActive = await getActiveSession();
+  const isCurrent = currentActive && currentActive.id === id;
+  const promoteLabel = sessionStatus(session) === 'stopped' ? 'Resume' : 'Set as current';
+
   const headerRow = el('div', { class: 'row between' }, [
     el(
       'a',
       { class: 'btn btn-ghost', href: '#/history' },
       '← Back'
     ),
-    isResumable(session) ? el(
+    !isCurrent ? el(
       'button',
       {
         class: 'btn btn-primary',
         type: 'button',
         onClick: async () => {
-          const active = await getActiveSession();
-          if (active && active.id !== id) {
+          if (currentActive && currentActive.id !== id) {
             if (!confirm(
-              'Another session is currently running. Stop it and resume this one?'
+              'Another session is currently running. Stop it and switch to this one?'
             )) return;
-            await stopSession(active.id);
           }
-          await resumeSession(id);
-          toast('Session resumed');
+          await setCurrentSession(id);
+          toast(promoteLabel === 'Resume' ? 'Session resumed' : 'Session is now current');
           window.location.hash = '/';
         },
       },
-      'Resume'
+      promoteLabel
     ) : null,
     el(
       'button',
@@ -128,7 +132,9 @@ export async function renderHistoryDetail(target, { id }) {
         ? `Ended ${formatDateTime(session.endedAt)} · `
         : sessionStatus(session) === 'stopped'
           ? `Stopped ${formatDateTime(session.stoppedAt)} · `
-          : 'Active · ',
+          : isCurrent
+            ? 'Current · '
+            : 'Active · ',
       `${cycles.length} ${cycles.length === 1 ? 'cycle' : 'cycles'} · ${events.length} presses`,
     ]),
   ]);

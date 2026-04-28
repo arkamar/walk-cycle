@@ -3,16 +3,15 @@ import {
   listSessions,
   listEventsBySession,
   deleteSession,
-  resumeSession,
-  stopSession,
   getActiveSession,
+  setCurrentSession,
 } from '../db.js';
 import {
   segmentsFromEvents,
   cyclesFromSegments,
   formatDuration,
 } from '../analytics.js';
-import { isResumable, sessionStatus } from '../stateMachine.js';
+import { sessionStatus } from '../stateMachine.js';
 
 export async function renderHistory(target) {
   const heading = el('h2', {}, 'History');
@@ -35,6 +34,11 @@ export async function renderHistory(target) {
 
   subheading.textContent = `${sessions.length} session${sessions.length === 1 ? '' : 's'}`;
 
+  // The currently-active session (if any) - used to suppress the
+  // "Set as current" button on the row that's already current.
+  const currentActive = await getActiveSession();
+  const currentId = currentActive ? currentActive.id : null;
+
   // Fetch summaries in parallel.
   const summaries = await Promise.all(
     sessions.map(async (s) => {
@@ -50,8 +54,11 @@ export async function renderHistory(target) {
 
   for (const { session: s, cycleCount, durationMs } of summaries) {
     const status = sessionStatus(s);
+    const isCurrent = s.id === currentId;
+
     const statusSuffix =
-      status === 'active' ? ' · active'
+      isCurrent ? ' · current'
+      : status === 'active' ? ' · active'
       : status === 'stopped' ? ' · stopped'
       : ''; // 'ended' or unknown - no suffix (date already shown)
 
@@ -69,7 +76,10 @@ export async function renderHistory(target) {
       ]),
     ];
 
-    if (isResumable(s)) {
+    // Any non-current session can be made current. Label varies so the
+    // common "Resume" affordance keeps its familiar wording.
+    if (!isCurrent) {
+      const label = status === 'stopped' ? 'Resume' : 'Set as current';
       children.push(el('button', {
         class: 'btn btn-primary',
         style: { padding: '0.4rem 0.75rem', fontSize: '0.85rem' },
@@ -77,18 +87,16 @@ export async function renderHistory(target) {
         onClick: async (e) => {
           e.preventDefault();
           e.stopPropagation();
-          const active = await getActiveSession();
-          if (active && active.id !== s.id) {
+          if (currentActive && currentActive.id !== s.id) {
             if (!confirm(
-              'Another session is currently running. Stop it and resume this one?'
+              'Another session is currently running. Stop it and switch to this one?'
             )) return;
-            await stopSession(active.id);
           }
-          await resumeSession(s.id);
-          toast('Session resumed');
+          await setCurrentSession(s.id);
+          toast(label === 'Resume' ? 'Session resumed' : 'Session is now current');
           window.location.hash = '/';
         },
-      }, 'Resume'));
+      }, label));
     }
 
     children.push(el('button', {
