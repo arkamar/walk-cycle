@@ -7,6 +7,8 @@ import {
   stateFromEvents,
   stateLabel,
   buttonStatesFor,
+  sessionStatus,
+  isResumable,
 } from './stateMachine.js';
 
 // ---------------------------------------------------------------------------
@@ -115,6 +117,52 @@ describe('stateLabel', () => {
     for (const s of Object.values(STATES)) {
       expect(stateLabel(s)).not.toBe('Unknown');
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// sessionStatus / isResumable: lifecycle classification
+// ---------------------------------------------------------------------------
+
+describe('sessionStatus', () => {
+  it('returns "none" for null/undefined', () => {
+    expect(sessionStatus(null)).toBe('none');
+    expect(sessionStatus(undefined)).toBe('none');
+  });
+
+  it('returns "active" for a fresh running session', () => {
+    expect(sessionStatus({ id: 1, startedAt: 0 })).toBe('active');
+  });
+
+  it('returns "active" when stoppedAt and endedAt are explicitly null', () => {
+    expect(
+      sessionStatus({ id: 1, startedAt: 0, stoppedAt: null, endedAt: null })
+    ).toBe('active');
+  });
+
+  it('returns "stopped" when only stoppedAt is set', () => {
+    expect(
+      sessionStatus({ id: 1, startedAt: 0, stoppedAt: 5000, endedAt: null })
+    ).toBe('stopped');
+  });
+
+  it('returns "ended" when endedAt is set, regardless of stoppedAt', () => {
+    expect(sessionStatus({ id: 1, endedAt: 9000 })).toBe('ended');
+    expect(
+      sessionStatus({ id: 1, stoppedAt: 5000, endedAt: 9000 })
+    ).toBe('ended');
+  });
+});
+
+describe('isResumable', () => {
+  it('only stopped sessions are resumable', () => {
+    expect(isResumable(null)).toBe(false);
+    expect(isResumable({ id: 1 })).toBe(false); // active
+    expect(isResumable({ id: 1, stoppedAt: 5000 })).toBe(true);
+    expect(isResumable({ id: 1, endedAt: 9000 })).toBe(false);
+    expect(
+      isResumable({ id: 1, stoppedAt: 5000, endedAt: 9000 })
+    ).toBe(false);
   });
 });
 

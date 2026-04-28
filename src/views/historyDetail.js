@@ -19,6 +19,7 @@ import {
   SEGMENT_LABELS,
   SEGMENT_COLORS,
 } from '../analytics.js';
+import { isResumable, sessionStatus } from '../stateMachine.js';
 
 export async function renderHistoryDetail(target, { id }) {
   const session = await getSession(id);
@@ -66,15 +67,13 @@ export async function renderHistoryDetail(target, { id }) {
   // button vocabulary: Stop / Resume operate on `session.stoppedAt`).
   // If another session is currently running, stop it first so we never
   // end up with two non-stopped sessions in the DB simultaneously.
-  const isStopped = !!session.stoppedAt && !session.endedAt;
-
   const headerRow = el('div', { class: 'row between' }, [
     el(
       'a',
       { class: 'btn btn-ghost', href: '#/history' },
       '← Back'
     ),
-    isStopped ? el(
+    isResumable(session) ? el(
       'button',
       {
         class: 'btn btn-primary',
@@ -125,9 +124,9 @@ export async function renderHistoryDetail(target, { id }) {
     ]),
     el('h2', { style: { fontSize: '1rem', fontWeight: 'normal', color: 'var(--muted)' } }, formatDateTime(session.startedAt)),
     el('p', { class: 'muted' }, [
-      session.endedAt
+      sessionStatus(session) === 'ended'
         ? `Ended ${formatDateTime(session.endedAt)} · `
-        : session.stoppedAt
+        : sessionStatus(session) === 'stopped'
           ? `Stopped ${formatDateTime(session.stoppedAt)} · `
           : 'Active · ',
       `${cycles.length} ${cycles.length === 1 ? 'cycle' : 'cycles'} · ${events.length} presses`,

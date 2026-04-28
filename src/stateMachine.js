@@ -74,6 +74,29 @@ export function stateLabel(state) {
 }
 
 /**
+ * Classify a session record by its lifecycle state. Single source of truth
+ * for "is this session active / stopped / ended" used by the tracker view,
+ * history list and history detail.
+ *
+ * @param {{ stoppedAt?: number|null, endedAt?: number|null }|null|undefined} session
+ * @returns {'none'|'ended'|'stopped'|'active'}
+ */
+export function sessionStatus(session) {
+  if (!session) return 'none';
+  if (session.endedAt) return 'ended';
+  if (session.stoppedAt) return 'stopped';
+  return 'active';
+}
+
+/**
+ * Is this session a candidate for the Resume action? True only for
+ * stopped sessions (resume is the "undo Stop" affordance).
+ */
+export function isResumable(session) {
+  return sessionStatus(session) === 'stopped';
+}
+
+/**
  * Compute the desired state of the tracker's four action buttons given the
  * current session and event log. Pure function - the single source of truth
  * for tracker button UX, easy to unit test.
