@@ -11,7 +11,7 @@ npm run preview   # Serve dist/ locally with SW enabled
 ## Key facts
 
 - **Service worker**: Disabled in dev (`devOptions.enabled: false`), enabled in preview/production. Test PWA features with `npm run preview`.
-- **No tests** in this repo
+- **Tests**: Vitest `npm run test` / `npm run test:watch`. Test files live alongside source as `*.test.js` (e.g., `src/stateMachine.test.js`).
 - **No lint/typecheck** configured
 - **PWA manifest**: `base: './'` in vite.config.js — works on sub-paths (e.g., GitHub Pages)
 
