@@ -1,5 +1,5 @@
 import { el, formatDateTime, toast, formatTime } from '../ui.js';
-import { createTrendChart } from '../chart.js';
+import { createTrendChart, buildCycleDatasets } from '../chart.js';
 import {
   getSession,
   listEventsBySession,
@@ -36,7 +36,7 @@ export async function renderHistoryDetail(target, { id }) {
 
   const events = await listEventsBySession(id);
   const segments = segmentsFromEvents(events);
-  const cycles = cyclesFromSegments(segments);
+  const cycles = cyclesFromSegments(segments, true);
   const { byKind } = aggregateBySegmentKind(segments);
 
   const EVENT_LABELS = {
@@ -198,10 +198,10 @@ export async function renderHistoryDetail(target, { id }) {
     ),
   ]);
 
-// Per-cycle table
+// Trend chart from cycles (same as stats view cycles mode)
   const cycleChartCanvas = el('canvas');
   
-  // Trend chart in separate card
+  // Trend chart card
   const trendsCard = el('div', { class: 'card' }, [
     el('h3', {}, 'Trend'),
     el('div', { class: 'chart-wrap' }, [
@@ -209,32 +209,8 @@ export async function renderHistoryDetail(target, { id }) {
     ]),
   ]);
 
-  if (cycles.length >= 2) {
-    const ctx = cycleChartCanvas.getContext('2d');
-    
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const fg = isDark ? '#ddd' : '#333';
-    const muted = isDark ? '#888' : '#666';
-    const grid = isDark ? '#333' : '#eee';
-    
-    const labels = cycles.map((_, i) => `C${i + 1}`);
-    const datasets = [];
-    
-    for (const k of Object.values(SEGMENT_KINDS)) {
-      const data = cycles.map(c => (c.segments[k]?.durationMs || 0) / 1000);
-      if (data.some(d => d !== null && d > 0)) {
-        datasets.push({
-          label: SEGMENT_LABELS[k],
-          data,
-          borderColor: SEGMENT_COLORS[k],
-          backgroundColor: SEGMENT_COLORS[k],
-          tension: 0.25,
-          spanGaps: true,
-          pointRadius: 3,
-        });
-      }
-    }
-    
+  if (cycles.length > 0) {
+    const { labels, datasets } = buildCycleDatasets(cycles);
     createTrendChart(cycleChartCanvas, labels, datasets);
   }
 

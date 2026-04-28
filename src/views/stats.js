@@ -10,7 +10,7 @@ import {
   SEGMENT_LABELS,
   SEGMENT_COLORS,
 } from '../analytics.js';
-import { createTrendChart } from '../chart.js';
+import { createTrendChart, buildCycleDatasets } from '../chart.js';
 
 Chart.register(
   LineController,
@@ -236,25 +236,13 @@ export async function renderStats(target) {
     const muted = dark ? '#94a3b8' : '#64748b';
     const grid = dark ? 'rgba(241,245,249,0.08)' : 'rgba(15,23,42,0.08)';
 
-    const datasets = [];
+    let datasets = [];
     let labels = [];
 
     if (view === 'cycles') {
-      labels = cycles.map((_, i) => `#${i + 1}`);
-      for (const k of Object.values(SEGMENT_KINDS)) {
-        datasets.push({
-          label: SEGMENT_LABELS[k],
-          data: cycles.map((c) => {
-            const ms = c.segments[k]?.durationMs ?? null;
-            return ms == null ? null : ms / 1000; // seconds
-          }),
-          borderColor: SEGMENT_COLORS[k],
-          backgroundColor: SEGMENT_COLORS[k],
-          tension: 0.25,
-          spanGaps: true,
-          pointRadius: 2,
-        });
-      }
+      const result = buildCycleDatasets(cycles);
+      labels = result.labels;
+      datasets = result.datasets;
     } else {
       // Daily averages
       const byDay = new Map(); // dayKey -> { kind: { sum, count } }

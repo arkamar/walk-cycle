@@ -9,7 +9,7 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import { formatDuration } from './analytics.js';
+import { formatDuration, SEGMENT_KINDS, SEGMENT_LABELS, SEGMENT_COLORS } from './analytics.js';
 
 Chart.register(
   LineController,
@@ -21,6 +21,31 @@ Chart.register(
   Legend,
   Filler
 );
+
+export function buildCycleDatasets(cycles) {
+  const labels = cycles.map((_, i) => `#${i + 1}`);
+  const datasets = [];
+  
+  for (const k of Object.values(SEGMENT_KINDS)) {
+    const data = cycles.map(c => {
+      const ms = c.segments[k]?.durationMs ?? null;
+      return ms == null ? null : ms / 1000;
+    });
+    if (data.some(d => d !== null)) {
+      datasets.push({
+        label: SEGMENT_LABELS[k],
+        data,
+        borderColor: SEGMENT_COLORS[k],
+        backgroundColor: SEGMENT_COLORS[k],
+        tension: 0.25,
+        spanGaps: true,
+        pointRadius: 2,
+      });
+    }
+  }
+  
+  return { labels, datasets };
+}
 
 export function createTrendChart(canvas, labels, datasets) {
   const ctx = canvas.getContext('2d');
