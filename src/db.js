@@ -90,40 +90,29 @@ export async function getSession(id) {
   return db.get(STORE_SESSIONS, id);
 }
 
-export async function getActiveSession() {
+async function findSession(predicate) {
   const db = await getDB();
   const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');
   for (let i = all.length - 1; i >= 0; i--) {
-    if (!all[i].endedAt && !all[i].stoppedAt) return all[i];
+    if (predicate(all[i])) return all[i];
   }
   return null;
+}
+
+export async function getActiveSession() {
+  return findSession(s => !s.endedAt && !s.stoppedAt);
 }
 
 export async function getLatestEndedSession() {
-  const db = await getDB();
-  const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');
-  for (let i = all.length - 1; i >= 0; i--) {
-    if (all[i].endedAt) return all[i];
-  }
-  return null;
+  return findSession(s => s.endedAt);
 }
 
 export async function getCurrentSession() {
-  const db = await getDB();
-  const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');
-  for (let i = all.length - 1; i >= 0; i--) {
-    if (!all[i].endedAt) return all[i];
-  }
-  return null;
+  return findSession(s => !s.endedAt);
 }
 
 export async function getStoppedSession() {
-  const db = await getDB();
-  const all = await db.getAllFromIndex(STORE_SESSIONS, 'startedAt');
-  for (let i = all.length - 1; i >= 0; i--) {
-    if (all[i].stoppedAt && !all[i].endedAt) return all[i];
-  }
-  return null;
+  return findSession(s => s.stoppedAt && !s.endedAt);
 }
 
 /**
