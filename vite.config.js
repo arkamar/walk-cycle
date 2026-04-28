@@ -3,6 +3,10 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   base: './',
+  test: {
+    setupFiles: ['./vitest.setup.js'],
+    reporters: ['verbose'],
+  },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',

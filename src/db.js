@@ -54,6 +54,7 @@ export async function createSession(startedAt = Date.now(), note = '') {
   const id = await db.add(STORE_SESSIONS, {
     startedAt,
     endedAt: null,
+    stoppedAt: null,
     note,
   });
   return id;

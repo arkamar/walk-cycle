@@ -16,6 +16,7 @@
     "idb": "^8.0.0"
   },
   "devDependencies": {
+    "fake-indexeddb": "^6.2.5",
     "vite": "^5.4.8",
     "vite-plugin-pwa": "^0.20.5",
     "vitest": "^2.1.8"
