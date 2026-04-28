@@ -7,6 +7,7 @@ import {
   nextState,
   stateFromEvents,
   stateLabel,
+  buttonStatesFor,
 } from '../stateMachine.js';
 import {
   createSession,
@@ -381,47 +382,24 @@ let status = '';
       goalProgressEl.style.display = 'none';
     }
 
-    const hasStoppedData = !session && events.length > 0;
-    const allowed = (session || hasStoppedData) ? [...allowedEvents(state)] : ['up'];
-    if (session || hasStoppedData) {
-      if (state === STATES.GOING_UP) allowed.push('down');
-      if (state === STATES.AT_TOP) allowed.push('down');
-      if (state === STATES.GOING_DOWN) allowed.push('up');
-      if (state === STATES.AT_BOTTOM) allowed.push('up');
-    }
-    const allowedSet = new Set(allowed);
+    const btnStates = buttonStatesFor({ session, events });
     for (const b of BUTTONS) {
       if (b.kind === 'stop') continue;
       const node = buttonNodes[b.kind];
-      const isAllowed = allowedSet.has(b.kind);
-      node.disabled = !isAllowed;
-      node.dataset.active = isAllowed ? 'true' : 'false';
+      const s = btnStates[b.kind];
+      node.disabled = !s.enabled;
+      node.dataset.active = s.enabled ? 'true' : 'false';
     }
 
-    const isRunning = session && !session.stoppedAt;
-    const isStopped = session && session.stoppedAt;
     undoBtn.style.display = (session || events.length > 0) ? 'inline-block' : 'none';
-    
+
     const stopNode = buttonNodes['stop'];
-    if (isRunning) {
-      stopNode.disabled = false;
-      stopNode.style.display = '';
-      stopNode.dataset.active = 'true';
-      stopNode.querySelector('.action-icon').textContent = '■';
-      stopNode.querySelector('span:last-child').textContent = 'Stop';
-    } else if (isStopped || hasStoppedData) {
-      stopNode.disabled = false;
-      stopNode.style.display = '';
-      stopNode.dataset.active = 'true';
-      stopNode.querySelector('.action-icon').textContent = '▶';
-      stopNode.querySelector('span:last-child').textContent = 'Resume';
-    } else {
-      stopNode.disabled = true;
-      stopNode.style.display = '';
-      stopNode.dataset.active = 'false';
-      stopNode.querySelector('.action-icon').textContent = '■';
-      stopNode.querySelector('span:last-child').textContent = 'Stop';
-    }
+    stopNode.disabled = !btnStates.stop.enabled;
+    stopNode.style.display = '';
+    stopNode.dataset.active = btnStates.stop.enabled ? 'true' : 'false';
+    stopNode.querySelector('.action-icon').textContent =
+      btnStates.stop.label === 'Resume' ? '▶' : '■';
+    stopNode.querySelector('span:last-child').textContent = btnStates.stop.label;
   }
 
   function renderLog() {

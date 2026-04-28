@@ -72,3 +72,84 @@ export function stateLabel(state) {
     default: return 'Unknown';
   }
 }
+
+/**
+ * Compute the desired state of the tracker's four action buttons given the
+ * current session and event log. Pure function - the single source of truth
+ * for tracker button UX, easy to unit test.
+ *
+ * Mental model:
+ *   - up / pause / down  : drive the cycle FSM (idle->going_up->at_top->...).
+ *   - 4th button          : session-level Stop / Resume.
+ *       running    -> "Stop"   (stops the session)
+ *       stopped    -> "Resume" (un-stops, for mistakes)
+ *       no session -> "Stop"   (disabled placeholder)
+ *
+ *   When stopped (session is null but events exist OR session.stoppedAt is
+ *   set), the cycle FSM is frozen. The user can either Resume or, by
+ *   pressing Up, start a brand new session.
+ *
+ * @param {{ session: ({ stoppedAt?: number|null }|null), events: Array<{type:string}> }} input
+ * @returns {{
+ *   up:    { enabled: boolean },
+ *   pause: { enabled: boolean },
+ *   down:  { enabled: boolean },
+ *   stop:  { enabled: boolean, label: 'Stop'|'Resume' },
+ * }}
+ */
+export function buttonStatesFor({ session, events } = {}) {
+  const evts = events || [];
+  const isRunning = !!(session && !session.stoppedAt);
+  const isStopped = !!(session && session.stoppedAt);
+  const hasOrphanedEvents = !session && evts.length > 0;
+  const inStoppedMode = isStopped || hasOrphanedEvents;
+
+  // 4th button: Stop / Resume / disabled-Stop.
+  let stop;
+  if (isRunning) {
+    stop = { enabled: true, label: 'Stop' };
+  } else if (inStoppedMode) {
+    stop = { enabled: true, label: 'Resume' };
+  } else {
+    stop = { enabled: false, label: 'Stop' };
+  }
+
+  // While stopped the FSM is frozen: only the 4th button (Resume) and Up
+  // (start a new session) are meaningful.
+  if (inStoppedMode) {
+    return {
+      up: { enabled: true },
+      pause: { enabled: false },
+      down: { enabled: false },
+      stop,
+    };
+  }
+
+  // No session at all - first press must be Up to begin.
+  if (!isRunning) {
+    return {
+      up: { enabled: true },
+      pause: { enabled: false },
+      down: { enabled: false },
+      stop,
+    };
+  }
+
+  // Running: take FSM-allowed events plus the natural shortcuts at rest
+  // states (at_top -> Down, at_bottom -> Up). going_up/going_down also
+  // expose the opposite-direction button, which the tracker treats as an
+  // implicit Pause+next sequence.
+  const state = stateFromEvents(evts);
+  const allowed = new Set(allowedEvents(state));
+  if (state === STATES.GOING_UP) allowed.add(EVENTS.DOWN);
+  if (state === STATES.AT_TOP) allowed.add(EVENTS.DOWN);
+  if (state === STATES.GOING_DOWN) allowed.add(EVENTS.UP);
+  if (state === STATES.AT_BOTTOM) allowed.add(EVENTS.UP);
+
+  return {
+    up: { enabled: allowed.has(EVENTS.UP) },
+    pause: { enabled: allowed.has(EVENTS.PAUSE) },
+    down: { enabled: allowed.has(EVENTS.DOWN) },
+    stop,
+  };
+}
