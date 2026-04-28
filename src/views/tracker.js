@@ -53,6 +53,7 @@ export async function renderTracker(target) {
   const stateLabelEl = el('div', { class: 'tracker-mini-state' }, 'Ready');
   const cycleCountEl = el('div', { class: 'tracker-mini-cycles' }, '');
   const goalProgressEl = el('div', { class: 'tracker-goal-progress', style: { display: 'none' } }, '');
+  const hintEl = el('div', { class: 'tracker-hint', style: { display: 'none' } }, '');
 
   const buttonNodes = {};
   const actionGrid = el('div', { class: 'action-buttons' });
@@ -103,6 +104,7 @@ export async function renderTracker(target) {
       cycleCountEl,
       goalProgressEl,
       actionGrid,
+      hintEl,
       logCard,
     ])
   );
@@ -383,6 +385,16 @@ let status = '';
     }
 
     const btnStates = buttonStatesFor({ session, events });
+
+    // Hint when in stopped mode: Up = start a new session is not obvious.
+    if (btnStates.stop.label === 'Resume') {
+      hintEl.style.display = '';
+      hintEl.innerHTML =
+        'Press <strong>Resume</strong> to continue, or <strong>Up</strong> to start a new session.';
+    } else {
+      hintEl.style.display = 'none';
+    }
+
     for (const b of BUTTONS) {
       if (b.kind === 'stop') continue;
       const node = buttonNodes[b.kind];

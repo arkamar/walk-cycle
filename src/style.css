@@ -368,6 +368,18 @@ h3 { font-size: 1rem; }
   margin-bottom: 0.25rem;
 }
 
+.tracker-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+
+.tracker-hint strong {
+  color: var(--fg);
+}
+
 .log-header {
   font-size: 0.75rem;
   text-transform: uppercase;
