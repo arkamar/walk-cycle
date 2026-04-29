@@ -346,7 +346,8 @@ let status = '';
     stateLabelEl.textContent = events.length > 0 ? stateLabel(state) : 'Ready';
 
     const upCount = events.filter(e => e.type === EVENTS.UP).length;
-    cycleCountEl.textContent = (session || events.length > 0) ? `Cycle ${upCount}` : '';
+    const sessionName = session?.name ? `${session.name} · ` : '';
+    cycleCountEl.textContent = (session || events.length > 0) ? `${sessionName}Cycle ${upCount}` : '';
 
     const goal = getCompetitionGoal();
     if (goal && (session || events.length > 0)) {
