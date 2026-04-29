@@ -26,6 +26,7 @@ import {
   cyclesFromSegments,
   formatLive,
   formatDuration,
+  findPrevSameType,
 } from '../analytics.js';
 
 const BUTTONS = [
@@ -446,7 +447,7 @@ let status = '';
         displayDuration = '–';
       }
       
-      const prevSame = findPrevSameType(i, ev.type);
+      const prevSame = findPrevSameType(i, ev.type, events);
       if (prevSame && i < events.length - 1 && prevSame.nextTs) {
         const prevDuration = prevSame.nextTs - prevSame.ts;
         const diffMs = thisDuration - prevDuration;
@@ -483,15 +484,6 @@ let status = '';
     }
   }
   
-  function findPrevSameType(currentIndex, type) {
-    for (let i = currentIndex - 1; i >= 0; i--) {
-      if (events[i].type === type && events[i].nextTs) {
-        return events[i];
-      }
-    }
-    return null;
-  }
-
   function updateLiveTimer() {
     if (!session || !lastEventTs || events.length === 0) return;
     

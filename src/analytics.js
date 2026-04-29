@@ -186,3 +186,18 @@ export function formatLive(ms) {
   if (h > 0) return `${h}:${pad(m)}:${pad(s)}`;
   return `${pad(m)}:${pad(s)}:${pad(ms)}`;
 }
+
+/**
+ * Find the previous event of the same type in a list of events.
+ * @param {number} idx - Current index
+ * @param {string} type - Event type to match
+ * @param {Array} events - Array of events
+ * @returns {Object|null} Previous event or null
+ */
+export function findPrevSameType(idx, type, events) {
+  for (let i = idx - 1; i >= 0; i--) {
+    if (events[i].type === type && events[i].nextTs)
+      return events[i];
+  }
+  return null;
+}

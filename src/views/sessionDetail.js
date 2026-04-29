@@ -18,6 +18,7 @@ import {
   SEGMENT_KINDS,
   SEGMENT_LABELS,
   SEGMENT_COLORS,
+  findPrevSameType,
 } from '../analytics.js';
 import { sessionStatus } from '../stateMachine.js';
 
@@ -54,13 +55,6 @@ export async function renderSessionDetail(target, { id }) {
   }
   if (events.length > 0) {
     events[events.length - 1].nextTs = session.stoppedAt || session.endedAt || events[events.length - 1].ts;
-  }
-
-  function findPrevSameType(idx, type, evts) {
-    for (let i = idx - 1; i >= 0; i--) {
-      if (evts[i].type === type && evts[i].nextTs) return evts[i];
-    }
-    return null;
   }
 
   // Any session that isn't already the single current/active one can be
