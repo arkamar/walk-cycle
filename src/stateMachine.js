@@ -137,19 +137,9 @@ export function buttonStatesFor({ session, events } = {}) {
     stop = { enabled: false, label: 'Stop' };
   }
 
-  // While stopped the FSM is frozen: only the 4th button (Resume) and Up
-  // (start a new session) are meaningful.
-  if (inStoppedMode) {
-    return {
-      up: { enabled: true },
-      pause: { enabled: false },
-      down: { enabled: false },
-      stop,
-    };
-  }
-
-  // No session at all - first press must be Up to begin.
-  if (!isRunning) {
+  // Frozen FSM states: stopped session (Resume + Up only) or no session
+  // at all (first press must be Up to begin).
+  if (inStoppedMode || !isRunning) {
     return {
       up: { enabled: true },
       pause: { enabled: false },
