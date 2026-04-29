@@ -29,6 +29,7 @@ export function getDB() {
         if (oldVersion < 2) {
           // Rename `pausedAt` -> `stoppedAt` on existing sessions to match the
           // UI vocabulary (the 4th button is now "Stop" / "Resume").
+          // Also ensure all sessions have stoppedAt field (default null).
           const store = tx.objectStore(STORE_SESSIONS);
           let cursor = await store.openCursor();
           while (cursor) {
@@ -36,8 +37,11 @@ export function getDB() {
             if (Object.prototype.hasOwnProperty.call(s, 'pausedAt')) {
               s.stoppedAt = s.pausedAt;
               delete s.pausedAt;
-              await cursor.update(s);
             }
+            if (!Object.prototype.hasOwnProperty.call(s, 'stoppedAt')) {
+              s.stoppedAt = null;
+            }
+            await cursor.update(s);
             cursor = await cursor.continue();
           }
         }

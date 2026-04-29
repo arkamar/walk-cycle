@@ -83,7 +83,7 @@ describe('v1 → v2 migration', () => {
     expect(Object.prototype.hasOwnProperty.call(s, 'pausedAt')).toBe(false);
   });
 
-  it('leaves sessions without pausedAt untouched', async () => {
+  it('adds stoppedAt: null to sessions that had no pausedAt', async () => {
     await seedV1([
       { startedAt: 1000, endedAt: null, note: 'no-pause' },
       { startedAt: 2000, endedAt: 3000, note: 'ended' },
@@ -95,10 +95,14 @@ describe('v1 → v2 migration', () => {
 
     const noPause = sessions.find((s) => s.note === 'no-pause');
     expect(noPause).toBeDefined();
-    expect(noPause.stoppedAt).toBeUndefined();
+    expect(noPause.stoppedAt).toBeNull();
     expect(Object.prototype.hasOwnProperty.call(noPause, 'pausedAt')).toBe(false);
     expect(noPause.startedAt).toBe(1000);
     expect(noPause.endedAt).toBeNull();
+
+    const ended = sessions.find((s) => s.note === 'ended');
+    expect(ended.stoppedAt).toBeNull();
+    expect(ended.endedAt).toBe(3000);
   });
 
   it('preserves events store during upgrade', async () => {
