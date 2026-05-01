@@ -180,11 +180,9 @@ export function formatLive(ms) {
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
-  ms = ms % 1000;
   const pad = (n) => String(n).padStart(2, '0');
-  const pad3 = (n) => String(n).padStart(3, '0');
   if (h > 0) return `${h}:${pad(m)}:${pad(s)}`;
-  return `${pad(m)}:${pad(s)}:${pad(ms)}`;
+  return `${pad(m)}:${pad(s)}`;
 }
 
 /**
