@@ -15,8 +15,15 @@ describe('el()', () => {
     expect(el('div', { class: 'foo bar' }).className).toBe('foo bar');
   });
 
-  it('applies class via className attribute', () => {
+    it('applies class via className attribute', () => {
     expect(el('div', { className: 'baz' }).className).toBe('baz');
+  });
+
+  it('skips null/undefined attribute values (line 6)', () => {
+    const node = el('div', { id: null, 'data-val': undefined, className: 'test' });
+    expect(node.id).toBe('');
+    expect(node.dataset.val).toBeUndefined();
+    expect(node.className).toBe('test');
   });
 
   it('applies id attribute', () => {

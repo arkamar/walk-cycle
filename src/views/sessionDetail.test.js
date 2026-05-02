@@ -177,4 +177,156 @@ describe('sessionDetail.js', () => {
     nameInput.dispatchEvent(new Event('change'));
     expect(db.updateSession).toHaveBeenCalledWith(1, { name: 'New Walk Session' });
   });
+
+  it('calls resumeSession when resume button is clicked (lines 95-98)', async () => {
+    db.getCurrentSession.mockResolvedValue({ id: 1 });
+    db.getSession.mockResolvedValue({ ...mockSession, isStopped: true });
+    stateMachine.sessionStatus.mockReturnValue('stopped');
+    await renderSessionDetail(target, { id: 1 });
+    const buttons = target.querySelectorAll('button');
+    const resumeBtn = Array.from(buttons).find(b => b.textContent.includes('Resume'));
+    await resumeBtn.click();
+    expect(db.resumeSession).toHaveBeenCalledWith(1);
+  });
+
+  it('renders session log with cycle counts (lines 166-168)', async () => {
+    const now = Date.now();
+    const mockEvents = [
+      { id: 1, sessionId: 1, type: 'up', ts: now },
+      { id: 2, sessionId: 1, type: 'pause', ts: now + 1000 },
+      { id: 3, sessionId: 1, type: 'up', ts: now + 5000 },
+      { id: 4, sessionId: 1, type: 'pause', ts: now + 6000 },
+    ];
+    db.listEventsBySession.mockResolvedValue(mockEvents);
+
+    // Mock segments to return proper cycle data
+    const { segmentsFromEvents } = await import('../analytics.js');
+    segmentsFromEvents.mockReturnValue([
+      { kind: 'up_duration', durationMs: 1000, cycleIndex: 0, sessionId: 1 },
+      { kind: 'top_rest', durationMs: 500, cycleIndex: 0, sessionId: 1 },
+    ]);
+
+    await renderSessionDetail(target, { id: 1 });
+    const logEntries = target.querySelectorAll('.log-entry');
+    expect(logEntries.length).toBe(4);
+    // Cycle counts should be shown
+    expect(target.textContent).toContain('#1');
+    expect(target.textContent).toContain('#2');
+  });
+
+  it('shows diff string when comparing with previous same type (lines 175-185)', async () => {
+    const now = Date.now();
+    const mockEvents = [
+      { id: 1, sessionId: 1, type: 'up', ts: now },
+      { id: 2, sessionId: 1, type: 'pause', ts: now + 1000 },
+      { id: 3, sessionId: 1, type: 'up', ts: now + 5000 },
+      { id: 4, sessionId: 1, type: 'pause', ts: now + 6500 },
+    ];
+    db.listEventsBySession.mockResolvedValue(mockEvents);
+
+    const { findPrevSameType } = await import('../analytics.js');
+    // Mock findPrevSameType to return the first up event when looking for second up
+    findPrevSameType.mockImplementation((idx, type, events) => {
+      if (type === 'up' && idx === 2) return { ...events[0], nextTs: events[1].ts };
+      return null;
+    });
+
+    await renderSessionDetail(target, { id: 1 });
+    // Should show diff string for second up event
+    const diffEls = target.querySelectorAll('.log-entry-diff');
+    expect(diffEls.length).toBeGreaterThan(0);
+  });
+
+  it('renders trend chart when cycles exist (lines 248-251)', async () => {
+    const { buildCycleDatasets, createTrendChart } = await import('../chart.js');
+    buildCycleDatasets.mockReturnValue({
+      labels: ['Cycle 1'],
+      datasets: [{ label: 'Up', data: [1.5] }],
+    });
+
+    const { cyclesFromSegments } = await import('../analytics.js');
+    cyclesFromSegments.mockReturnValue([
+      {
+        index: 0,
+        segments: { up_duration: { durationMs: 1500 } },
+        totalMs: 1500,
+        startTs: Date.now(),
+      },
+    ]);
+
+    await renderSessionDetail(target, { id: 1 });
+    expect(createTrendChart).toHaveBeenCalled();
+  });
+
+  it('renders cycles table with per-cycle data (lines 263-284)', async () => {
+    const { cyclesFromSegments } = await import('../analytics.js');
+    cyclesFromSegments.mockReturnValue([
+      {
+        index: 0,
+        segments: {
+          up_duration: { durationMs: 1500 },
+          top_rest: { durationMs: 500 },
+          down_duration: { durationMs: 2000 },
+          bottom_rest: { durationMs: 300 },
+        },
+        totalMs: 4300,
+        startTs: Date.now(),
+      },
+    ]);
+
+    await renderSessionDetail(target, { id: 1 });
+    expect(target.textContent).toContain('Cycle 1');
+    expect(target.textContent).toContain('up');
+    expect(target.textContent).toContain('top');
+  });
+
+  it('renders partial cycle when up events exceed complete cycles (lines 286-313)', async () => {
+    const now = Date.now();
+    const mockEvents = [
+      { id: 1, sessionId: 1, type: 'up', ts: now },
+      { id: 2, sessionId: 1, type: 'pause', ts: now + 1000 },
+      { id: 3, sessionId: 1, type: 'down', ts: now + 1500 },
+      { id: 4, sessionId: 1, type: 'pause', ts: now + 3500 },
+      { id: 5, sessionId: 1, type: 'up', ts: now + 4000 },
+    ];
+    db.listEventsBySession.mockResolvedValue(mockEvents);
+
+    const { cyclesFromSegments } = await import('../analytics.js');
+    cyclesFromSegments.mockReturnValue([
+      {
+        index: 0,
+        segments: {
+          up_duration: { durationMs: 1000 },
+          top_rest: { durationMs: 500 },
+          down_duration: { durationMs: 2000 },
+          bottom_rest: { durationMs: 500 },
+        },
+        totalMs: 4000,
+        startTs: now,
+      },
+    ]);
+
+    await renderSessionDetail(target, { id: 1 });
+    // Should show partial cycle
+    expect(target.textContent).toContain('partial');
+  });
+
+  it('shows stopped time in session status (lines 147-148)', async () => {
+    const now = Date.now();
+    const mockEvents = [
+      { id: 1, sessionId: 1, type: 'up', ts: now },
+    ];
+    db.listEventsBySession.mockResolvedValue(mockEvents);
+    db.getSession.mockResolvedValue({ ...mockSession, isStopped: true });
+    stateMachine.sessionStatus.mockReturnValue('stopped');
+
+    const { listEventsBySession } = await import('../db.js');
+    listEventsBySession.mockResolvedValueOnce(mockEvents).mockResolvedValueOnce([
+      ...mockEvents,
+      { id: 2, sessionId: 1, type: 'session_stopped', ts: now + 5000 },
+    ]);
+
+    await renderSessionDetail(target, { id: 1 });
+    expect(target.textContent).toContain('Stopped');
+  });
 });
