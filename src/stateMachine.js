@@ -74,17 +74,14 @@ export function stateLabel(state) {
 }
 
 /**
- * Classify a session record by its lifecycle state. Single source of truth
- * for "is this session active / stopped / ended" used by the tracker view,
- * sessions list and session detail.
+ * Classify a session record by its lifecycle state.
  *
- * @param {{ stoppedAt?: number|null, endedAt?: number|null }|null|undefined} session
- * @returns {'none'|'ended'|'stopped'|'active'}
+ * @param {{ isStopped?: boolean }|null|undefined} session
+ * @returns {'none'|'stopped'|'active'}
  */
 export function sessionStatus(session) {
   if (!session) return 'none';
-  if (session.endedAt) return 'ended';
-  if (session.stoppedAt) return 'stopped';
+  if (session.isStopped) return 'stopped';
   return 'active';
 }
 
@@ -101,18 +98,7 @@ export function isResumable(session) {
  * current session and event log. Pure function - the single source of truth
  * for tracker button UX, easy to unit test.
  *
- * Mental model:
- *   - up / pause / down  : drive the cycle FSM (idle->going_up->at_top->...).
- *   - 4th button          : session-level Stop / Resume.
- *       running    -> "Stop"   (stops the session)
- *       stopped    -> "Resume" (un-stops, for mistakes)
- *       no session -> "Stop"   (disabled placeholder)
- *
- *   When stopped (session is null but events exist OR session.stoppedAt is
- *   set), the cycle FSM is frozen. The user can either Resume or, by
- *   pressing Up, start a brand new session.
- *
- * @param {{ session: ({ stoppedAt?: number|null }|null), events: Array<{type:string}> }} input
+ * @param {{ session: ({ isStopped?: boolean }|null), events: Array<{type:string}> }} input
  * @returns {{
  *   up:    { enabled: boolean },
  *   pause: { enabled: boolean },
@@ -122,12 +108,11 @@ export function isResumable(session) {
  */
 export function buttonStatesFor({ session, events } = {}) {
   const evts = events || [];
-  const isRunning = !!(session && !session.stoppedAt);
-  const isStopped = !!(session && session.stoppedAt);
+  const isRunning = !!(session && !session.isStopped);
+  const isStopped = !!(session && session.isStopped);
   const hasOrphanedEvents = !session && evts.length > 0;
   const inStoppedMode = isStopped || hasOrphanedEvents;
 
-  // 4th button: Stop / Resume / disabled-Stop.
   let stop;
   if (isRunning) {
     stop = { enabled: true, label: 'Stop' };
@@ -137,8 +122,6 @@ export function buttonStatesFor({ session, events } = {}) {
     stop = { enabled: false, label: 'Stop' };
   }
 
-  // Frozen FSM states: stopped session (Resume + Up only) or no session
-  // at all (first press must be Up to begin).
   if (inStoppedMode || !isRunning) {
     return {
       up: { enabled: true },
@@ -148,10 +131,6 @@ export function buttonStatesFor({ session, events } = {}) {
     };
   }
 
-  // Running: take FSM-allowed events plus the natural shortcuts at rest
-  // states (at_top -> Down, at_bottom -> Up). going_up/going_down also
-  // expose the opposite-direction button, which the tracker treats as an
-  // implicit Pause+next sequence.
   const state = stateFromEvents(evts);
   const allowed = new Set(allowedEvents(state));
   if (state === STATES.GOING_UP) allowed.add(EVENTS.DOWN);

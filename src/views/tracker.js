@@ -11,12 +11,11 @@ import {
 } from '../stateMachine.js';
 import {
   createSession,
-  endSession,
   addEvent,
   deleteEvent,
   getActiveSession,
+  getCurrentSession,
   listEventsBySession,
-  getLatestEndedSession,
   getStoppedSession,
   resumeSession,
   stopSession,
@@ -111,16 +110,14 @@ export async function renderTracker(target) {
   );
 
   async function loadActiveSession() {
-    const active = await getActiveSession();
-    const stopped = await getStoppedSession();
-    
-    if (active) {
-      session = active;
-    } else if (stopped) {
-      session = stopped;
-    } else {
-      session = null;
+    let current = await getCurrentSession();
+    if (!current) {
+      current = await getActiveSession();
     }
+    if (!current) {
+      current = await getStoppedSession();
+    }
+    session = current;
     
     if (!session) {
       events = [];
@@ -131,23 +128,31 @@ export async function renderTracker(target) {
       return;
     }
     
-    events = await listEventsBySession(session.id);
+    events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
     for (let i = 0; i < events.length - 1; i++) {
       events[i].nextTs = events[i + 1].ts;
     }
     if (events.length > 0) {
-      events[events.length - 1].nextTs = session.stoppedAt || Date.now();
+      const allEvents = await listEventsBySession(session.id);
+      const stoppedEvent = allEvents.findLast(e => e.type === 'session_stopped');
+      events[events.length - 1].nextTs = stoppedEvent?.ts || Date.now();
     }
     state = stateFromEvents(events);
     lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
     render();
     renderLog();
     
-    if (active) {
+    if (!session.isStopped) {
       renderGoalProgress();
       startTimer();
     }
   }
+
+  function onCurrentSessionChanged() {
+    loadActiveSession();
+  }
+
+  window.addEventListener('current-session-changed', onCurrentSessionChanged);
 
   async function onStartSession() {
     if (session) {
@@ -155,7 +160,7 @@ export async function renderTracker(target) {
       return;
     }
     const id = await createSession();
-    session = { id, startedAt: Date.now(), endedAt: null };
+    session = { id, isStopped: false, createdAt: Date.now() };
     events = [];
     state = STATES.IDLE;
     lastEventTs = null;
@@ -185,7 +190,7 @@ export async function renderTracker(target) {
     if (isProcessing) return;
     isProcessing = true;
     try {
-      if (!session || session.stoppedAt) {
+      if (!session || session.isStopped) {
         const stopped = await getStoppedSession();
         if (!stopped) {
           toast('No session to resume');
@@ -193,7 +198,7 @@ export async function renderTracker(target) {
         }
         const resumed = await resumeSession(stopped.id);
         session = resumed;
-        events = await listEventsBySession(session.id);
+        events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
         for (let i = 0; i < events.length - 1; i++) {
           events[i].nextTs = events[i + 1].ts;
         }
@@ -209,9 +214,9 @@ export async function renderTracker(target) {
         startTimer();
       } else {
         stopIntervalTimer();
-        const stopped = await stopSession(session.id);
+        await stopSession(session.id);
         if (events.length > 0) {
-          events[events.length - 1].nextTs = stopped.stoppedAt;
+          events[events.length - 1].nextTs = Date.now();
         }
         session = null;
         state = STATES.IDLE;
@@ -291,7 +296,7 @@ let status = '';
         if (remaining > 0) {
           parts.push(`${remaining} up${remaining === 1 ? '' : 's'}`);
           
-          if (goal.endTime && completedUps >= 2 && session && !session.stoppedAt) {
+          if (goal.endTime && completedUps >= 2 && session && !session.isStopped) {
             const now = new Date();
             const [h, m] = goal.endTime.split(':').map(Number);
             const target = new Date(now);
@@ -435,8 +440,8 @@ let status = '';
       
       const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : null;
       
-      const isRunning = session && !session.stoppedAt;
-      const isStopped = session && session.stoppedAt;
+      const isRunning = session && !session.isStopped;
+      const isStopped = session && session.isStopped;
       
       if (isRunning && i === events.length - 1) {
         displayDuration = '00:00';
@@ -578,5 +583,6 @@ let status = '';
 
   return () => {
     stopIntervalTimer();
+    window.removeEventListener('current-session-changed', onCurrentSessionChanged);
   };
 }

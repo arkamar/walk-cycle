@@ -1,12 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   getActiveSession,
-  getLatestEndedSession,
   getCurrentSession,
   getStoppedSession,
   getSession,
   createSession,
-  endSession,
   updateSession,
   stopSession,
   resumeSession,
@@ -22,10 +20,15 @@ import {
   clearAll,
 } from './db.js';
 
+const CURRENT_SESSION_KEY = 'walk-cycle-current-session-id';
+
 describe('db session queries', () => {
   beforeEach(async () => {
-    const { clearAll } = await import('./db.js');
     await clearAll();
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(CURRENT_SESSION_KEY);
   });
 
   describe('getActiveSession', () => {
@@ -33,19 +36,12 @@ describe('db session queries', () => {
       expect(await getActiveSession()).toBeNull();
     });
 
-    it('returns session with neither endedAt nor stoppedAt', async () => {
+    it('returns session with isStopped false', async () => {
       const id = await createSession(Date.now(), 'active');
       const session = await getActiveSession();
       expect(session).not.toBeNull();
       expect(session.id).toBe(id);
-      expect(session.endedAt).toBeNull();
-      expect(session.stoppedAt).toBeNull();
-    });
-
-    it('returns null when only ended sessions exist', async () => {
-      const id = await createSession(Date.now(), 'ended');
-      await endSession(id);
-      expect(await getActiveSession()).toBeNull();
+      expect(session.isStopped).toBe(false);
     });
 
     it('returns null when only stopped sessions exist', async () => {
@@ -55,56 +51,37 @@ describe('db session queries', () => {
     });
 
     it('returns the latest active session', async () => {
-      const id1 = await createSession(Date.now() - 1000, 'first');
-      await createSession(Date.now(), 'second');
-      await endSession(id1);
+      await createSession(Date.now() - 1000, 'first');
+      await stopSession(await createSession(Date.now() - 500, 'stopped'));
+      const id = await createSession(Date.now(), 'second');
       const active = await getActiveSession();
       expect(active.note).toBe('second');
-    });
-  });
-
-  describe('getLatestEndedSession', () => {
-    it('returns null when no sessions exist', async () => {
-      expect(await getLatestEndedSession()).toBeNull();
-    });
-
-    it('returns null when no ended sessions exist', async () => {
-      await createSession(Date.now(), 'active');
-      expect(await getLatestEndedSession()).toBeNull();
-    });
-
-    it('returns the latest ended session', async () => {
-      const id1 = await createSession(Date.now() - 2000, 'first');
-      const id2 = await createSession(Date.now() - 1000, 'second');
-      await endSession(id1);
-      await endSession(id2);
-      const latest = await getLatestEndedSession();
-      expect(latest.note).toBe('second');
+      expect(active.id).toBe(id);
     });
   });
 
   describe('getCurrentSession', () => {
-    it('returns null when all sessions are ended', async () => {
-      const id = await createSession(Date.now(), 'ended');
-      await endSession(id);
+    it('returns null when current session key is cleared', async () => {
+      await createSession(Date.now(), 'active');
+      localStorage.removeItem(CURRENT_SESSION_KEY);
       expect(await getCurrentSession()).toBeNull();
     });
 
-    it('returns session with endedAt null (including stopped)', async () => {
+    it('returns the session stored in localStorage', async () => {
+      const id = await createSession(Date.now(), 'test');
+      const session = await getCurrentSession();
+      expect(session).not.toBeNull();
+      expect(session.id).toBe(id);
+      expect(session.note).toBe('test');
+    });
+
+    it('returns stopped session if it is current', async () => {
       const id = await createSession(Date.now(), 'stopped');
       await stopSession(id);
       const session = await getCurrentSession();
       expect(session).not.toBeNull();
       expect(session.id).toBe(id);
-      expect(session.stoppedAt).not.toBeNull();
-    });
-
-    it('prefers active over stopped when both exist', async () => {
-      const stoppedId = await createSession(Date.now() - 1000, 'stopped');
-      await stopSession(stoppedId);
-      await createSession(Date.now(), 'active');
-      const current = await getCurrentSession();
-      expect(current.note).toBe('active');
+      expect(session.isStopped).toBe(true);
     });
   });
 
@@ -118,49 +95,52 @@ describe('db session queries', () => {
       expect(await getStoppedSession()).toBeNull();
     });
 
-    it('returns null when only ended sessions exist', async () => {
-      const id = await createSession(Date.now(), 'ended');
-      await endSession(id);
-      expect(await getStoppedSession()).toBeNull();
-    });
-
-    it('returns the stopped session that is not ended', async () => {
+    it('returns the stopped session', async () => {
       const id = await createSession(Date.now(), 'stopped');
       await stopSession(id);
       const stopped = await getStoppedSession();
       expect(stopped).not.toBeNull();
       expect(stopped.id).toBe(id);
-      expect(stopped.endedAt).toBeNull();
-      expect(stopped.stoppedAt).not.toBeNull();
+      expect(stopped.isStopped).toBe(true);
     });
   });
 
   describe('setCurrentSession', () => {
-    it('makes target the active session', async () => {
-      const id1 = await createSession(Date.now() - 1000, 'first');
-      const id2 = await createSession(Date.now(), 'second');
-      await stopSession(id1);
-
-      await setCurrentSession(id2);
-
-      const current = await getActiveSession();
-      expect(current.id).toBe(id2);
-      expect(current.stoppedAt).toBeNull();
-      expect(current.endedAt).toBeNull();
-    });
-
-    it('stops any other active session', async () => {
+    it('stores the session id in localStorage', async () => {
       const id1 = await createSession(Date.now() - 1000, 'first');
       const id2 = await createSession(Date.now(), 'second');
 
       await setCurrentSession(id1);
 
-      const s2 = await import('./db.js').then(m => m.getSession(id2));
-      expect(s2.stoppedAt).not.toBeNull();
+      expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBe(String(id1));
+      const current = await getCurrentSession();
+      expect(current.id).toBe(id1);
+    });
+
+    it('does not modify session data', async () => {
+      const id1 = await createSession(Date.now() - 1000, 'first');
+      await stopSession(id1);
+      const before = await getSession(id1);
+
+      await setCurrentSession(id1);
+
+      const after = await getSession(id1);
+      expect(after.isStopped).toBe(before.isStopped);
+      expect(after.createdAt).toBe(before.createdAt);
     });
 
     it('returns null for non-existent session', async () => {
       expect(await setCurrentSession(9999)).toBeNull();
+    });
+
+    it('dispatches current-session-changed event', async () => {
+      const id = await createSession(Date.now(), 'test');
+      let fired = false;
+      const handler = () => { fired = true; };
+      window.addEventListener('current-session-changed', handler);
+      await setCurrentSession(id);
+      window.removeEventListener('current-session-changed', handler);
+      expect(fired).toBe(true);
     });
   });
 });
@@ -170,28 +150,31 @@ describe('createSession', () => {
     await clearAll();
   });
 
-  it('defaults startedAt to Date.now() and note to empty string', async () => {
+  afterEach(() => {
+    localStorage.removeItem(CURRENT_SESSION_KEY);
+  });
+
+  it('defaults createdAt to Date.now() and note to empty string', async () => {
     const before = Date.now();
     const id = await createSession();
     const after = Date.now();
     const s = await getSession(id);
     expect(s.id).toBe(id);
-    expect(s.startedAt).toBeGreaterThanOrEqual(before);
-    expect(s.startedAt).toBeLessThanOrEqual(after);
+    expect(s.createdAt).toBeGreaterThanOrEqual(before);
+    expect(s.createdAt).toBeLessThanOrEqual(after);
     expect(s.note).toBe('');
   });
 
-  it('persists endedAt and stoppedAt as null initially', async () => {
+  it('persists isStopped as false initially', async () => {
     const id = await createSession();
     const s = await getSession(id);
-    expect(s.endedAt).toBeNull();
-    expect(s.stoppedAt).toBeNull();
+    expect(s.isStopped).toBe(false);
   });
 
-  it('accepts custom startedAt and note', async () => {
+  it('accepts custom createdAt and note', async () => {
     const id = await createSession(12345, 'my note');
     const s = await getSession(id);
-    expect(s.startedAt).toBe(12345);
+    expect(s.createdAt).toBe(12345);
     expect(s.note).toBe('my note');
   });
 
@@ -202,33 +185,10 @@ describe('createSession', () => {
     expect(typeof id2).toBe('number');
     expect(id2).toBeGreaterThan(id1);
   });
-});
 
-describe('endSession', () => {
-  beforeEach(async () => {
-    await clearAll();
-  });
-
-  it('sets endedAt and returns updated session', async () => {
-    const id = await createSession(1000, 'test');
-    const result = await endSession(id, 2000);
-    expect(result.id).toBe(id);
-    expect(result.endedAt).toBe(2000);
-    expect(result.note).toBe('test');
-    const s = await getSession(id);
-    expect(s.endedAt).toBe(2000);
-  });
-
-  it('defaults endedAt to Date.now()', async () => {
+  it('sets itself as current session', async () => {
     const id = await createSession();
-    const before = Date.now();
-    await endSession(id);
-    const s = await getSession(id);
-    expect(s.endedAt).toBeGreaterThanOrEqual(before);
-  });
-
-  it('returns null for unknown id', async () => {
-    expect(await endSession(9999)).toBeNull();
+    expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBe(String(id));
   });
 });
 
@@ -243,15 +203,14 @@ describe('updateSession', () => {
     const s = await getSession(id);
     expect(s.note).toBe('updated');
     expect(s.extra).toBe('field');
-    expect(s.startedAt).toBe(1000);
+    expect(s.createdAt).toBe(1000);
   });
 
-  it('can clear stoppedAt and endedAt independently', async () => {
+  it('can toggle isStopped', async () => {
     const id = await createSession();
-    await endSession(id);
-    await updateSession(id, { endedAt: null });
+    await updateSession(id, { isStopped: true });
     const s = await getSession(id);
-    expect(s.endedAt).toBeNull();
+    expect(s.isStopped).toBe(true);
   });
 
   it('returns null for unknown id', async () => {
@@ -264,19 +223,35 @@ describe('stopSession / resumeSession', () => {
     await clearAll();
   });
 
-  it('stopSession sets stoppedAt to ~now', async () => {
+  it('stopSession sets isStopped to true', async () => {
     const id = await createSession();
-    const before = Date.now();
     const result = await stopSession(id);
-    expect(result.stoppedAt).toBeGreaterThanOrEqual(before);
+    expect(result.isStopped).toBe(true);
   });
 
-  it('resumeSession clears stoppedAt', async () => {
+  it('stopSession creates a session_stopped event', async () => {
+    const id = await createSession();
+    await stopSession(id);
+    const events = await listEventsBySession(id);
+    const stopped = events.find(e => e.type === 'session_stopped');
+    expect(stopped).toBeDefined();
+    expect(stopped.sessionId).toBe(id);
+  });
+
+  it('resumeSession clears isStopped', async () => {
     const id = await createSession();
     await stopSession(id);
     await resumeSession(id);
     const s = await getSession(id);
-    expect(s.stoppedAt).toBeNull();
+    expect(s.isStopped).toBe(false);
+  });
+
+  it('resumeSession deletes the session_stopped event', async () => {
+    const id = await createSession();
+    await stopSession(id);
+    await resumeSession(id);
+    const events = await listEventsBySession(id);
+    expect(events.find(e => e.type === 'session_stopped')).toBeUndefined();
   });
 
   it('resumeSession preserves other fields', async () => {
@@ -285,8 +260,15 @@ describe('stopSession / resumeSession', () => {
     await resumeSession(id);
     const s = await getSession(id);
     expect(s.note).toBe('keep note');
-    expect(s.startedAt).toBe(5000);
-    expect(s.endedAt).toBeNull();
+    expect(s.createdAt).toBe(5000);
+  });
+
+  it('resumeSession returns null for unknown id', async () => {
+    expect(await resumeSession(9999)).toBeNull();
+  });
+
+  it('stopSession returns null for unknown id', async () => {
+    expect(await stopSession(9999)).toBeNull();
   });
 });
 
@@ -299,7 +281,7 @@ describe('getSession', () => {
     const id = await createSession(999, 'hello');
     const s = await getSession(id);
     expect(s.id).toBe(id);
-    expect(s.startedAt).toBe(999);
+    expect(s.createdAt).toBe(999);
     expect(s.note).toBe('hello');
   });
 
@@ -313,7 +295,7 @@ describe('listSessions', () => {
     await clearAll();
   });
 
-  it('returns sessions newest-first by startedAt', async () => {
+  it('returns sessions newest-first by createdAt', async () => {
     await createSession(3000, 'third');
     await createSession(1000, 'first');
     await createSession(2000, 'second');
@@ -350,6 +332,10 @@ describe('deleteSession', () => {
     await clearAll();
   });
 
+  afterEach(() => {
+    localStorage.removeItem(CURRENT_SESSION_KEY);
+  });
+
   it('removes the session record', async () => {
     const id = await createSession();
     await deleteSession(id);
@@ -381,6 +367,12 @@ describe('deleteSession', () => {
     await deleteSession(9999);
     expect(await listSessions()).toEqual(before);
   });
+
+  it('clears current session from localStorage if deleted', async () => {
+    const id = await createSession();
+    await deleteSession(id);
+    expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBeNull();
+  });
 });
 
 describe('addEvent', () => {
@@ -388,7 +380,7 @@ describe('addEvent', () => {
     await clearAll();
   });
 
-  it.each(['up', 'pause', 'down'])('accepts type "%s"', async (type) => {
+  it.each(['up', 'pause', 'down', 'session_stopped'])('accepts type "%s"', async (type) => {
     const id = await createSession();
     const result = await addEvent({ sessionId: id, type, ts: 1234 });
     expect(result.id).toBeDefined();
@@ -500,11 +492,11 @@ describe('exportAll', () => {
     await clearAll();
   });
 
-  it('returns correct shape with version 2', async () => {
+  it('returns correct shape with version 3', async () => {
     const id = await createSession(1000, 'test');
     await addEvent({ sessionId: id, type: 'up', ts: 2000 });
     const data = await exportAll();
-    expect(data.version).toBe(2);
+    expect(data.version).toBe(3);
     expect(typeof data.exportedAt).toBe('number');
     expect(Array.isArray(data.sessions)).toBe(true);
     expect(Array.isArray(data.events)).toBe(true);
@@ -517,6 +509,7 @@ describe('exportAll', () => {
     const session = data.sessions.find((s) => s.id === id);
     expect(session).toBeDefined();
     expect(session.note).toBe('test');
+    expect(session.createdAt).toBe(1000);
     const event = data.events.find((ev) => ev.id === e.id);
     expect(event).toBeDefined();
     expect(event.type).toBe('pause');
@@ -526,6 +519,10 @@ describe('exportAll', () => {
 describe('importAll', () => {
   beforeEach(async () => {
     await clearAll();
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(CURRENT_SESSION_KEY);
   });
 
   it('throws for null data', async () => {
@@ -560,7 +557,7 @@ describe('importAll', () => {
     const id = await createSession(1000, 'existing');
     await importAll(
       {
-        sessions: [{ id: 999, startedAt: 2000, note: 'imported', endedAt: null, stoppedAt: null }],
+        sessions: [{ id: 999, createdAt: 2000, note: 'imported', isStopped: false }],
         events: [],
       },
       { merge: true }
@@ -573,7 +570,7 @@ describe('importAll', () => {
 
   it('re-maps session ids in events', async () => {
     const data = {
-      sessions: [{ id: 100, startedAt: 1000, note: 's', endedAt: null, stoppedAt: null }],
+      sessions: [{ id: 100, createdAt: 1000, note: 's', isStopped: false }],
       events: [{ id: 1, sessionId: 100, type: 'up', ts: 500 }],
     };
     await importAll(data);
@@ -594,7 +591,7 @@ describe('importAll', () => {
     await importAll(exported);
     const sessions = await listSessions();
     expect(sessions).toHaveLength(1);
-    expect(sessions[0].startedAt).toBe(777);
+    expect(sessions[0].createdAt).toBe(777);
     expect(sessions[0].note).toBe('rt');
     const events = await listAllEvents();
     expect(events).toHaveLength(1);
@@ -606,7 +603,7 @@ describe('importAll', () => {
     const existingId = await createSession(1000, 'existing');
     await importAll(
       {
-        sessions: [{ id: 200, startedAt: 3000, note: 'orphan-event', endedAt: null, stoppedAt: null }],
+        sessions: [{ id: 200, createdAt: 3000, note: 'orphan-event', isStopped: false }],
         events: [{ id: 50, sessionId: existingId, type: 'down', ts: 400 }],
       },
       { merge: true }
@@ -616,12 +613,32 @@ describe('importAll', () => {
   });
 });
 
-describe('clearAll', () => {
-  it('empties both stores', async () => {
-    const id = await createSession();
-    await addEvent({ sessionId: id, type: 'up' });
-    await clearAll();
-    expect(await listSessions()).toEqual([]);
-    expect(await listAllEvents()).toEqual([]);
+  describe('clearAll', () => {
+    afterEach(() => {
+      localStorage.removeItem(CURRENT_SESSION_KEY);
+    });
+
+    it('empties both stores', async () => {
+      const id = await createSession();
+      await addEvent({ sessionId: id, type: 'up' });
+      await clearAll();
+      expect(await listSessions()).toEqual([]);
+      expect(await listAllEvents()).toEqual([]);
+    });
+
+    it('clears current session from localStorage', async () => {
+      const id = await createSession();
+      expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBe(String(id));
+      await clearAll();
+      expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBeNull();
+    });
   });
-});
+
+  describe('setCurrentSessionId(null) via clearAll', () => {
+    it('clears current session key (line 95)', async () => {
+      const id = await createSession();
+      expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBe(String(id));
+      await clearAll();
+      expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBeNull();
+    });
+  });
