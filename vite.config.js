@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     setupFiles: ['./vitest.setup.js'],
     reporters: ['verbose'],
+    environment: 'jsdom',
   },
   plugins: [
     VitePWA({

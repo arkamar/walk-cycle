@@ -19,34 +19,39 @@ globalThis.localStorage = {
   key(n) { return [...store.keys()][n] ?? null; },
 };
 
-globalThis.CustomEvent = class CustomEvent {
-  constructor(type, init = {}) {
-    this.type = type;
-    this.detail = init.detail ?? null;
-    this.bubbles = init.bubbles ?? false;
-    this.cancelable = init.cancelable ?? false;
-  }
-};
+// Polyfill matchMedia for jsdom (needed by stats.js)
+globalThis.matchMedia = (query) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addEventListener: () => {},
+  removeEventListener: () => {},
+  dispatchEvent: () => false,
+});
 
-const listeners = new Map();
-globalThis.window = {
-  addEventListener(event, fn) {
-    if (!listeners.has(event)) listeners.set(event, []);
-    listeners.get(event).push(fn);
-  },
-  removeEventListener(event, fn) {
-    if (!listeners.has(event)) return;
-    const fns = listeners.get(event).filter(f => f !== fn);
-    if (fns.length) listeners.set(event, fns);
-    else listeners.delete(event);
-  },
-  dispatchEvent(event) {
-    const fns = listeners.get(event.type) || [];
-    fns.forEach(fn => fn(event));
-    return true;
-  },
-  dispatchEventForTest(event, ...args) {
-    const fns = listeners.get(event.type) || [];
-    fns.forEach(fn => fn(event, ...args));
-  },
-};
+// Polyfill canvas getContext for jsdom (needed by stats.js)
+if (typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = function(type) {
+    if (type === '2d') {
+      return {
+        clearRect: () => {},
+        fillRect: () => {},
+        drawImage: () => {},
+        beginPath: () => {},
+        moveTo: () => {},
+        lineTo: () => {},
+        stroke: () => {},
+        fill: () => {},
+        measureText: () => ({ width: 0 }),
+        fillText: () => {},
+        save: () => {},
+        restore: () => {},
+        translate: () => {},
+        scale: () => {},
+        rotate: () => {},
+        arc: () => {},
+      };
+    }
+    return null;
+  };
+}
