@@ -8,7 +8,7 @@ export const STORE_EVENTS = 'events';
 
 let dbPromise;
 
-function getDB() {
+export function getDB() {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
       async upgrade(db, oldVersion, _newVersion, tx) {
