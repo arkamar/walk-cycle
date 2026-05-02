@@ -285,7 +285,7 @@ export async function importAll(data, { merge = false } = {}) {
     sessionIdMap.set(oldId, newId);
   }
   for (const e of data.events) {
-    const { id: _oldId, sessionId, ...rest } = e;
+    const { sessionId, ...rest } = e;
     const newSessionId = sessionIdMap.get(sessionId) ?? sessionId;
     await tx.objectStore(STORE_EVENTS).add({ sessionId: newSessionId, ...rest });
   }

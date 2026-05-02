@@ -27,7 +27,7 @@ export function createRouter(routes, { mount = '#view', notFound } = {}) {
       return;
     }
     if (typeof currentCleanup === 'function') {
-      try { currentCleanup(); } catch (_) { /* ignore */ }
+      try { currentCleanup(); } catch { /* ignore */ }
       currentCleanup = null;
     }
     target.innerHTML = '';

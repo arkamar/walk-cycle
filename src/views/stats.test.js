@@ -153,7 +153,7 @@ describe('stats.js', () => {
   });
 
   it('loads cycles for current session when range is session (lines 128-135)', async () => {
-    const { getCurrentSession, listEventsBySession, listSessions } = await import('../db.js');
+    const { getCurrentSession, listEventsBySession } = await import('../db.js');
     const { cyclesFromSegments, segmentsFromEvents } = await import('../analytics.js');
 
     const mockSession = { id: 1, createdAt: Date.now() };

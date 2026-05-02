@@ -75,7 +75,7 @@ vi.mock('../analytics.js', () => ({
 import { renderTracker } from './tracker.js';
 import { toast } from '../ui.js';
 import { getCompetitionGoal } from './settings.js';
-import { STATES, EVENTS, buttonStatesFor, stateLabel } from '../stateMachine.js';
+import { buttonStatesFor } from '../stateMachine.js';
 import {
   createSession,
   addEvent,
@@ -87,7 +87,7 @@ import {
   resumeSession,
   stopSession,
 } from '../db.js';
-import { formatLive, findPrevSameType } from '../analytics.js';
+import { formatLive } from '../analytics.js';
 
 describe('tracker.js', () => {
   let target;

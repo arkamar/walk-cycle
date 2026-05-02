@@ -59,7 +59,7 @@ vi.mock('../db.js', () => ({
 // Now import after mocks are set up
 import { getCompetitionGoal, setCompetitionGoal, renderSettings } from './settings.js';
 import { exportAll, importAll, clearAll } from '../db.js';
-import { toast, formatDateTime } from '../ui.js';
+import { toast } from '../ui.js';
 
 describe('settings.js', () => {
   let container;

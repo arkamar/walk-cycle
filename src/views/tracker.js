@@ -3,7 +3,6 @@ import { getCompetitionGoal } from './settings.js';
 import {
   STATES,
   EVENTS,
-  allowedEvents,
   nextState,
   stateFromEvents,
   stateLabel,
@@ -21,8 +20,6 @@ import {
   stopSession,
 } from '../db.js';
 import {
-  segmentsFromEvents,
-  cyclesFromSegments,
   formatLive,
   formatDuration,
   findPrevSameType,
@@ -267,7 +264,6 @@ export async function renderTracker(target) {
       }
     }
 
-    const prevTs = lastEventTs;
     const newEv = await addEvent({ sessionId: session.id, type: kind });
     events.push(newEv);
     state = ns;
@@ -276,7 +272,7 @@ export async function renderTracker(target) {
     await renderAndContinue(kind);
   }
 
-  async function renderAndContinue(kind) {
+  async function renderAndContinue() {
     render();
     renderLog();
     renderGoalProgress();
@@ -291,7 +287,7 @@ export async function renderTracker(target) {
 let status = '';
       
       if (goal.ups) {
-        const completedUps = countCompletedUps(goal.ups);
+        const completedUps = countCompletedUps();
         const remaining = goal.ups - completedUps;
         if (remaining > 0) {
           parts.push(`${remaining} up${remaining === 1 ? '' : 's'}`);
@@ -304,7 +300,7 @@ let status = '';
             if (target < now) target.setDate(target.getDate() + 1);
             const timeLeftMs = target - now;
             
-            const { avg, trend, trendDir } = calcCycleTrend();
+            const { avg, trend } = calcCycleTrend();
             if (avg > 0 && timeLeftMs > 0) {
               const projected = avg + trend * (remaining - 1) * 0.5;
               const requiredPerUp = timeLeftMs / remaining;
@@ -434,7 +430,7 @@ let status = '';
     
     for (let i = events.length - 1; i >= 0; i--) {
       const ev = events[i];
-      let displayDuration = '–';
+      let displayDuration;
       let diffStr = '';
       const thisCycle = cycleForEvent(i);
       
@@ -523,22 +519,6 @@ let status = '';
 
   await loadActiveSession();
 
-  function calcAvgCycleTime() {
-    const upEvents = events.filter(e => e.type === EVENTS.UP);
-    if (upEvents.length < 2) return 0;
-    
-    let totalMs = 0;
-    for (let i = 1; i < upEvents.length; i++) {
-      const prev = upEvents[i-1];
-      const curr = upEvents[i];
-      if (curr.ts && prev.ts) {
-        totalMs += curr.ts - prev.ts;
-      }
-    }
-    const cycles = upEvents.length - 1;
-    return cycles > 0 ? totalMs / cycles : 0;
-  }
-
   function calcCycleTrend() {
     const upEvents = events.filter(e => e.type === EVENTS.UP);
     if (upEvents.length < 2) return { avg: 0, trend: 0, trendDir: 'flat' };
@@ -568,7 +548,7 @@ let status = '';
     return { avg, trend: slope, trendDir };
   }
 
-  function countCompletedUps(targetUps) {
+  function countCompletedUps() {
     const upEvents = events.filter(e => e.type === EVENTS.UP);
     let completed = 0;
     for (let i = 0; i < upEvents.length; i++) {

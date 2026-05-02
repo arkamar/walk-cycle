@@ -108,7 +108,7 @@ describe('db session queries', () => {
   describe('setCurrentSession', () => {
     it('stores the session id in localStorage', async () => {
       const id1 = await createSession(Date.now() - 1000, 'first');
-      const id2 = await createSession(Date.now(), 'second');
+      await createSession(Date.now(), 'second');
 
       await setCurrentSession(id1);
 
@@ -554,7 +554,7 @@ describe('importAll', () => {
   });
 
   it('merge mode preserves existing data', async () => {
-    const id = await createSession(1000, 'existing');
+    await createSession(1000, 'existing');
     await importAll(
       {
         sessions: [{ id: 999, createdAt: 2000, note: 'imported', isStopped: false }],
