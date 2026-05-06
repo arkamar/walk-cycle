@@ -90,7 +90,7 @@ function getCurrentSessionId() {
   return raw ? Number(raw) : null;
 }
 
-function setCurrentSessionId(id) {
+export function setCurrentSessionId(id) {
   if (id == null) {
     localStorage.removeItem(CURRENT_SESSION_KEY);
   } else {

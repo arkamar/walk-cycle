@@ -56,6 +56,7 @@ vi.mock('../db.js', () => ({
   getStoppedSession: vi.fn(() => Promise.resolve(null)),
   resumeSession: vi.fn(),
   stopSession: vi.fn(),
+  setCurrentSessionId: vi.fn(),
 }));
 
 vi.mock('../analytics.js', () => ({
@@ -86,6 +87,7 @@ import {
   getStoppedSession,
   resumeSession,
   stopSession,
+  setCurrentSessionId,
 } from '../db.js';
 import { formatLive } from '../analytics.js';
 
@@ -873,6 +875,77 @@ describe('tracker.js', () => {
 
       // The function should count the up followed by pause as completed
       expect(true).toBe(true);
+    });
+  });
+
+  describe('stopped session bug regression', () => {
+    it('starts new session when pressing Up on a stopped session', async () => {
+      const now = Date.now();
+      const stoppedSession = { id: 1, createdAt: now, isStopped: true };
+
+      getCurrentSession.mockResolvedValueOnce(stoppedSession);
+      listEventsBySession.mockResolvedValueOnce([
+        { id: 1, sessionId: 1, type: 'up', ts: now },
+      ]);
+
+      createSession.mockResolvedValueOnce(2);
+      addEvent.mockResolvedValueOnce({ id: 2, sessionId: 2, type: 'up', ts: now + 1000 });
+
+      const result = await renderTracker(target);
+      cleanup = typeof result === 'function' ? result : null;
+
+      const upBtn = target.querySelector('[data-kind="up"]');
+      await upBtn.click();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(createSession).toHaveBeenCalled();
+      expect(addEvent).not.toHaveBeenCalledWith(expect.objectContaining({ sessionId: 1 }));
+    });
+
+    it('starts new session when pressing Pause on a stopped session', async () => {
+      const now = Date.now();
+      const stoppedSession = { id: 1, createdAt: now, isStopped: true };
+
+      getCurrentSession.mockResolvedValueOnce(stoppedSession);
+      listEventsBySession.mockResolvedValueOnce([
+        { id: 1, sessionId: 1, type: 'up', ts: now },
+      ]);
+
+      createSession.mockResolvedValueOnce(2);
+      addEvent.mockResolvedValueOnce({ id: 2, sessionId: 2, type: 'pause', ts: now + 1000 });
+
+      const result = await renderTracker(target);
+      cleanup = typeof result === 'function' ? result : null;
+
+      const pauseBtn = target.querySelector('[data-kind="pause"]');
+      await pauseBtn.click();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(createSession).toHaveBeenCalled();
+      expect(addEvent).not.toHaveBeenCalledWith(expect.objectContaining({ sessionId: 1 }));
+    });
+  });
+
+  describe('onStopSession clears current session ID', () => {
+    it('clears current session ID from localStorage when stopping', async () => {
+      const now = Date.now();
+      const mockSession = { id: 1, createdAt: now, isStopped: false };
+
+      getCurrentSession.mockResolvedValueOnce(mockSession);
+      listEventsBySession.mockResolvedValueOnce([
+        { id: 1, sessionId: 1, type: 'up', ts: now },
+      ]);
+
+      stopSession.mockResolvedValueOnce({ ...mockSession, isStopped: true });
+
+      const result = await renderTracker(target);
+      cleanup = typeof result === 'function' ? result : null;
+
+      const stopBtn = target.querySelector('[data-kind="stop"]');
+      await stopBtn.click();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(setCurrentSessionId).toHaveBeenCalledWith(null);
     });
   });
 });

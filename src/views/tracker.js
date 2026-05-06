@@ -18,6 +18,7 @@ import {
   getStoppedSession,
   resumeSession,
   stopSession,
+  setCurrentSessionId,
 } from '../db.js';
 import {
   formatLive,
@@ -212,6 +213,7 @@ export async function renderTracker(target) {
       } else {
         stopIntervalTimer();
         await stopSession(session.id);
+        setCurrentSessionId(null);
         if (events.length > 0) {
           events[events.length - 1].nextTs = Date.now();
         }
@@ -229,7 +231,14 @@ export async function renderTracker(target) {
   }
 
   async function onPress(kind) {
-    if (!session) {
+    if (!session || session.isStopped) {
+      if (session?.isStopped) {
+        // Stopped session: clear it so we start fresh
+        session = null;
+        events = [];
+        state = STATES.IDLE;
+        lastEventTs = null;
+      }
       await onStartSession();
       const ev = await addEvent({ sessionId: session.id, type: kind });
       events.push(ev);
