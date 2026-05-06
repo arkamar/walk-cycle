@@ -8,13 +8,15 @@ npm run build      # Production build to dist/
 npm run preview    # Serve dist/ locally with SW enabled
 npm test           # Run Vitest once
 npm run test:watch # Vitest in watch mode
+npm run lint       # Run ESLint
+npm run lint:fix   # Run ESLint with auto-fix
 ```
 
 ## Key facts
 
 - **Service worker**: Disabled in dev (`devOptions.enabled: false`), enabled in preview/production. Test PWA features with `npm run preview`.
 - **Tests**: Vitest `npm run test` / `npm run test:watch`. Test files live alongside source as `*.test.js` (e.g., `src/stateMachine.test.js`).
-- **No lint/typecheck** configured
+- **Lint**: ESLint with recommended rules, `npm run lint` / `npm run lint:fix`
 - **PWA manifest**: `base: './'` in vite.config.js — works on sub-paths (e.g., GitHub Pages)
 
 ## Architecture

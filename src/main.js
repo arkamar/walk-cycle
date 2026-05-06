@@ -12,7 +12,6 @@ const lazy = (loader, name) => async (target, ctx) => {
     if (!render) {
       throw new Error(`Missing export: ${name}`);
     }
-    console.log('lazy loaded', name, 'for', ctx?.path);
     return render(target, ctx);
   } catch (err) {
     console.error('lazy load error:', err);

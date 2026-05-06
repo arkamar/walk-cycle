@@ -193,6 +193,7 @@ export function formatLive(ms) {
  * @returns {Object|null} Previous event or null
  */
 export function findPrevSameType(idx, type, events) {
+  if (!events || idx >= events.length) return null;
   for (let i = idx - 1; i >= 0; i--) {
     if (events[i].type === type && events[i].nextTs)
       return events[i];

@@ -130,39 +130,29 @@ describe('sessionStatus', () => {
     expect(sessionStatus(undefined)).toBe('none');
   });
 
-  it('returns "active" for a fresh running session', () => {
-    expect(sessionStatus({ id: 1, startedAt: 0 })).toBe('active');
+  it('returns "active" for a fresh session', () => {
+    expect(sessionStatus({ id: 1, createdAt: 0 })).toBe('active');
   });
 
-  it('returns "active" when stoppedAt and endedAt are explicitly null', () => {
+  it('returns "active" when isStopped is false', () => {
     expect(
-      sessionStatus({ id: 1, startedAt: 0, stoppedAt: null, endedAt: null })
+      sessionStatus({ id: 1, createdAt: 0, isStopped: false })
     ).toBe('active');
   });
 
-  it('returns "stopped" when only stoppedAt is set', () => {
+  it('returns "stopped" when isStopped is true', () => {
     expect(
-      sessionStatus({ id: 1, startedAt: 0, stoppedAt: 5000, endedAt: null })
+      sessionStatus({ id: 1, createdAt: 0, isStopped: true })
     ).toBe('stopped');
-  });
-
-  it('returns "ended" when endedAt is set, regardless of stoppedAt', () => {
-    expect(sessionStatus({ id: 1, endedAt: 9000 })).toBe('ended');
-    expect(
-      sessionStatus({ id: 1, stoppedAt: 5000, endedAt: 9000 })
-    ).toBe('ended');
   });
 });
 
 describe('isResumable', () => {
   it('only stopped sessions are resumable', () => {
     expect(isResumable(null)).toBe(false);
-    expect(isResumable({ id: 1 })).toBe(false); // active
-    expect(isResumable({ id: 1, stoppedAt: 5000 })).toBe(true);
-    expect(isResumable({ id: 1, endedAt: 9000 })).toBe(false);
-    expect(
-      isResumable({ id: 1, stoppedAt: 5000, endedAt: 9000 })
-    ).toBe(false);
+    expect(isResumable({ id: 1 })).toBe(false);
+    expect(isResumable({ id: 1, isStopped: false })).toBe(false);
+    expect(isResumable({ id: 1, isStopped: true })).toBe(true);
   });
 });
 
@@ -174,11 +164,11 @@ describe('buttonStatesFor', () => {
   // helpers
   const noSession = () => ({ session: null, events: [] });
   const running = (events = []) => ({
-    session: { id: 1, startedAt: 0, stoppedAt: null },
+    session: { id: 1, createdAt: 0, isStopped: false },
     events,
   });
   const stopped = (events = []) => ({
-    session: { id: 1, startedAt: 0, stoppedAt: 5000 },
+    session: { id: 1, createdAt: 0, isStopped: true },
     events,
   });
   const orphanEvents = (events) => ({ session: null, events });

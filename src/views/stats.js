@@ -128,7 +128,7 @@ export async function renderStats(target) {
     if (range === 'session') {
       const session = await getCurrentSession();
       if (!session) return [];
-      const events = await listEventsBySession(session.id);
+      const events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
       const segs = segmentsFromEvents(events);
       const cs = cyclesFromSegments(segs);
       return cs.map(c => ({ ...c, sessionId: session.id }));
@@ -138,8 +138,8 @@ export async function renderStats(target) {
     const cutoff = computeCutoff(range);
     const cycles = [];
     for (const s of sessions) {
-      if (cutoff && s.startedAt < cutoff && (s.endedAt ?? s.startedAt) < cutoff) continue;
-      const events = await listEventsBySession(s.id);
+      if (cutoff && s.createdAt < cutoff) continue;
+      const events = (await listEventsBySession(s.id)).filter(e => e.type !== 'session_stopped');
       const segs = segmentsFromEvents(events);
       const cs = cyclesFromSegments(segs);
       for (const c of cs) {
@@ -231,13 +231,8 @@ export async function renderStats(target) {
     const placeholder = wrap.querySelector('.chart-empty');
     if (placeholder) placeholder.remove();
 
-    const dark = CSS_DARK.matches;
-    const fg = dark ? '#f1f5f9' : '#0f172a';
-    const muted = dark ? '#94a3b8' : '#64748b';
-    const grid = dark ? 'rgba(241,245,249,0.08)' : 'rgba(15,23,42,0.08)';
-
     let datasets = [];
-    let labels = [];
+    let labels;
 
     if (view === 'cycles') {
       const result = buildCycleDatasets(cycles);

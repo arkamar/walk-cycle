@@ -3,7 +3,7 @@ import {
   listSessions,
   listEventsBySession,
   deleteSession,
-  getActiveSession,
+  getCurrentSession,
   setCurrentSession,
 } from '../db.js';
 import {
@@ -34,20 +34,18 @@ export async function renderSessions(target) {
 
   subheading.textContent = `${sessions.length} session${sessions.length === 1 ? '' : 's'}`;
 
-  // The currently-active session (if any) - used to suppress the
-  // "Set as current" button on the row that's already current.
-  const currentActive = await getActiveSession();
-  const currentId = currentActive ? currentActive.id : null;
+  const current = await getCurrentSession();
+  const currentId = current ? current.id : null;
 
   // Fetch summaries in parallel.
   const summaries = await Promise.all(
     sessions.map(async (s) => {
       const events = await listEventsBySession(s.id);
-      const segments = segmentsFromEvents(events);
+      const cycleEvents = events.filter(e => e.type !== 'session_stopped');
+      const segments = segmentsFromEvents(cycleEvents);
       const cycles = cyclesFromSegments(segments);
-      const durationMs =
-        (s.endedAt ?? (events.length ? events[events.length - 1].ts : s.startedAt)) -
-        s.startedAt;
+      const lastTs = cycleEvents.length ? cycleEvents[cycleEvents.length - 1].ts : s.createdAt;
+      const durationMs = lastTs - s.createdAt;
       return { session: s, cycleCount: cycles.length, durationMs };
     })
   );
@@ -60,24 +58,22 @@ export async function renderSessions(target) {
       isCurrent ? ' · current'
       : status === 'active' ? ' · active'
       : status === 'stopped' ? ' · stopped'
-      : ''; // 'ended' or unknown - no suffix (date already shown)
+      : '';
 
     const baseMeta = `${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'} · ${formatDuration(durationMs)}${statusSuffix}`;
     const metaText = s.name
-      ? `${formatDateTime(s.startedAt)} · ${baseMeta}`
+      ? `${formatDateTime(s.createdAt)} · ${baseMeta}`
       : baseMeta;
 
     const children = [
       el('div', { style: { flex: 1 } }, [
         el('a', { href: `#/sessions/${s.id}`, style: { textDecoration: 'none', color: 'inherit', display: 'block' } }, [
-          el('div', {}, s.name || formatDateTime(s.startedAt)),
+          el('div', {}, s.name || formatDateTime(s.createdAt)),
           el('div', { class: 'meta' }, metaText),
         ]),
       ]),
     ];
 
-    // Any non-current session can be made current. Label varies so the
-    // common "Resume" affordance keeps its familiar wording.
     if (!isCurrent) {
       const label = status === 'stopped' ? 'Resume' : 'Set as current';
       children.push(el('button', {
@@ -87,13 +83,8 @@ export async function renderSessions(target) {
         onClick: async (e) => {
           e.preventDefault();
           e.stopPropagation();
-          if (currentActive && currentActive.id !== s.id) {
-            if (!confirm(
-              'Another session is currently running. Stop it and switch to this one?'
-            )) return;
-          }
           await setCurrentSession(s.id);
-          toast(label === 'Resume' ? 'Session resumed' : 'Session is now current');
+          toast('Session is now current');
           window.location.hash = '/';
         },
       }, label));

@@ -44,7 +44,6 @@ export function toast(message, ms = 1800) {
   }
   t.textContent = message;
   // Force reflow so the transition runs.
-  // eslint-disable-next-line no-unused-expressions
   void t.offsetWidth;
   t.classList.add('show');
   if (toastTimer) clearTimeout(toastTimer);

@@ -3,7 +3,6 @@ import { getCompetitionGoal } from './settings.js';
 import {
   STATES,
   EVENTS,
-  allowedEvents,
   nextState,
   stateFromEvents,
   stateLabel,
@@ -11,19 +10,16 @@ import {
 } from '../stateMachine.js';
 import {
   createSession,
-  endSession,
   addEvent,
   deleteEvent,
   getActiveSession,
+  getCurrentSession,
   listEventsBySession,
-  getLatestEndedSession,
   getStoppedSession,
   resumeSession,
   stopSession,
 } from '../db.js';
 import {
-  segmentsFromEvents,
-  cyclesFromSegments,
   formatLive,
   formatDuration,
   findPrevSameType,
@@ -111,16 +107,14 @@ export async function renderTracker(target) {
   );
 
   async function loadActiveSession() {
-    const active = await getActiveSession();
-    const stopped = await getStoppedSession();
-    
-    if (active) {
-      session = active;
-    } else if (stopped) {
-      session = stopped;
-    } else {
-      session = null;
+    let current = await getCurrentSession();
+    if (!current) {
+      current = await getActiveSession();
     }
+    if (!current) {
+      current = await getStoppedSession();
+    }
+    session = current;
     
     if (!session) {
       events = [];
@@ -131,23 +125,31 @@ export async function renderTracker(target) {
       return;
     }
     
-    events = await listEventsBySession(session.id);
+    events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
     for (let i = 0; i < events.length - 1; i++) {
       events[i].nextTs = events[i + 1].ts;
     }
     if (events.length > 0) {
-      events[events.length - 1].nextTs = session.stoppedAt || Date.now();
+      const allEvents = await listEventsBySession(session.id);
+      const stoppedEvent = allEvents.findLast(e => e.type === 'session_stopped');
+      events[events.length - 1].nextTs = stoppedEvent?.ts || Date.now();
     }
     state = stateFromEvents(events);
     lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
     render();
     renderLog();
     
-    if (active) {
+    if (!session.isStopped) {
       renderGoalProgress();
       startTimer();
     }
   }
+
+  function onCurrentSessionChanged() {
+    loadActiveSession();
+  }
+
+  window.addEventListener('current-session-changed', onCurrentSessionChanged);
 
   async function onStartSession() {
     if (session) {
@@ -155,7 +157,7 @@ export async function renderTracker(target) {
       return;
     }
     const id = await createSession();
-    session = { id, startedAt: Date.now(), endedAt: null };
+    session = { id, isStopped: false, createdAt: Date.now() };
     events = [];
     state = STATES.IDLE;
     lastEventTs = null;
@@ -185,7 +187,7 @@ export async function renderTracker(target) {
     if (isProcessing) return;
     isProcessing = true;
     try {
-      if (!session || session.stoppedAt) {
+      if (!session || session.isStopped) {
         const stopped = await getStoppedSession();
         if (!stopped) {
           toast('No session to resume');
@@ -193,7 +195,7 @@ export async function renderTracker(target) {
         }
         const resumed = await resumeSession(stopped.id);
         session = resumed;
-        events = await listEventsBySession(session.id);
+        events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
         for (let i = 0; i < events.length - 1; i++) {
           events[i].nextTs = events[i + 1].ts;
         }
@@ -209,9 +211,9 @@ export async function renderTracker(target) {
         startTimer();
       } else {
         stopIntervalTimer();
-        const stopped = await stopSession(session.id);
+        await stopSession(session.id);
         if (events.length > 0) {
-          events[events.length - 1].nextTs = stopped.stoppedAt;
+          events[events.length - 1].nextTs = Date.now();
         }
         session = null;
         state = STATES.IDLE;
@@ -262,7 +264,6 @@ export async function renderTracker(target) {
       }
     }
 
-    const prevTs = lastEventTs;
     const newEv = await addEvent({ sessionId: session.id, type: kind });
     events.push(newEv);
     state = ns;
@@ -271,7 +272,7 @@ export async function renderTracker(target) {
     await renderAndContinue(kind);
   }
 
-  async function renderAndContinue(kind) {
+  async function renderAndContinue() {
     render();
     renderLog();
     renderGoalProgress();
@@ -286,12 +287,12 @@ export async function renderTracker(target) {
 let status = '';
       
       if (goal.ups) {
-        const completedUps = countCompletedUps(goal.ups);
+        const completedUps = countCompletedUps();
         const remaining = goal.ups - completedUps;
         if (remaining > 0) {
           parts.push(`${remaining} up${remaining === 1 ? '' : 's'}`);
           
-          if (goal.endTime && completedUps >= 2 && session && !session.stoppedAt) {
+          if (goal.endTime && completedUps >= 2 && session && !session.isStopped) {
             const now = new Date();
             const [h, m] = goal.endTime.split(':').map(Number);
             const target = new Date(now);
@@ -299,7 +300,7 @@ let status = '';
             if (target < now) target.setDate(target.getDate() + 1);
             const timeLeftMs = target - now;
             
-            const { avg, trend, trendDir } = calcCycleTrend();
+            const { avg, trend } = calcCycleTrend();
             if (avg > 0 && timeLeftMs > 0) {
               const projected = avg + trend * (remaining - 1) * 0.5;
               const requiredPerUp = timeLeftMs / remaining;
@@ -429,14 +430,14 @@ let status = '';
     
     for (let i = events.length - 1; i >= 0; i--) {
       const ev = events[i];
-      let displayDuration = '–';
+      let displayDuration;
       let diffStr = '';
       const thisCycle = cycleForEvent(i);
       
       const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : null;
       
-      const isRunning = session && !session.stoppedAt;
-      const isStopped = session && session.stoppedAt;
+      const isRunning = session && !session.isStopped;
+      const isStopped = session && session.isStopped;
       
       if (isRunning && i === events.length - 1) {
         displayDuration = '00:00';
@@ -518,22 +519,6 @@ let status = '';
 
   await loadActiveSession();
 
-  function calcAvgCycleTime() {
-    const upEvents = events.filter(e => e.type === EVENTS.UP);
-    if (upEvents.length < 2) return 0;
-    
-    let totalMs = 0;
-    for (let i = 1; i < upEvents.length; i++) {
-      const prev = upEvents[i-1];
-      const curr = upEvents[i];
-      if (curr.ts && prev.ts) {
-        totalMs += curr.ts - prev.ts;
-      }
-    }
-    const cycles = upEvents.length - 1;
-    return cycles > 0 ? totalMs / cycles : 0;
-  }
-
   function calcCycleTrend() {
     const upEvents = events.filter(e => e.type === EVENTS.UP);
     if (upEvents.length < 2) return { avg: 0, trend: 0, trendDir: 'flat' };
@@ -563,7 +548,7 @@ let status = '';
     return { avg, trend: slope, trendDir };
   }
 
-  function countCompletedUps(targetUps) {
+  function countCompletedUps() {
     const upEvents = events.filter(e => e.type === EVENTS.UP);
     let completed = 0;
     for (let i = 0; i < upEvents.length; i++) {
@@ -578,5 +563,6 @@ let status = '';
 
   return () => {
     stopIntervalTimer();
+    window.removeEventListener('current-session-changed', onCurrentSessionChanged);
   };
 }

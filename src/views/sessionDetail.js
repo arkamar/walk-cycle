@@ -4,9 +4,10 @@ import {
   getSession,
   listEventsBySession,
   deleteSession,
-  getActiveSession,
+  getCurrentSession,
   setCurrentSession,
   stopSession,
+  resumeSession,
   updateSession,
 } from '../db.js';
 import {
@@ -38,7 +39,7 @@ export async function renderSessionDetail(target, { id }) {
     return;
   }
 
-  const events = await listEventsBySession(id);
+  const events = (await listEventsBySession(id)).filter(e => e.type !== 'session_stopped');
   const segments = segmentsFromEvents(events);
   const cycles = cyclesFromSegments(segments, true);
   const { byKind } = aggregateBySegmentKind(segments);
@@ -54,18 +55,13 @@ export async function renderSessionDetail(target, { id }) {
     events[i].nextTs = events[i + 1].ts;
   }
   if (events.length > 0) {
-    events[events.length - 1].nextTs = session.stoppedAt || session.endedAt || events[events.length - 1].ts;
+    const allEvents = await listEventsBySession(id);
+    const stoppedEvent = allEvents.findLast(e => e.type === 'session_stopped');
+    events[events.length - 1].nextTs = stoppedEvent?.ts || events[events.length - 1].ts;
   }
 
-  // Any session that isn't already the single current/active one can be
-  // promoted to current. For stopped sessions the action is labeled
-  // "Resume" (familiar wording, identical mechanic). For other non-current
-  // sessions (e.g. an old active that lost its 'current' status, or a
-  // future ended session) it shows as "Set as current".
-  // setCurrentSession() is atomic: it stops any other active session and
-  // clears stoppedAt/endedAt on the target in a single transaction.
-  const currentActive = await getActiveSession();
-  const isCurrent = currentActive && currentActive.id === id;
+  const current = await getCurrentSession();
+  const isCurrent = current && current.id === id;
   const promoteLabel = sessionStatus(session) === 'stopped' ? 'Resume' : 'Set as current';
 
   const headerRow = el('div', { class: 'row between' }, [
@@ -74,39 +70,49 @@ export async function renderSessionDetail(target, { id }) {
       { class: 'btn btn-ghost', href: '#/sessions' },
       '← Back'
     ),
-    isCurrent ? el(
-      'button',
-      {
-        class: 'btn btn-primary',
-        type: 'button',
-        onClick: async () => {
-          await stopSession(id);
-          toast('Session stopped');
-          // Re-render the detail view in place so the button flips to
-          // "Resume" without yanking the user back to the tracker.
-          target.innerHTML = '';
-          renderSessionDetail(target, { id });
-        },
-      },
-      'Stop'
-    ) : el(
-      'button',
-      {
-        class: 'btn btn-primary',
-        type: 'button',
-        onClick: async () => {
-          if (currentActive && currentActive.id !== id) {
-            if (!confirm(
-              'Another session is currently running. Stop it and switch to this one?'
-            )) return;
-          }
-          await setCurrentSession(id);
-          toast(promoteLabel === 'Resume' ? 'Session resumed' : 'Session is now current');
-          window.location.hash = '/';
-        },
-      },
-      promoteLabel
-    ),
+    isCurrent && !session.isStopped
+      ? el(
+          'button',
+          {
+            class: 'btn btn-primary',
+            type: 'button',
+            onClick: async () => {
+              await stopSession(id);
+              toast('Session stopped');
+              target.innerHTML = '';
+              renderSessionDetail(target, { id });
+            },
+          },
+          'Stop'
+        )
+      : isCurrent && session.isStopped
+        ? el(
+            'button',
+            {
+              class: 'btn btn-primary',
+              type: 'button',
+              onClick: async () => {
+                await resumeSession(id);
+                toast('Session resumed');
+                target.innerHTML = '';
+                renderSessionDetail(target, { id });
+              },
+            },
+            'Resume'
+          )
+        : el(
+            'button',
+            {
+              class: 'btn btn-primary',
+              type: 'button',
+              onClick: async () => {
+                await setCurrentSession(id);
+                toast('Session is now current');
+                window.location.hash = '/';
+              },
+            },
+            promoteLabel
+          ),
     el(
       'button',
       {
@@ -136,15 +142,13 @@ export async function renderSessionDetail(target, { id }) {
         },
       }),
     ]),
-    el('h2', { style: { fontSize: '1rem', fontWeight: 'normal', color: 'var(--muted)' } }, formatDateTime(session.startedAt)),
+    el('h2', { style: { fontSize: '1rem', fontWeight: 'normal', color: 'var(--muted)' } }, formatDateTime(session.createdAt)),
     el('p', { class: 'muted' }, [
-      sessionStatus(session) === 'ended'
-        ? `Ended ${formatDateTime(session.endedAt)} · `
-        : sessionStatus(session) === 'stopped'
-          ? `Stopped ${formatDateTime(session.stoppedAt)} · `
-          : isCurrent
-            ? 'Current · '
-            : 'Active · ',
+      sessionStatus(session) === 'stopped'
+        ? `Stopped ${formatDateTime(events.length ? events[events.length - 1].nextTs : session.createdAt)} · `
+        : isCurrent
+          ? 'Current · '
+          : 'Active · ',
       `${cycles.length} ${cycles.length === 1 ? 'cycle' : 'cycles'} · ${events.length} presses`,
     ]),
   ]);
