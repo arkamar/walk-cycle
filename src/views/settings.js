@@ -1,4 +1,6 @@
 import { el, toast, formatDateTime } from '../ui.js';
+
+/* global __APP_VERSION__ */
 import { exportAll, importAll, clearAll } from '../db.js';
 
 const CFG_KEY = 'walk-cycle-config';
@@ -154,10 +156,11 @@ export async function renderSettings(target) {
   ]);
 
   // ---------- About ----------
+  const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
   const aboutCard = el('div', { class: 'card' }, [
     el('h3', {}, 'About'),
     el('p', { class: 'muted' }, [
-      'Walk Cycle · v0.1.0 · ',
+      `Walk Cycle · ${version} · `,
       el('span', {}, 'Local-first · works offline'),
     ]),
     el(

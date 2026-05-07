@@ -1,12 +1,27 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { execSync } from 'child_process';
+
+const getGitVersion = () => {
+  try {
+    return execSync('git describe --tags --always --dirty').toString().trim();
+  } catch {
+    return 'unknown';
+  }
+};
 
 export default defineConfig({
   base: './',
+  define: {
+    __APP_VERSION__: JSON.stringify(getGitVersion()),
+  },
   test: {
     setupFiles: ['./vitest.setup.js'],
     reporters: ['verbose'],
     environment: 'jsdom',
+    define: {
+      __APP_VERSION__: JSON.stringify(getGitVersion()),
+    },
   },
   plugins: [
     VitePWA({
