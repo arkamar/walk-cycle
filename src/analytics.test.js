@@ -502,47 +502,45 @@ describe('formatDuration', () => {
 });
 
 describe('formatLive', () => {
-  it('should format 0 ms as "00:00:00" (no milliseconds pad in output)', () => {
-    expect(formatLive(0)).toBe('00:00:00');
+  it('should format 0 ms as "00:00"', () => {
+    expect(formatLive(0)).toBe('00:00');
   });
 
   it('should handle negative ms as 0', () => {
-    expect(formatLive(-1000)).toBe('00:00:00');
+    expect(formatLive(-1000)).toBe('00:00');
   });
 
   it('should handle NaN and Infinity', () => {
-    expect(formatLive(NaN)).toBe('00:00:00');
-    expect(formatLive(Infinity)).toBe('00:00:00');
+    expect(formatLive(NaN)).toBe('00:00');
+    expect(formatLive(Infinity)).toBe('00:00');
   });
 
-  it('should format seconds without hours as mm:ss (no ms in output)', () => {
-    expect(formatLive(1000)).toBe('00:01:00');
-    expect(formatLive(5000)).toBe('00:05:00');
-    expect(formatLive(59999)).toBe('00:59:999');
+  it('should format seconds without hours as mm:ss', () => {
+    expect(formatLive(1000)).toBe('00:01');
+    expect(formatLive(5000)).toBe('00:05');
+    expect(formatLive(59999)).toBe('00:59');
   });
 
   it('should format minutes without hours', () => {
-    expect(formatLive(60000)).toBe('01:00:00');
-    expect(formatLive(61000)).toBe('01:01:00');
-    expect(formatLive(125000)).toBe('02:05:00');
+    expect(formatLive(60000)).toBe('01:00');
+    expect(formatLive(61000)).toBe('01:01');
+    expect(formatLive(125000)).toBe('02:05');
   });
 
-  it('should format with hours as h:mm:ss (no ms in output)', () => {
+  it('should format with hours as h:mm:ss', () => {
     expect(formatLive(3600000)).toBe('1:00:00');
     expect(formatLive(3725000)).toBe('1:02:05');
     expect(formatLive(7325000)).toBe('2:02:05');
   });
 
-  it('should include milliseconds only when present', () => {
-    // 1234 ms: totalSec=1, ms=234, returns "00:01:234" (ms displayed with 2-digit pad)
-    expect(formatLive(1234)).toBe('00:01:234');
-    // 61001 ms: totalSec=61, h=0, m=1, s=1, ms=1, returns "01:01:01" (ms padded to 2 digits)
-    expect(formatLive(61001)).toBe('01:01:01');
+  it('should not include milliseconds', () => {
+    expect(formatLive(1234)).toBe('00:01');
+    expect(formatLive(61001)).toBe('01:01');
   });
 
   it('should pad minutes and seconds with zeros', () => {
-    expect(formatLive(1000)).toBe('00:01:00');
-    expect(formatLive(60000)).toBe('01:00:00');
+    expect(formatLive(1000)).toBe('00:01');
+    expect(formatLive(60000)).toBe('01:00');
   });
 });
 
