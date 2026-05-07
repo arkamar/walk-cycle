@@ -250,7 +250,7 @@ describe('settings.js', () => {
     it('renders about section', async () => {
       await renderSettings(container);
 
-      expect(container.textContent).toContain('Walk Cycle · v0.1.0');
+      expect(container.textContent).toMatch(/Walk Cycle · .+? · /);
       expect(container.textContent).toContain('Local-first · works offline');
     });
   });
