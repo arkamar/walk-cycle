@@ -30,7 +30,7 @@ vi.mock('../stateMachine.js', async () => {
       }
       if (noSession && !events?.length) {
         return {
-          up: { enabled: false },
+          up: { enabled: true },
           pause: { enabled: false },
           down: { enabled: false },
           stop: { enabled: false, label: 'Stop' },
@@ -47,6 +47,8 @@ vi.mock('../stateMachine.js', async () => {
 });
 
 vi.mock('../db.js', () => ({
+  addEvent: vi.fn(),
+  createSession: vi.fn(),
   deleteEvent: vi.fn(),
   getCurrentSession: vi.fn(() => Promise.resolve(null)),
   listEventsBySession: vi.fn(() => Promise.resolve([])),
@@ -73,6 +75,8 @@ import { toast } from '../ui.js';
 import { getCompetitionGoal } from './settings.js';
 import { buttonStatesFor } from '../stateMachine.js';
 import {
+  addEvent,
+  createSession,
   deleteEvent,
   getCurrentSession,
   listEventsBySession,
@@ -215,19 +219,14 @@ describe('tracker.js', () => {
   });
 
   describe('button states', () => {
-    it('disables Up button when no session', async () => {
-      buttonStatesFor.mockReturnValueOnce({
-        up: { enabled: false },
-        pause: { enabled: false },
-        down: { enabled: false },
-        stop: { enabled: false, label: 'Stop' },
-      });
-
+    it('enables Up button when no session', async () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
+      await vi.advanceTimersByTimeAsync(0);
+
       const upBtn = target.querySelector('[data-kind="up"]');
-      expect(upBtn.disabled).toBe(true);
+      expect(upBtn.disabled).toBe(false);
     });
 
     it('disables Pause button when not allowed', async () => {
@@ -277,6 +276,24 @@ describe('tracker.js', () => {
   });
 
   describe('onPress', () => {
+    it('creates a new session when pressing Up with no session', async () => {
+      createSession.mockResolvedValueOnce(42);
+      addEvent.mockResolvedValueOnce({ id: 1, sessionId: 42, type: 'up', ts: Date.now() });
+
+      const result = await renderTracker(target);
+      cleanup = typeof result === 'function' ? result : null;
+
+      await vi.advanceTimersByTimeAsync(0);
+
+      const upBtn = target.querySelector('[data-kind="up"]');
+      await upBtn.click();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(createSession).toHaveBeenCalled();
+      expect(addEvent).toHaveBeenCalledWith({ sessionId: 42, type: 'up' });
+      expect(toast).toHaveBeenCalledWith('Session started');
+    });
+
     it('has onPress handler attached to cycle buttons', async () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;

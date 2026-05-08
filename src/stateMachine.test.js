@@ -172,9 +172,9 @@ describe('buttonStatesFor', () => {
     events,
   });
   describe('no session, no events (initial state)', () => {
-    it('all cycle buttons disabled, Stop disabled', () => {
+    it('Up enabled to start a new session, others disabled', () => {
       const r = buttonStatesFor(noSession());
-      expect(r.up.enabled).toBe(false);
+      expect(r.up.enabled).toBe(true);
       expect(r.pause.enabled).toBe(false);
       expect(r.down.enabled).toBe(false);
       expect(r.stop).toEqual({ enabled: false, label: 'Stop' });
@@ -250,13 +250,13 @@ describe('buttonStatesFor', () => {
   describe('defensive', () => {
     it('handles missing input', () => {
       const r = buttonStatesFor();
-      expect(r.up.enabled).toBe(false);
+      expect(r.up.enabled).toBe(true);
       expect(r.stop).toEqual({ enabled: false, label: 'Stop' });
     });
 
     it('treats null events as []', () => {
       const r = buttonStatesFor({ session: null, events: null });
-      expect(r.up.enabled).toBe(false);
+      expect(r.up.enabled).toBe(true);
       expect(r.stop.enabled).toBe(false);
     });
   });

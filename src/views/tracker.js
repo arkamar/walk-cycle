@@ -10,6 +10,7 @@ import {
 } from '../stateMachine.js';
 import {
   addEvent,
+  createSession,
   deleteEvent,
   getCurrentSession,
   listEventsBySession,
@@ -204,7 +205,20 @@ export async function renderTracker(target) {
 
   async function onPress(kind) {
     if (!session) {
-      toast('No active session');
+      const id = await createSession();
+      session = { id, isStopped: false, createdAt: Date.now() };
+      events = [];
+      state = STATES.IDLE;
+      lastEventTs = null;
+      const ev = await addEvent({ sessionId: id, type: kind });
+      events.push(ev);
+      state = nextState(state, kind);
+      lastEventTs = ev.ts;
+      toast('Session started');
+      render();
+      renderLog();
+      renderGoalProgress();
+      startTimer();
       return;
     }
     if (session.isStopped) {

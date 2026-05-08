@@ -120,7 +120,15 @@ export function buttonStatesFor({ session, events } = {}) {
     stop = { enabled: false, label: 'Stop' };
   }
 
-  if (!isRunning) {
+  if (!session) {
+    return {
+      up: { enabled: true },
+      pause: { enabled: false },
+      down: { enabled: false },
+      stop: { enabled: false, label: 'Stop' },
+    };
+  }
+  if (isStopped) {
     return {
       up: { enabled: false },
       pause: { enabled: false },
