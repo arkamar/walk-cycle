@@ -88,8 +88,8 @@ export async function renderSessions(target) {
 
     if (!isCurrent) {
       children.push(el('button', {
-        class: 'btn btn-primary',
-        style: { padding: '0.4rem 0.75rem', fontSize: '0.85rem' },
+        class: 'btn btn-ghost',
+        style: { padding: '0.5rem' },
         type: 'button',
         onClick: async (e) => {
           e.preventDefault();
@@ -98,7 +98,7 @@ export async function renderSessions(target) {
           toast('Session is now current');
           window.location.hash = '/';
         },
-      }, 'Set as current'));
+      }, '▶'));
     }
 
     children.push(el('button', {
