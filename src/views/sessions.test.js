@@ -256,12 +256,12 @@ describe('renderSessions', () => {
       await renderSessions(target);
 
       const metaText = target.querySelector('.meta').textContent;
-      expect(metaText).toContain('· active');
+      expect(metaText).toContain('▶');
       const row = target.querySelector('.list-item');
       expect(row.classList.contains('list-item--current')).toBe(true);
     });
 
-    it('shows "active" status for non-current active session', async () => {
+    it('shows ▶ icon for active session', async () => {
       const sessions = [createMockSession(1, 1000000)];
       listSessions.mockResolvedValue(sessions);
       listEventsBySession.mockResolvedValue([]);
@@ -271,10 +271,10 @@ describe('renderSessions', () => {
       await renderSessions(target);
 
       const metaText = target.querySelector('.meta').textContent;
-      expect(metaText).toContain('· active');
+      expect(metaText).toContain('▶');
     });
 
-    it('shows "stopped" status for stopped session', async () => {
+    it('shows ■ icon for stopped session', async () => {
       const sessions = [createMockSession(1, 1000000, null, true)];
       listSessions.mockResolvedValue(sessions);
       listEventsBySession.mockResolvedValue([]);
@@ -284,7 +284,7 @@ describe('renderSessions', () => {
       await renderSessions(target);
 
       const metaText = target.querySelector('.meta').textContent;
-      expect(metaText).toContain('· stopped');
+      expect(metaText).toContain('■');
     });
   });
 

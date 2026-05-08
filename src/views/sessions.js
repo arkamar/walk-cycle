@@ -67,12 +67,12 @@ export async function renderSessions(target) {
     const isCurrent = s.id === currentId;
 
     const rowClass = `list-item${isCurrent ? ' list-item--current' : ''}`;
-    const statusSuffix =
-      status === 'active' ? ' · active'
-      : status === 'stopped' ? ' · stopped'
+    const statusIcon =
+      status === 'active' ? ' ▶'
+      : status === 'stopped' ? ' ■'
       : '';
 
-    const baseMeta = `${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'} · ${formatDuration(durationMs)}${statusSuffix}`;
+    const baseMeta = `${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'} · ${formatDuration(durationMs)}${statusIcon}`;
     const metaText = s.name
       ? `${formatDateTime(s.createdAt)} · ${baseMeta}`
       : baseMeta;
