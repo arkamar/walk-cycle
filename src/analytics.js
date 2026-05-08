@@ -167,10 +167,10 @@ export function formatDuration(ms) {
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
-  if (h >= 24) {
+  if (h > 24) {
     const d = Math.floor(h / 24);
     const rh = h % 24;
-    return `${d}d ${rh}h ${m}m ${s}s`;
+    return `${d}d ${rh}h ${m}m`;
   }
   if (h > 0) return `${h}h ${m}m ${s}s`;
   return `${m}m ${s}s`;
