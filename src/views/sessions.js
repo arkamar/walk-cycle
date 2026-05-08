@@ -87,7 +87,6 @@ export async function renderSessions(target) {
     ];
 
     if (!isCurrent) {
-      const label = status === 'stopped' ? 'Resume' : 'Set as current';
       children.push(el('button', {
         class: 'btn btn-primary',
         style: { padding: '0.4rem 0.75rem', fontSize: '0.85rem' },
@@ -99,7 +98,7 @@ export async function renderSessions(target) {
           toast('Session is now current');
           window.location.hash = '/';
         },
-      }, label));
+      }, 'Set as current'));
     }
 
     children.push(el('button', {

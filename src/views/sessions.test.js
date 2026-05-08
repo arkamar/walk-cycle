@@ -352,7 +352,7 @@ describe('renderSessions', () => {
     });
   });
 
-  describe('"Resume" button', () => {
+  describe('"Set as current" button for stopped sessions', () => {
     const createMockSession = (id, createdAt) => ({
       id,
       createdAt,
@@ -364,7 +364,7 @@ describe('renderSessions', () => {
       getCurrentSession.mockResolvedValue({ id: 999 });
     });
 
-    it('renders "Resume" button for stopped sessions', async () => {
+    it('renders "Set as current" button for stopped sessions', async () => {
       const sessions = [createMockSession(1, 1000000)];
       listSessions.mockResolvedValue(sessions);
       listEventsBySession.mockResolvedValue([]);
@@ -373,10 +373,10 @@ describe('renderSessions', () => {
 
       const button = target.querySelector('.list-item .btn-primary');
       expect(button).toBeTruthy();
-      expect(button.textContent).toBe('Resume');
+      expect(button.textContent).toBe('Set as current');
     });
 
-    it('calls setCurrentSession and shows toast when Resume is clicked', async () => {
+    it('calls setCurrentSession when clicked', async () => {
       const sessions = [createMockSession(1, 1000000)];
       listSessions.mockResolvedValue(sessions);
       listEventsBySession.mockResolvedValue([]);
