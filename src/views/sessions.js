@@ -66,6 +66,7 @@ export async function renderSessions(target) {
     const status = sessionStatus(s);
     const isCurrent = s.id === currentId;
 
+    const rowClass = `list-item${isCurrent ? ' list-item--current' : ''}`;
     const statusSuffix =
       isCurrent ? ' · current'
       : status === 'active' ? ' · active'
@@ -113,6 +114,6 @@ export async function renderSessions(target) {
       }
     }, '🗑'));
 
-    list.appendChild(el('div', { class: 'list-item' }, children));
+    list.appendChild(el('div', { class: rowClass }, children));
   }
 }
