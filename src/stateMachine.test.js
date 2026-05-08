@@ -171,12 +171,10 @@ describe('buttonStatesFor', () => {
     session: { id: 1, createdAt: 0, isStopped: true },
     events,
   });
-  const orphanEvents = (events) => ({ session: null, events });
-
   describe('no session, no events (initial state)', () => {
-    it('only Up is enabled; Stop is disabled', () => {
+    it('all cycle buttons disabled, Stop disabled', () => {
       const r = buttonStatesFor(noSession());
-      expect(r.up.enabled).toBe(true);
+      expect(r.up.enabled).toBe(false);
       expect(r.pause.enabled).toBe(false);
       expect(r.down.enabled).toBe(false);
       expect(r.stop).toEqual({ enabled: false, label: 'Stop' });
@@ -233,7 +231,7 @@ describe('buttonStatesFor', () => {
   });
 
   describe('stopped session', () => {
-    it('shows Resume; cycle buttons frozen except Up (= new session)', () => {
+    it('shows Resume; all cycle buttons disabled', () => {
       const r = buttonStatesFor(
         stopped([
           { type: EVENTS.UP },
@@ -241,39 +239,24 @@ describe('buttonStatesFor', () => {
         ])
       );
       expect(r.stop).toEqual({ enabled: true, label: 'Resume' });
-      expect(r.up.enabled).toBe(true);
+      expect(r.up.enabled).toBe(false);
       expect(r.pause.enabled).toBe(false);
       expect(r.down.enabled).toBe(false);
     });
   });
 
-  describe('orphan events (no session, but events exist locally)', () => {
-    it('treated like stopped: Resume + Up enabled', () => {
-      const r = buttonStatesFor(
-        orphanEvents([
-          { type: EVENTS.UP },
-          { type: EVENTS.PAUSE },
-          { type: EVENTS.DOWN },
-          { type: EVENTS.PAUSE },
-        ])
-      );
-      expect(r.stop).toEqual({ enabled: true, label: 'Resume' });
-      expect(r.up.enabled).toBe(true);
-      expect(r.pause.enabled).toBe(false);
-      expect(r.down.enabled).toBe(false);
-    });
-  });
+
 
   describe('defensive', () => {
     it('handles missing input', () => {
       const r = buttonStatesFor();
-      expect(r.up.enabled).toBe(true);
+      expect(r.up.enabled).toBe(false);
       expect(r.stop).toEqual({ enabled: false, label: 'Stop' });
     });
 
     it('treats null events as []', () => {
       const r = buttonStatesFor({ session: null, events: null });
-      expect(r.up.enabled).toBe(true);
+      expect(r.up.enabled).toBe(false);
       expect(r.stop.enabled).toBe(false);
     });
   });

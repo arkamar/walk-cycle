@@ -1,5 +1,6 @@
 import { el, formatDateTime, toast } from '../ui.js';
 import {
+  createSession,
   listSessions,
   listEventsBySession,
   deleteSession,
@@ -14,10 +15,21 @@ import {
 import { sessionStatus } from '../stateMachine.js';
 
 export async function renderSessions(target) {
-  const heading = el('h2', {}, 'Sessions');
+  const heading = el('h2', { style: { margin: 0 } }, 'Sessions');
+  const newSessionBtn = el('button', {
+    class: 'btn btn-primary',
+    type: 'button',
+    onClick: async () => {
+      await createSession();
+      window.location.hash = '/';
+    },
+  }, 'New Session');
+  const headingRow = el('div', {
+    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  }, [heading, newSessionBtn]);
   const subheading = el('p', { class: 'muted' }, 'Loading…');
   const list = el('div', { class: 'list' });
-  target.appendChild(el('div', {}, [heading, subheading, list]));
+  target.appendChild(el('div', {}, [headingRow, subheading, list]));
 
   const sessions = await listSessions({ limit: 200 });
 

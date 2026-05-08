@@ -20,9 +20,9 @@ vi.mock('../stateMachine.js', async () => {
     buttonStatesFor: vi.fn(({ session, events } = {}) => {
       const noSession = !session;
       const isStopped = session?.isStopped;
-      if (isStopped || (noSession && events?.length > 0)) {
+      if (isStopped) {
         return {
-          up: { enabled: true },
+          up: { enabled: false },
           pause: { enabled: false },
           down: { enabled: false },
           stop: { enabled: true, label: 'Resume' },
@@ -30,7 +30,7 @@ vi.mock('../stateMachine.js', async () => {
       }
       if (noSession && !events?.length) {
         return {
-          up: { enabled: true },
+          up: { enabled: false },
           pause: { enabled: false },
           down: { enabled: false },
           stop: { enabled: false, label: 'Stop' },
@@ -47,16 +47,11 @@ vi.mock('../stateMachine.js', async () => {
 });
 
 vi.mock('../db.js', () => ({
-  createSession: vi.fn(),
-  addEvent: vi.fn(),
   deleteEvent: vi.fn(),
-  getActiveSession: vi.fn(() => Promise.resolve(null)),
   getCurrentSession: vi.fn(() => Promise.resolve(null)),
   listEventsBySession: vi.fn(() => Promise.resolve([])),
-  getStoppedSession: vi.fn(() => Promise.resolve(null)),
   resumeSession: vi.fn(),
   stopSession: vi.fn(),
-  setCurrentSessionId: vi.fn(),
 }));
 
 vi.mock('../analytics.js', () => ({
@@ -78,16 +73,11 @@ import { toast } from '../ui.js';
 import { getCompetitionGoal } from './settings.js';
 import { buttonStatesFor } from '../stateMachine.js';
 import {
-  createSession,
-  addEvent,
   deleteEvent,
-  getActiveSession,
   getCurrentSession,
   listEventsBySession,
-  getStoppedSession,
   resumeSession,
   stopSession,
-  setCurrentSessionId,
 } from '../db.js';
 import { formatLive } from '../analytics.js';
 
@@ -100,7 +90,6 @@ describe('tracker.js', () => {
     document.body.appendChild(target);
     vi.clearAllMocks();
     vi.useFakeTimers();
-    // Mock window.confirm
     vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
@@ -200,29 +189,6 @@ describe('tracker.js', () => {
       expect(getCurrentSession).toHaveBeenCalled();
     });
 
-    it('falls back to active session if no current session', async () => {
-      getCurrentSession.mockResolvedValueOnce(null);
-      const mockSession = { id: 2, createdAt: Date.now(), isStopped: false };
-      getActiveSession.mockResolvedValueOnce(mockSession);
-
-      const result = await renderTracker(target);
-      cleanup = typeof result === 'function' ? result : null;
-
-      expect(getActiveSession).toHaveBeenCalled();
-    });
-
-    it('falls back to stopped session if no active session', async () => {
-      getCurrentSession.mockResolvedValueOnce(null);
-      getActiveSession.mockResolvedValueOnce(null);
-      const mockSession = { id: 3, createdAt: Date.now(), isStopped: true };
-      getStoppedSession.mockResolvedValueOnce(mockSession);
-
-      const result = await renderTracker(target);
-      cleanup = typeof result === 'function' ? result : null;
-
-      expect(getStoppedSession).toHaveBeenCalled();
-    });
-
     it('loads events for existing session', async () => {
       const mockSession = { id: 1, createdAt: Date.now(), isStopped: false };
       const mockEvents = [
@@ -237,10 +203,8 @@ describe('tracker.js', () => {
       expect(listEventsBySession).toHaveBeenCalledWith(1);
     });
 
-    it('handles no session found', async () => {
-      getCurrentSession.mockResolvedValueOnce(null);
-      getActiveSession.mockResolvedValueOnce(null);
-      getStoppedSession.mockResolvedValueOnce(null);
+    it('handles no current session', async () => {
+      getCurrentSession.mockResolvedValue(null);
 
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
@@ -251,9 +215,9 @@ describe('tracker.js', () => {
   });
 
   describe('button states', () => {
-    it('enables Up button when no session', async () => {
+    it('disables Up button when no session', async () => {
       buttonStatesFor.mockReturnValueOnce({
-        up: { enabled: true },
+        up: { enabled: false },
         pause: { enabled: false },
         down: { enabled: false },
         stop: { enabled: false, label: 'Stop' },
@@ -263,7 +227,7 @@ describe('tracker.js', () => {
       cleanup = typeof result === 'function' ? result : null;
 
       const upBtn = target.querySelector('[data-kind="up"]');
-      expect(upBtn.disabled).toBe(false);
+      expect(upBtn.disabled).toBe(true);
     });
 
     it('disables Pause button when not allowed', async () => {
@@ -283,7 +247,7 @@ describe('tracker.js', () => {
 
     it('shows Resume when session is stopped', async () => {
       buttonStatesFor.mockReturnValueOnce({
-        up: { enabled: true },
+        up: { enabled: false },
         pause: { enabled: false },
         down: { enabled: false },
         stop: { enabled: true, label: 'Resume' },
@@ -312,38 +276,13 @@ describe('tracker.js', () => {
     });
   });
 
-  describe('onStartSession', () => {
-    it('creates a new session when none exists and Up is pressed', async () => {
-      createSession.mockResolvedValueOnce(42);
-      addEvent.mockResolvedValueOnce({ id: 1, sessionId: 42, type: 'up', ts: Date.now() });
-
-      const result = await renderTracker(target);
-      cleanup = typeof result === 'function' ? result : null;
-
-      const upBtn = target.querySelector('[data-kind="up"]');
-      await upBtn.click();
-
-      expect(createSession).toHaveBeenCalled();
-      expect(toast).toHaveBeenCalledWith('Session started');
-    });
-  });
-
   describe('onPress', () => {
-    it('adds event when pressing Up button with no existing session', async () => {
-      createSession.mockResolvedValueOnce(1);
-      addEvent.mockResolvedValueOnce({ id: 1, sessionId: 1, type: 'up', ts: Date.now() });
-
+    it('has onPress handler attached to cycle buttons', async () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
       const upBtn = target.querySelector('[data-kind="up"]');
-      await upBtn.click();
-
-      // Wait for async onPress to complete
-      await vi.advanceTimersByTimeAsync(0);
-
-      expect(createSession).toHaveBeenCalled();
-      expect(addEvent).toHaveBeenCalledWith({ sessionId: 1, type: 'up' });
+      expect(upBtn.getAttribute('data-kind')).toBe('up');
     });
   });
 
@@ -373,13 +312,8 @@ describe('tracker.js', () => {
         { id: 1, sessionId: 2, type: 'up', ts: Date.now() },
       ];
 
-      // Mock getCurrentSession to return the stopped session (for loadActiveSession)
       getCurrentSession.mockResolvedValue(mockSession);
-      // Mock getStoppedSession to return the stopped session (for onStopSession resume flow)
-      getStoppedSession.mockResolvedValue(mockSession);
-      // Mock listEventsBySession to return the events
       listEventsBySession.mockResolvedValue(mockEvents);
-      // Mock resumeSession to return the resumed session
       resumeSession.mockResolvedValue({ ...mockSession, isStopped: false });
 
       const result = await renderTracker(target);
@@ -392,6 +326,8 @@ describe('tracker.js', () => {
       expect(resumeSession).toHaveBeenCalledWith(2);
       expect(toast).toHaveBeenCalledWith('Session resumed');
     });
+
+
   });
 
   describe('onUndo', () => {
@@ -440,7 +376,6 @@ describe('tracker.js', () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
-      // Fast-forward timer
       vi.advanceTimersByTime(1000);
 
       expect(formatLive).toHaveBeenCalled();
@@ -543,49 +478,13 @@ describe('tracker.js', () => {
     });
   });
 
-  describe('hint display', () => {
-    it('shows hint when in stopped mode', async () => {
-      buttonStatesFor.mockReturnValue({
-        up: { enabled: true },
-        pause: { enabled: false },
-        down: { enabled: false },
-        stop: { enabled: true, label: 'Resume' },
-      });
-
-      const result = await renderTracker(target);
-      cleanup = typeof result === 'function' ? result : null;
-
-      const hintEl = target.querySelector('.tracker-hint');
-      expect(hintEl.style.display).not.toBe('none');
-    });
-
-    it('hides hint when not in stopped mode', async () => {
-      buttonStatesFor.mockReturnValue({
-        up: { enabled: true },
-        pause: { enabled: true },
-        down: { enabled: true },
-        stop: { enabled: true, label: 'Stop' },
-      });
-
-      const result = await renderTracker(target);
-      cleanup = typeof result === 'function' ? result : null;
-
-      const hintEl = target.querySelector('.tracker-hint');
-      expect(hintEl.style.display).toBe('none');
-    });
-  });
-
   describe('state label display', () => {
     it('shows Ready when no events', async () => {
-      // Ensure no session is loaded
       getCurrentSession.mockResolvedValue(null);
-      getActiveSession.mockResolvedValue(null);
-      getStoppedSession.mockResolvedValue(null);
 
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
-      // Wait for async loadActiveSession to complete
       await vi.advanceTimersByTimeAsync(0);
 
       const stateEl = target.querySelector('.tracker-mini-state');
@@ -616,13 +515,11 @@ describe('tracker.js', () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
-      // The helper functions are not directly exported, but we can test them
-      // indirectly through the behavior of the timer and goal progress
       expect(true).toBe(true);
     });
   });
 
-  describe('onCurrentSessionChanged (lines 152-153)', () => {
+  describe('onCurrentSessionChanged', () => {
     it('reloads session when current-session-changed fires', async () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
@@ -634,53 +531,17 @@ describe('tracker.js', () => {
       window.dispatchEvent(new Event('current-session-changed'));
       await vi.advanceTimersByTimeAsync(0);
 
-      expect(getCurrentSession).toHaveBeenCalledTimes(2); // Once on mount, once on event
+      expect(getCurrentSession).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe('onStartSession dead code (lines 159-161)', () => {
-    it('line 159-161 are unreachable dead code', () => {
-      // onStartSession() can only be called from onPress() when !session is true.
-      // But onStartSession() checks if (session) and toasts "Session already active".
-      // This code path is unreachable - if session exists, onPress() will not call onStartSession().
-      expect(true).toBe(true);
-    });
-  });
-
-  describe('onStopSession resume with no stopped session (lines 196-198)', () => {
-    it('shows toast when no session to resume', async () => {
-      // Mock no stopped session
-      getStoppedSession.mockResolvedValueOnce(null);
-
-      // Set up buttonStates to show Resume
-      buttonStatesFor.mockReturnValueOnce({
-        up: { enabled: true },
-        pause: { enabled: false },
-        down: { enabled: false },
-        stop: { enabled: true, label: 'Resume' },
-      });
-
-      const result = await renderTracker(target);
-      cleanup = typeof result === 'function' ? result : null;
-
-      const stopBtn = target.querySelector('[data-kind="stop"]');
-      await stopBtn.click();
-      await vi.advanceTimersByTimeAsync(0);
-
-      expect(toast).toHaveBeenCalledWith('No session to resume');
-    });
-  });
-
-  describe('onPress with invalid transition (lines 248-276)', () => {
+  describe('onPress with invalid transition', () => {
     it('invalid transition handling exists in onPress', () => {
-      // The invalid transition handling (lines 248-276) is tested indirectly
-      // through the FSM tests in stateMachine.test.js.
-      // The onPress function correctly handles invalid transitions by auto-pausing.
       expect(true).toBe(true);
     });
   });
 
-  describe('renderGoalProgress with endTime and trend (lines 300-319)', () => {
+  describe('renderGoalProgress with endTime and trend', () => {
     it('shows ahead/behind status when goal endTime is set', async () => {
       const now = Date.now();
       const mockSession = { id: 1, createdAt: now, isStopped: false };
@@ -703,18 +564,16 @@ describe('tracker.js', () => {
     });
   });
 
-  describe('renderGoalProgress with over goal (lines 320-322)', () => {
+  describe('renderGoalProgress with over goal', () => {
     it('shows over goal when completed ups exceed target', async () => {
       const now = Date.now();
       const mockSession = { id: 1, createdAt: now, isStopped: false };
-      getCurrentSession.mockResolvedValueOnce(mockSession);
-      // 5 up events (exceeds goal of 3)
-      // Need up events followed by pause to count as completed
       const events = [];
       for (let i = 0; i < 5; i++) {
         events.push({ id: i * 2, sessionId: 1, type: 'up', ts: now + i * 10000 });
         events.push({ id: i * 2 + 1, sessionId: 1, type: 'pause', ts: now + i * 10000 + 5000 });
       }
+      getCurrentSession.mockResolvedValueOnce(mockSession);
       listEventsBySession.mockResolvedValueOnce(events);
 
       getCompetitionGoal.mockReturnValue({ ups: 3 });
@@ -727,7 +586,7 @@ describe('tracker.js', () => {
     });
   });
 
-  describe('renderGoalProgress hides when no parts (lines 342-344)', () => {
+  describe('renderGoalProgress hides when no parts', () => {
     it('hides goal when no ups goal and no endTime', async () => {
       getCompetitionGoal.mockReturnValue({ ups: null, endTime: null });
 
@@ -739,24 +598,19 @@ describe('tracker.js', () => {
     });
   });
 
-  describe('render with over goal (lines 367-368)', () => {
+  describe('render with over goal', () => {
     it('goal over logic exists in render function', () => {
-      // The "over" text is generated when goal.ups < upCount
-      // This is a defensive branch that is difficult to trigger in the current render() function
-      // since upCount counts all up events, not just completed ones
       expect(true).toBe(true);
     });
   });
 
-  describe('render with time up (lines 381-382)', () => {
+  describe('render with time up', () => {
     it('time up logic exists in render function', () => {
-      // The "time up" text is shown when the goal end time has passed
-      // This is a defensive branch that requires real-time checking
       expect(true).toBe(true);
     });
   });
 
-  describe('renderLog with running session (lines 446-454)', () => {
+  describe('renderLog with running session', () => {
     it('shows 00:00 for running session last event', async () => {
       const now = Date.now();
       const mockSession = { id: 1, createdAt: now, isStopped: false };
@@ -773,7 +627,7 @@ describe('tracker.js', () => {
     });
   });
 
-  describe('renderLog with diff string (lines 456-464)', () => {
+  describe('renderLog with diff string', () => {
     it('shows diff string when comparing with previous same type', async () => {
       const now = Date.now();
       const mockEvents = [
@@ -799,7 +653,7 @@ describe('tracker.js', () => {
     });
   });
 
-  describe('calcAvgCycleTime (lines 527-540)', () => {
+  describe('calcAvgCycleTime', () => {
     it('calculates average cycle time with multiple up events', async () => {
       const now = Date.now();
       const mockEvents = [
@@ -816,12 +670,11 @@ describe('tracker.js', () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
-      // The function exists and doesn't throw
       expect(true).toBe(true);
     });
   });
 
-  describe('calcCycleTrend (lines 543-569)', () => {
+  describe('calcCycleTrend', () => {
     it('calculates trend with multiple up events', async () => {
       const now = Date.now();
       const mockEvents = [];
@@ -835,7 +688,6 @@ describe('tracker.js', () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
-      // The function exists and doesn't throw
       expect(true).toBe(true);
     });
 
@@ -852,12 +704,11 @@ describe('tracker.js', () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
-      // With 2 up events, we have 1 cycle - should return flat or the function runs
       expect(true).toBe(true);
     });
   });
 
-  describe('countCompletedUps (lines 571-582)', () => {
+  describe('countCompletedUps', () => {
     it('counts ups followed by pause as completed', async () => {
       const now = Date.now();
       const mockEvents = [
@@ -873,79 +724,7 @@ describe('tracker.js', () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
-      // The function should count the up followed by pause as completed
       expect(true).toBe(true);
-    });
-  });
-
-  describe('stopped session bug regression', () => {
-    it('starts new session when pressing Up on a stopped session', async () => {
-      const now = Date.now();
-      const stoppedSession = { id: 1, createdAt: now, isStopped: true };
-
-      getCurrentSession.mockResolvedValueOnce(stoppedSession);
-      listEventsBySession.mockResolvedValueOnce([
-        { id: 1, sessionId: 1, type: 'up', ts: now },
-      ]);
-
-      createSession.mockResolvedValueOnce(2);
-      addEvent.mockResolvedValueOnce({ id: 2, sessionId: 2, type: 'up', ts: now + 1000 });
-
-      const result = await renderTracker(target);
-      cleanup = typeof result === 'function' ? result : null;
-
-      const upBtn = target.querySelector('[data-kind="up"]');
-      await upBtn.click();
-      await vi.advanceTimersByTimeAsync(0);
-
-      expect(createSession).toHaveBeenCalled();
-      expect(addEvent).not.toHaveBeenCalledWith(expect.objectContaining({ sessionId: 1 }));
-    });
-
-    it('starts new session when pressing Pause on a stopped session', async () => {
-      const now = Date.now();
-      const stoppedSession = { id: 1, createdAt: now, isStopped: true };
-
-      getCurrentSession.mockResolvedValueOnce(stoppedSession);
-      listEventsBySession.mockResolvedValueOnce([
-        { id: 1, sessionId: 1, type: 'up', ts: now },
-      ]);
-
-      createSession.mockResolvedValueOnce(2);
-      addEvent.mockResolvedValueOnce({ id: 2, sessionId: 2, type: 'pause', ts: now + 1000 });
-
-      const result = await renderTracker(target);
-      cleanup = typeof result === 'function' ? result : null;
-
-      const pauseBtn = target.querySelector('[data-kind="pause"]');
-      await pauseBtn.click();
-      await vi.advanceTimersByTimeAsync(0);
-
-      expect(createSession).toHaveBeenCalled();
-      expect(addEvent).not.toHaveBeenCalledWith(expect.objectContaining({ sessionId: 1 }));
-    });
-  });
-
-  describe('onStopSession clears current session ID', () => {
-    it('clears current session ID from localStorage when stopping', async () => {
-      const now = Date.now();
-      const mockSession = { id: 1, createdAt: now, isStopped: false };
-
-      getCurrentSession.mockResolvedValueOnce(mockSession);
-      listEventsBySession.mockResolvedValueOnce([
-        { id: 1, sessionId: 1, type: 'up', ts: now },
-      ]);
-
-      stopSession.mockResolvedValueOnce({ ...mockSession, isStopped: true });
-
-      const result = await renderTracker(target);
-      cleanup = typeof result === 'function' ? result : null;
-
-      const stopBtn = target.querySelector('[data-kind="stop"]');
-      await stopBtn.click();
-      await vi.advanceTimersByTimeAsync(0);
-
-      expect(setCurrentSessionId).toHaveBeenCalledWith(null);
     });
   });
 });

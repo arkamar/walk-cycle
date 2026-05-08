@@ -110,21 +110,19 @@ export function buttonStatesFor({ session, events } = {}) {
   const evts = events || [];
   const isRunning = !!(session && !session.isStopped);
   const isStopped = !!(session && session.isStopped);
-  const hasOrphanedEvents = !session && evts.length > 0;
-  const inStoppedMode = isStopped || hasOrphanedEvents;
 
   let stop;
   if (isRunning) {
     stop = { enabled: true, label: 'Stop' };
-  } else if (inStoppedMode) {
+  } else if (isStopped) {
     stop = { enabled: true, label: 'Resume' };
   } else {
     stop = { enabled: false, label: 'Stop' };
   }
 
-  if (inStoppedMode || !isRunning) {
+  if (!isRunning) {
     return {
-      up: { enabled: true },
+      up: { enabled: false },
       pause: { enabled: false },
       down: { enabled: false },
       stop,
