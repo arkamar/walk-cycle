@@ -409,7 +409,7 @@ export async function renderTracker(target) {
       let diffStr = '';
       const thisCycle = cycleForEvent(i);
 
-      const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : null;
+      const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : (ev.nextTs ? ev.nextTs - ev.ts : null);
 
       const isRunning = session && !session.isStopped;
 
