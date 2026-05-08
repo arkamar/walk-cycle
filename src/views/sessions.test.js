@@ -246,7 +246,7 @@ describe('renderSessions', () => {
       isStopped,
     });
 
-    it('shows "current" status for current session', async () => {
+    it('shows status text for current session (visual indicator + status)', async () => {
       const sessions = [createMockSession(1, 1000000)];
       listSessions.mockResolvedValue(sessions);
       listEventsBySession.mockResolvedValue([]);
@@ -256,7 +256,9 @@ describe('renderSessions', () => {
       await renderSessions(target);
 
       const metaText = target.querySelector('.meta').textContent;
-      expect(metaText).toContain('· current');
+      expect(metaText).toContain('· active');
+      const row = target.querySelector('.list-item');
+      expect(row.classList.contains('list-item--current')).toBe(true);
     });
 
     it('shows "active" status for non-current active session', async () => {

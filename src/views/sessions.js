@@ -68,8 +68,7 @@ export async function renderSessions(target) {
 
     const rowClass = `list-item${isCurrent ? ' list-item--current' : ''}`;
     const statusSuffix =
-      isCurrent ? ' · current'
-      : status === 'active' ? ' · active'
+      status === 'active' ? ' · active'
       : status === 'stopped' ? ' · stopped'
       : '';
 
