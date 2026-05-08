@@ -1,4 +1,4 @@
-import { el, formatDateTime, toast, formatTime } from '../ui.js';
+import { el, formatDateTime, toast } from '../ui.js';
 import { createTrendChart, buildCycleDatasets } from '../chart.js';
 import {
   getSession,
@@ -15,13 +15,12 @@ import {
   cyclesFromSegments,
   aggregateBySegmentKind,
   formatDuration,
-  formatLive,
   SEGMENT_KINDS,
   SEGMENT_LABELS,
   SEGMENT_COLORS,
-  findPrevSameType,
 } from '../analytics.js';
 import { sessionStatus } from '../stateMachine.js';
+import { renderLogEntries } from '../sessionLog.js';
 
 export async function renderSessionDetail(target, { id }) {
   const session = await getSession(id);
@@ -159,50 +158,7 @@ export async function renderSessionDetail(target, { id }) {
     el('div', { class: 'log-list' }),
   ]);
   const logList = logCard.querySelector('.log-list');
-  
-  const cycleCounts = [];
-  let cycleNum = 0;
-  for (let i = 0; i < events.length; i++) {
-    if (events[i].type === 'up') cycleNum++;
-    cycleCounts[i] = cycleNum;
-  }
-  
-  for (let i = events.length - 1; i >= 0; i--) {
-    const ev = events[i];
-    let diffStr = '';
-    const thisDuration = ev.nextTs ? ev.nextTs - ev.ts : null;
-    
-    const prevSame = findPrevSameType(i, ev.type, events);
-    if (prevSame && prevSame.nextTs) {
-      const prevDuration = prevSame.nextTs - prevSame.ts;
-      if (thisDuration && prevDuration) {
-        const diffMs = thisDuration - prevDuration;
-        if (diffMs !== 0) {
-          const sign = diffMs > 0 ? '+' : '-';
-          diffStr = sign + formatLive(Math.abs(diffMs));
-        }
-      }
-    }
-    
-    const thisCycle = cycleCounts[i];
-    
-    const row = el('div', { class: 'log-entry' }, [
-      el('div', { class: 'log-entry-cycle' }, thisCycle > 0 ? `#${thisCycle}` : ''),
-      el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
-      el('div', { class: 'log-entry-kind' }, EVENT_LABELS[ev.type] || ev.type),
-    ]);
-    
-    if (diffStr) {
-      const diffEl = el('div', { class: 'log-entry-diff' }, diffStr);
-      diffEl.dataset.faster = diffStr.startsWith('+') ? 'false' : 'true';
-      row.appendChild(diffEl);
-    } else {
-      row.appendChild(el('div', { class: 'log-entry-diff' }));
-    }
-    
-    row.appendChild(el('div', { class: 'log-entry-duration' }, thisDuration ? formatLive(thisDuration) : '–'));
-    logList.appendChild(row);
-  }
+  renderLogEntries(logList, events, { eventLabels: EVENT_LABELS });
 
   // Per-segment averages
   const statsCard = el('div', { class: 'card' }, [

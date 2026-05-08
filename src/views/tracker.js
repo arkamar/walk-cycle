@@ -1,4 +1,4 @@
-import { el, toast, formatTime } from '../ui.js';
+import { el, toast } from '../ui.js';
 import { getCompetitionGoal } from './settings.js';
 import {
   STATES,
@@ -20,8 +20,8 @@ import {
 import {
   formatLive,
   formatDuration,
-  findPrevSameType,
 } from '../analytics.js';
+import { renderLogEntries } from '../sessionLog.js';
 
 const BUTTONS = [
   { kind: EVENTS.UP, label: 'Up', icon: '▲' },
@@ -393,64 +393,10 @@ export async function renderTracker(target) {
   }
 
   function renderLog() {
-    logList.innerHTML = '';
-
-    const cycleForEvent = (idx) => {
-      let cycle = 0;
-      for (let j = 0; j <= idx; j++) {
-        if (events[j].type === EVENTS.UP) cycle++;
-      }
-      return cycle;
-    };
-
-    for (let i = events.length - 1; i >= 0; i--) {
-      const ev = events[i];
-      let displayDuration;
-      let diffStr = '';
-      const thisCycle = cycleForEvent(i);
-
-      const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : (ev.nextTs ? ev.nextTs - ev.ts : null);
-
-      const isRunning = session && !session.isStopped;
-
-      if (isRunning && i === events.length - 1) {
-        displayDuration = '00:00';
-      } else if (thisDuration) {
-        displayDuration = formatLive(thisDuration);
-      } else if (session || events.length > 0) {
-        displayDuration = '–';
-      } else {
-        displayDuration = '–';
-      }
-
-      const prevSame = findPrevSameType(i, ev.type, events);
-      if (prevSame && i < events.length - 1 && prevSame.nextTs) {
-        const prevDuration = prevSame.nextTs - prevSame.ts;
-        const diffMs = thisDuration - prevDuration;
-        if (diffMs !== 0) {
-          const sign = diffMs > 0 ? '+' : '-';
-          diffStr = sign + formatLive(Math.abs(diffMs));
-        }
-      }
-
-      const row = el('div', { class: 'log-entry' }, [
-        el('div', { class: 'log-entry-cycle' }, thisCycle > 0 ? `#${thisCycle}` : ''),
-        el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
-        el('div', { class: 'log-entry-kind' }, EVENT_LABELS[ev.type] || ev.type),
-      ]);
-
-      if (diffStr) {
-        const diffEl = el('div', { class: 'log-entry-diff' }, diffStr);
-        diffEl.dataset.faster = diffStr.startsWith('+') ? 'false' : 'true';
-        row.appendChild(diffEl);
-      } else {
-        row.appendChild(el('div', { class: 'log-entry-diff' }));
-      }
-
-      row.appendChild(el('div', { class: 'log-entry-duration' }, displayDuration));
-
-      logList.appendChild(row);
-    }
+    renderLogEntries(logList, events, {
+      isRunning: session && !session.isStopped,
+      eventLabels: EVENT_LABELS,
+    });
 
     for (let i = 0; i < events.length - 1; i++) {
       events[i].nextTs = events[i + 1].ts;
