@@ -9,16 +9,13 @@ import {
   buttonStatesFor,
 } from '../stateMachine.js';
 import {
-  createSession,
   addEvent,
+  createSession,
   deleteEvent,
-  getActiveSession,
   getCurrentSession,
   listEventsBySession,
-  getStoppedSession,
   resumeSession,
   stopSession,
-  setCurrentSessionId,
 } from '../db.js';
 import {
   formatLive,
@@ -59,8 +56,6 @@ export async function renderTracker(target) {
     let onClick;
     if (b.kind === 'stop') {
       onClick = onStopSession;
-    } else if (b.kind === 'start') {
-      onClick = onStartSession;
     } else {
       onClick = () => onPress(b.kind);
     }
@@ -108,15 +103,9 @@ export async function renderTracker(target) {
   );
 
   async function loadActiveSession() {
-    let current = await getCurrentSession();
-    if (!current) {
-      current = await getActiveSession();
-    }
-    if (!current) {
-      current = await getStoppedSession();
-    }
+    const current = await getCurrentSession();
     session = current;
-    
+
     if (!session) {
       events = [];
       state = STATES.IDLE;
@@ -125,7 +114,7 @@ export async function renderTracker(target) {
       renderLog();
       return;
     }
-    
+
     events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
     for (let i = 0; i < events.length - 1; i++) {
       events[i].nextTs = events[i + 1].ts;
@@ -139,7 +128,7 @@ export async function renderTracker(target) {
     lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
     render();
     renderLog();
-    
+
     if (!session.isStopped) {
       renderGoalProgress();
       startTimer();
@@ -151,21 +140,6 @@ export async function renderTracker(target) {
   }
 
   window.addEventListener('current-session-changed', onCurrentSessionChanged);
-
-  async function onStartSession() {
-    if (session) {
-      toast('Session already active');
-      return;
-    }
-    const id = await createSession();
-    session = { id, isStopped: false, createdAt: Date.now() };
-    events = [];
-    state = STATES.IDLE;
-    lastEventTs = null;
-    toast('Session started');
-    render();
-    window.dispatchEvent(new Event('session-started'));
-  }
 
   async function onUndo() {
     if (events.length === 0) return;
@@ -188,13 +162,16 @@ export async function renderTracker(target) {
     if (isProcessing) return;
     isProcessing = true;
     try {
-      if (!session || session.isStopped) {
-        const stopped = await getStoppedSession();
-        if (!stopped) {
+      if (!session) {
+        toast('No active session');
+        return;
+      }
+      if (session.isStopped) {
+        const resumed = await resumeSession(session.id);
+        if (!resumed) {
           toast('No session to resume');
           return;
         }
-        const resumed = await resumeSession(stopped.id);
         session = resumed;
         events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
         for (let i = 0; i < events.length - 1; i++) {
@@ -213,17 +190,13 @@ export async function renderTracker(target) {
       } else {
         stopIntervalTimer();
         await stopSession(session.id);
-        setCurrentSessionId(null);
+        session.isStopped = true;
         if (events.length > 0) {
           events[events.length - 1].nextTs = Date.now();
         }
-        session = null;
-        state = STATES.IDLE;
-        lastEventTs = null;
         toast('Session stopped');
         render();
         renderLog();
-        window.dispatchEvent(new Event('session-ended'));
       }
     } finally {
       isProcessing = false;
@@ -231,23 +204,25 @@ export async function renderTracker(target) {
   }
 
   async function onPress(kind) {
-    if (!session || session.isStopped) {
-      if (session?.isStopped) {
-        // Stopped session: clear it so we start fresh
-        session = null;
-        events = [];
-        state = STATES.IDLE;
-        lastEventTs = null;
-      }
-      await onStartSession();
-      const ev = await addEvent({ sessionId: session.id, type: kind });
+    if (!session) {
+      const id = await createSession();
+      session = { id, isStopped: false, createdAt: Date.now() };
+      events = [];
+      state = STATES.IDLE;
+      lastEventTs = null;
+      const ev = await addEvent({ sessionId: id, type: kind });
       events.push(ev);
       state = nextState(state, kind);
       lastEventTs = ev.ts;
+      toast('Session started');
       render();
       renderLog();
       renderGoalProgress();
       startTimer();
+      return;
+    }
+    if (session.isStopped) {
+      toast('Session is stopped. Resume to continue.');
       return;
     }
 
@@ -259,12 +234,12 @@ export async function renderTracker(target) {
         const newState = nextState(state, EVENTS.PAUSE);
         if (newState) state = newState;
         lastEventTs = pauseEv.ts;
-        
+
         const newEv = await addEvent({ sessionId: session.id, type: kind });
         events.push(newEv);
         state = nextState(state, kind);
         lastEventTs = newEv.ts;
-        
+
         await renderAndContinue(kind);
         return;
       } else {
@@ -293,14 +268,14 @@ export async function renderTracker(target) {
     if (goal && session) {
       goalProgressEl.style.display = '';
       let parts = [];
-let status = '';
-      
+      let status = '';
+
       if (goal.ups) {
         const completedUps = countCompletedUps();
         const remaining = goal.ups - completedUps;
         if (remaining > 0) {
           parts.push(`${remaining} up${remaining === 1 ? '' : 's'}`);
-          
+
           if (goal.endTime && completedUps >= 2 && session && !session.isStopped) {
             const now = new Date();
             const [h, m] = goal.endTime.split(':').map(Number);
@@ -308,7 +283,7 @@ let status = '';
             target.setHours(h, m, 0, 0);
             if (target < now) target.setDate(target.getDate() + 1);
             const timeLeftMs = target - now;
-            
+
             const { avg, trend } = calcCycleTrend();
             if (avg > 0 && timeLeftMs > 0) {
               const projected = avg + trend * (remaining - 1) * 0.5;
@@ -326,7 +301,7 @@ let status = '';
           parts.push(`${-remaining} over`);
         }
       }
-      
+
       if (goal.endTime) {
         const now = new Date();
         const [h, m] = goal.endTime.split(':').map(Number);
@@ -340,7 +315,7 @@ let status = '';
           parts.push('time up');
         }
       }
-      
+
       if (parts.length > 0) {
         const display = status ? `${parts.join(' · ')} (${status})` : parts.join(' · ');
         goalProgressEl.textContent = display;
@@ -363,7 +338,7 @@ let status = '';
     if (goal && (session || events.length > 0)) {
       goalProgressEl.style.display = '';
       let parts = [];
-      
+
       if (goal.ups) {
         const remaining = goal.ups - upCount;
         if (remaining > 0) {
@@ -372,7 +347,7 @@ let status = '';
           parts.push(`${-remaining} over`);
         }
       }
-      
+
       if (goal.endTime) {
         const now = new Date();
         const [h, m] = goal.endTime.split(':').map(Number);
@@ -386,7 +361,7 @@ let status = '';
           parts.push('time up');
         }
       }
-      
+
       if (parts.length > 0) {
         goalProgressEl.textContent = parts.join(' · ');
       } else {
@@ -397,15 +372,6 @@ let status = '';
     }
 
     const btnStates = buttonStatesFor({ session, events });
-
-    // Hint when in stopped mode: Up = start a new session is not obvious.
-    if (btnStates.stop.label === 'Resume') {
-      hintEl.style.display = '';
-      hintEl.innerHTML =
-        'Press <strong>Resume</strong> to continue, or <strong>Up</strong> to start a new session.';
-    } else {
-      hintEl.style.display = 'none';
-    }
 
     for (const b of BUTTONS) {
       if (b.kind === 'stop') continue;
@@ -428,7 +394,7 @@ let status = '';
 
   function renderLog() {
     logList.innerHTML = '';
-    
+
     const cycleForEvent = (idx) => {
       let cycle = 0;
       for (let j = 0; j <= idx; j++) {
@@ -436,28 +402,27 @@ let status = '';
       }
       return cycle;
     };
-    
+
     for (let i = events.length - 1; i >= 0; i--) {
       const ev = events[i];
       let displayDuration;
       let diffStr = '';
       const thisCycle = cycleForEvent(i);
-      
-      const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : null;
-      
+
+      const thisDuration = i < events.length - 1 ? events[i + 1].ts - ev.ts : (ev.nextTs ? ev.nextTs - ev.ts : null);
+
       const isRunning = session && !session.isStopped;
-      const isStopped = session && session.isStopped;
-      
+
       if (isRunning && i === events.length - 1) {
         displayDuration = '00:00';
       } else if (thisDuration) {
         displayDuration = formatLive(thisDuration);
-      } else if (isStopped || events.length > 0) {
+      } else if (session || events.length > 0) {
         displayDuration = '–';
       } else {
         displayDuration = '–';
       }
-      
+
       const prevSame = findPrevSameType(i, ev.type, events);
       if (prevSame && i < events.length - 1 && prevSame.nextTs) {
         const prevDuration = prevSame.nextTs - prevSame.ts;
@@ -467,13 +432,13 @@ let status = '';
           diffStr = sign + formatLive(Math.abs(diffMs));
         }
       }
-      
+
       const row = el('div', { class: 'log-entry' }, [
         el('div', { class: 'log-entry-cycle' }, thisCycle > 0 ? `#${thisCycle}` : ''),
         el('div', { class: 'log-entry-time' }, formatTime(ev.ts)),
         el('div', { class: 'log-entry-kind' }, EVENT_LABELS[ev.type] || ev.type),
       ]);
-      
+
       if (diffStr) {
         const diffEl = el('div', { class: 'log-entry-diff' }, diffStr);
         diffEl.dataset.faster = diffStr.startsWith('+') ? 'false' : 'true';
@@ -481,12 +446,12 @@ let status = '';
       } else {
         row.appendChild(el('div', { class: 'log-entry-diff' }));
       }
-      
+
       row.appendChild(el('div', { class: 'log-entry-duration' }, displayDuration));
-      
+
       logList.appendChild(row);
     }
-    
+
     for (let i = 0; i < events.length - 1; i++) {
       events[i].nextTs = events[i + 1].ts;
     }
@@ -494,17 +459,17 @@ let status = '';
       events[events.length - 1].nextTs = Date.now();
     }
   }
-  
+
   function updateLiveTimer() {
     if (!session || !lastEventTs || events.length === 0) return;
-    
+
     const firstRow = logList.firstChild;
     if (!firstRow) return;
-    
+
     const startTs = events[events.length - 1].ts;
     const now = Date.now();
     const elapsed = now - startTs;
-    
+
     const durationEl = firstRow.querySelector('.log-entry-duration');
     if (durationEl) {
       durationEl.textContent = formatLive(elapsed);
@@ -531,14 +496,14 @@ let status = '';
   function calcCycleTrend() {
     const upEvents = events.filter(e => e.type === EVENTS.UP);
     if (upEvents.length < 2) return { avg: 0, trend: 0, trendDir: 'flat' };
-    
+
     const recent = upEvents.slice(-5);
     const cycles = [];
     for (let i = 1; i < recent.length; i++) {
       cycles.push(recent[i].ts - recent[i-1].ts);
     }
     if (cycles.length < 2) return { avg: 0, trend: 0, trendDir: 'flat' };
-    
+
     let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
     for (let i = 0; i < cycles.length; i++) {
       sumX += i;
@@ -548,12 +513,12 @@ let status = '';
     }
     const n = cycles.length;
     const slope = sumX2 !== sumX * sumX ? (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX) : 0;
-    
+
     const avg = cycles.reduce((a, b) => a + b, 0) / n;
     let trendDir = 'flat';
     if (slope > 500) trendDir = 'slower';
     else if (slope < -500) trendDir = 'faster';
-    
+
     return { avg, trend: slope, trendDir };
   }
 

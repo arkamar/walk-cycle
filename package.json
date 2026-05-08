@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@vitest/coverage-v8": "^2.1.9",
     "eslint": "^10.3.0",
     "fake-indexeddb": "^6.2.5",
     "globals": "^17.6.0",

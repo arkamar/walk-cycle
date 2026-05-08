@@ -16,6 +16,7 @@ vi.mock('../ui.js', async () => {
 
 // Mock db.js
 vi.mock('../db.js', () => ({
+  createSession: vi.fn(),
   listSessions: vi.fn(),
   listEventsBySession: vi.fn(),
   deleteSession: vi.fn(),
@@ -38,6 +39,7 @@ vi.mock('../stateMachine.js', () => ({
 // Import mocked modules
 import { toast, formatDateTime } from '../ui.js';
 import {
+  createSession,
   listSessions,
   listEventsBySession,
   deleteSession,
@@ -303,7 +305,7 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const button = target.querySelector('.btn-primary');
+      const button = target.querySelector('.list-item .btn-primary');
       expect(button).toBeTruthy();
       expect(button.textContent).toBe('Set as current');
     });
@@ -316,7 +318,7 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const button = target.querySelector('.btn-primary');
+      const button = target.querySelector('.list-item .btn-primary');
       await button.click();
 
       expect(setCurrentSession).toHaveBeenCalledWith(1);
@@ -331,10 +333,9 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const button = target.querySelector('.btn-primary');
+      const button = target.querySelector('.list-item .btn-primary');
       await button.click();
 
-      // The code sets window.location.hash = '/'
       expect(mockLocation.hash).toBe('/');
     });
 
@@ -346,12 +347,12 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const buttons = target.querySelectorAll('.btn-primary');
+      const buttons = target.querySelectorAll('.list-item .btn-primary');
       expect(buttons.length).toBe(0);
     });
   });
 
-  describe('"Resume" button', () => {
+  describe('"Set as current" button for stopped sessions', () => {
     const createMockSession = (id, createdAt) => ({
       id,
       createdAt,
@@ -363,19 +364,19 @@ describe('renderSessions', () => {
       getCurrentSession.mockResolvedValue({ id: 999 });
     });
 
-    it('renders "Resume" button for stopped sessions', async () => {
+    it('renders "Set as current" button for stopped sessions', async () => {
       const sessions = [createMockSession(1, 1000000)];
       listSessions.mockResolvedValue(sessions);
       listEventsBySession.mockResolvedValue([]);
 
       await renderSessions(target);
 
-      const button = target.querySelector('.btn-primary');
+      const button = target.querySelector('.list-item .btn-primary');
       expect(button).toBeTruthy();
-      expect(button.textContent).toBe('Resume');
+      expect(button.textContent).toBe('Set as current');
     });
 
-    it('calls setCurrentSession and shows toast when Resume is clicked', async () => {
+    it('calls setCurrentSession when clicked', async () => {
       const sessions = [createMockSession(1, 1000000)];
       listSessions.mockResolvedValue(sessions);
       listEventsBySession.mockResolvedValue([]);
@@ -383,7 +384,7 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const button = target.querySelector('.btn-primary');
+      const button = target.querySelector('.list-item .btn-primary');
       await button.click();
 
       expect(setCurrentSession).toHaveBeenCalledWith(1);
@@ -571,6 +572,31 @@ describe('renderSessions', () => {
       expect(segmentsFromEvents).toHaveBeenCalledWith(
         events.filter(e => e.type !== 'session_stopped')
       );
+    });
+  });
+
+  describe('"New Session" button', () => {
+    it('renders a "New Session" button in the heading row', async () => {
+      listSessions.mockResolvedValue([]);
+
+      await renderSessions(target);
+
+      const btn = target.querySelector('.btn-primary');
+      expect(btn).toBeTruthy();
+      expect(btn.textContent).toBe('New Session');
+    });
+
+    it('calls createSession and navigates to tracker when clicked', async () => {
+      createSession.mockResolvedValue(42);
+      listSessions.mockResolvedValue([]);
+
+      await renderSessions(target);
+
+      const btn = target.querySelector('.btn-primary');
+      await btn.click();
+
+      expect(createSession).toHaveBeenCalled();
+      expect(mockLocation.hash).toBe('/');
     });
   });
 
