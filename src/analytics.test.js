@@ -499,6 +499,15 @@ describe('formatDuration', () => {
   it('should handle large values', () => {
     expect(formatDuration(36000000)).toBe('10h 0m 0s');
   });
+
+  it('should format multi-day durations with d suffix', () => {
+    expect(formatDuration(86400000)).toBe('24h 0m 0s');
+    expect(formatDuration(90000000)).toBe('1d 1h 0m');
+    expect(formatDuration(172800000)).toBe('2d 0h 0m');
+    expect(formatDuration(176400000)).toBe('2d 1h 0m');
+    expect(formatDuration(181800000)).toBe('2d 2h 30m');
+    expect(formatDuration(439109000)).toBe('5d 1h 58m');
+  });
 });
 
 describe('formatLive', () => {
