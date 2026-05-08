@@ -72,7 +72,7 @@ export async function renderSessions(target) {
       : status === 'stopped' ? ' ■'
       : '';
 
-    const baseMeta = `${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'} · ${formatDuration(durationMs)}${statusIcon}`;
+    const baseMeta = `${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'}${statusIcon} · ${formatDuration(durationMs)}`;
     const metaText = s.name
       ? `${formatDateTime(s.createdAt)} · ${baseMeta}`
       : baseMeta;
