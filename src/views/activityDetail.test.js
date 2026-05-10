@@ -148,6 +148,24 @@ describe('renderActivityDetail', () => {
     expect(items[1].textContent).toContain('1');
   });
 
+  it('shows stats card with total count and year projection', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 3 },
+      { id: 9, date: '2026-05-01', count: 1 },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const stats = target.querySelectorAll('.stat');
+    expect(stats.length).toBe(3);
+    expect(stats[0].textContent).toContain('Total');
+    expect(stats[0].textContent).toContain('4');
+    expect(stats[1].textContent).toContain('2026');
+    expect(stats[1].textContent).toContain('4 / 52');
+  });
+
   it('shows empty state when no records exist', async () => {
     mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
     mockDb.listRecordsByActivity.mockResolvedValue([]);

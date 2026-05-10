@@ -39,6 +39,33 @@ export async function renderActivityDetail(target, { id }) {
     }),
   ]);
 
+  const totalCount = records.reduce((s, r) => s + r.count, 0);
+  const currentYear = new Date().getFullYear();
+  const yearRecords = records.filter(r => r.date.startsWith(String(currentYear)));
+  const yearCount = yearRecords.reduce((s, r) => s + r.count, 0);
+  const goal = 52;
+  const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
+  const startOfYear = new Date(currentYear, 0, 1).getTime();
+  const now = Date.now();
+  const elapsedDays = Math.max(1, Math.floor((now - startOfYear) / 86400000));
+  const projected = Math.round((yearCount / elapsedDays) * daysInYear);
+
+  const statsCard = el('div', { class: 'card stat-grid', style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' } }, [
+    el('div', { class: 'stat' }, [
+      el('div', { class: 'label' }, 'Total'),
+      el('div', { class: 'value' }, String(totalCount)),
+    ]),
+    el('div', { class: 'stat' }, [
+      el('div', { class: 'label' }, `${currentYear}`),
+      el('div', { class: 'value' }, `${yearCount} / ${goal}`),
+    ]),
+    el('div', { class: 'stat' }, [
+      el('div', { class: 'label' }, 'Projected'),
+      el('div', { class: 'value' }, `${projected}`),
+      el('div', { class: 'meta' }, projected >= goal ? '✅ on track' : '📉 behind'),
+    ]),
+  ]);
+
   const today = new Date().toISOString().slice(0, 10);
   const dateInput = el('input', {
     type: 'date',
@@ -178,5 +205,5 @@ export async function renderActivityDetail(target, { id }) {
     }
   }
 
-  target.appendChild(el('div', {}, [headerRow, headerCard, formCard, recordsCard]));
+  target.appendChild(el('div', {}, [headerRow, headerCard, statsCard, formCard, recordsCard]));
 }

@@ -78,6 +78,7 @@ describe('renderActivities', () => {
 
     const meta = target.querySelector('.meta');
     expect(meta.textContent).toContain('1 record');
+    expect(meta.textContent).toContain('2 total');
   });
 
   it('links each activity to its detail page', async () => {

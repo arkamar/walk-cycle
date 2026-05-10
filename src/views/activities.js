@@ -37,12 +37,16 @@ export async function renderActivities(target) {
   const summaries = await Promise.all(
     activities.map(async (a) => {
       const records = await listRecordsByActivity(a.id);
-      return { activity: a, recordCount: records.length };
+      const totalCount = records.reduce((s, r) => s + r.count, 0);
+      return { activity: a, recordCount: records.length, totalCount };
     })
   );
 
-  for (const { activity: a, recordCount } of summaries) {
-    const metaParts = [`${recordCount} ${recordCount === 1 ? 'record' : 'records'}`];
+  for (const { activity: a, recordCount, totalCount } of summaries) {
+    const metaParts = [
+      `${recordCount} ${recordCount === 1 ? 'record' : 'records'}`,
+      `${totalCount} total`,
+    ];
 
     const children = [
       el('div', { style: { flex: 1 } }, [
