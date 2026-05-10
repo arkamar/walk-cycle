@@ -85,7 +85,7 @@ describe('renderActivityDetail', () => {
 
     const dateInput = target.querySelector('input[type="date"]');
     expect(dateInput).toBeTruthy();
-    const countInput = target.querySelector('input[type="number"]');
+    const countInput = target.querySelector('input[data-form="count"]');
     expect(countInput).toBeTruthy();
     const addBtn = target.querySelector('.btn-primary');
     expect(addBtn.textContent).toContain('Add');
@@ -101,7 +101,7 @@ describe('renderActivityDetail', () => {
     await renderActivityDetail(target, { id: 1 });
 
     const dateInput = target.querySelector('input[type="date"]');
-    const countInput = target.querySelector('input[type="number"]');
+    const countInput = target.querySelector('input[data-form="count"]');
     dateInput.value = '2026-05-10';
     countInput.value = '3';
 
@@ -120,7 +120,7 @@ describe('renderActivityDetail', () => {
     await renderActivityDetail(target, { id: 1 });
 
     const dateInput = target.querySelector('input[type="date"]');
-    const countInput = target.querySelector('input[type="number"]');
+    const countInput = target.querySelector('input[data-form="count"]');
     dateInput.value = '2026-05-10';
     countInput.value = '3';
 

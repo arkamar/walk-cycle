@@ -43,12 +43,38 @@ export async function renderActivityDetail(target, { id }) {
   const currentYear = new Date().getFullYear();
   const yearRecords = records.filter(r => r.date.startsWith(String(currentYear)));
   const yearCount = yearRecords.reduce((s, r) => s + r.count, 0);
-  const goal = 52;
+  const goal = activity.goal ?? 52;
   const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
   const startOfYear = new Date(currentYear, 0, 1).getTime();
   const now = Date.now();
   const elapsedDays = Math.max(1, Math.floor((now - startOfYear) / 86400000));
   const projected = Math.round((yearCount / elapsedDays) * daysInYear);
+
+  const goalSpan = el('span', { dataset: { edit: 'goal' }, style: { cursor: 'pointer' } }, String(goal));
+  const goalInput = el('input', {
+    type: 'number',
+    min: 1,
+    value: goal,
+    dataset: { edit: 'goal-input' },
+    style: { width: '3rem', display: 'none' },
+    onBlur: async () => { await saveGoal(); },
+    onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); goalInput.blur(); } },
+  });
+  async function saveGoal() {
+    const val = Number(goalInput.value);
+    if (val !== goal) {
+      await updateActivity(activity.id, { goal: val });
+      activity.goal = val;
+      toast('Goal updated');
+    }
+    goalSpan.style.display = '';
+    goalInput.style.display = 'none';
+  }
+  goalSpan.onclick = () => {
+    goalSpan.style.display = 'none';
+    goalInput.style.display = '';
+    goalInput.focus();
+  };
 
   const statsCard = el('div', { class: 'card stat-grid', style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' } }, [
     el('div', { class: 'stat' }, [
@@ -57,7 +83,10 @@ export async function renderActivityDetail(target, { id }) {
     ]),
     el('div', { class: 'stat' }, [
       el('div', { class: 'label' }, `${currentYear}`),
-      el('div', { class: 'value' }, `${yearCount} / ${goal}`),
+      el('div', { class: 'value', style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
+        el('span', {}, `${yearCount} / `),
+        el('span', { style: { cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [goalSpan, goalInput]),
+      ]),
     ]),
     el('div', { class: 'stat' }, [
       el('div', { class: 'label' }, 'Projected'),
@@ -76,6 +105,7 @@ export async function renderActivityDetail(target, { id }) {
     type: 'number',
     min: 1,
     value: 1,
+    dataset: { form: 'count' },
     style: { width: '4rem' },
   });
   const addBtn = el('button', {

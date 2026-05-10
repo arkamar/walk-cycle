@@ -248,9 +248,9 @@ export async function deleteSession(id) {
 
 // ---------- Activities ----------
 
-export async function createActivity(name, createdAt = Date.now()) {
+export async function createActivity(name, createdAt = Date.now(), goal = null) {
   const db = await getDB();
-  return db.add(STORE_ACTIVITIES, { name, createdAt });
+  return db.add(STORE_ACTIVITIES, { name, createdAt, goal });
 }
 
 export async function listActivities() {

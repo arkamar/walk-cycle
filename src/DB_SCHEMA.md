@@ -45,6 +45,7 @@
 | `id`        | `number` | no       | autoIncrement   | Primary key |
 | `name`      | `string` | no       | —               | User-provided name (e.g. "Hills") |
 | `createdAt` | `number` | no       | `Date.now()`    | Millis since epoch when created |
+| `goal`      | `number` | yes      | `null`          | Annual goal (defaults to 52 in the UI) |
 
 **Indexes**:
 
