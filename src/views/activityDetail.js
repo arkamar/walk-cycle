@@ -21,14 +21,23 @@ export async function renderActivityDetail(target, { id }) {
   }
 
   const records = await listRecordsByActivity(id);
+  const currentYear = new Date().getFullYear();
 
   const cumulativeById = new Map();
   {
     const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
-    let total = 0;
+    const byYear = {};
     for (const r of sorted) {
-      total += r.count;
-      cumulativeById.set(r.id, total);
+      const year = r.date.slice(0, 4);
+      if (!byYear[year]) byYear[year] = [];
+      byYear[year].push(r);
+    }
+    for (const year of Object.keys(byYear).sort()) {
+      let total = 0;
+      for (const r of byYear[year]) {
+        total += r.count;
+        cumulativeById.set(r.id, total);
+      }
     }
   }
 
@@ -50,7 +59,6 @@ export async function renderActivityDetail(target, { id }) {
   ]);
 
   const totalCount = records.reduce((s, r) => s + r.count, 0);
-  const currentYear = new Date().getFullYear();
   const yearRecords = records.filter(r => r.date.startsWith(String(currentYear)));
   const yearCount = yearRecords.reduce((s, r) => s + r.count, 0);
 
@@ -179,7 +187,28 @@ export async function renderActivityDetail(target, { id }) {
     const list = el('div', { class: 'list' });
     recordsCard.appendChild(list);
 
+    let prevYear = null;
+
     for (const r of records) {
+      const year = r.date.slice(0, 4);
+      if (year !== prevYear) {
+        if (year !== String(currentYear)) {
+          const yearLabel = el('div', {
+            style: {
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 600,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              padding: '0.5rem 0.25rem',
+            },
+          }, [
+            el('span', { style: { flex: 1, height: '1px', background: 'var(--border)' } }),
+            el('span', {}, year),
+            el('span', { style: { flex: 1, height: '1px', background: 'var(--border)' } }),
+          ]);
+          list.appendChild(yearLabel);
+        }
+        prevYear = year;
+      }
       const dateSpan = el('span', { dataset: { edit: 'date' }, style: { cursor: 'pointer' } }, new Date(r.date + 'T00:00:00').toLocaleDateString());
       const dateInput = el('input', {
         type: 'date',
@@ -296,7 +325,7 @@ export async function renderActivityDetail(target, { id }) {
         ]),
         el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.75rem' } }, [
           el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [countSpan, countInput]),
-          el('span', { style: { color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' } }, String(cumulativeById.get(r.id))),
+          el('span', { style: { color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' } }, cumulativeById.has(r.id) ? String(cumulativeById.get(r.id)) : ''),
           el('button', {
             class: 'btn btn-ghost',
             style: { color: 'var(--danger)', padding: '0.5rem' },
