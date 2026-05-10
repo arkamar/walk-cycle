@@ -54,14 +54,6 @@ export async function renderActivityDetail(target, { id }) {
   const yearRecords = records.filter(r => r.date.startsWith(String(currentYear)));
   const yearCount = yearRecords.reduce((s, r) => s + r.count, 0);
 
-  let projected = null;
-  if (activity.goal) {
-    const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
-    const startOfYear = new Date(currentYear, 0, 1).getTime();
-    const elapsedDays = Math.max(1, Math.floor((Date.now() - startOfYear) / 86400000));
-    projected = Math.round((yearCount / elapsedDays) * daysInYear);
-  }
-
   const goalSquare = el('span', {
     dataset: { edit: 'goal' },
     style: {
@@ -110,7 +102,7 @@ export async function renderActivityDetail(target, { id }) {
     goalInput.focus();
   };
 
-  const statsCard = el('div', { class: 'card stat-grid', style: { gridTemplateColumns: activity.goal ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)' } }, [
+  const statsCard = el('div', { class: 'card stat-grid', style: { gridTemplateColumns: activity.goal ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)' } }, [
     el('div', { class: 'stat' }, [
       el('div', { class: 'label' }, 'Total'),
       el('div', { class: 'value' }, String(totalCount)),
@@ -128,13 +120,6 @@ export async function renderActivityDetail(target, { id }) {
         el('div', { class: 'label' }, yearCount >= activity.goal ? 'Over' : 'Remaining'),
         el('div', { class: 'value', style: { color: yearCount >= activity.goal ? 'var(--success)' : 'var(--danger)' } }, String(Math.abs(activity.goal - yearCount))),
         el('div', { class: 'meta' }, yearCount >= activity.goal ? 'above goal' : 'to go'),
-      ]),
-    ] : []),
-    ...(activity.goal && projected !== null ? [
-      el('div', { class: 'stat' }, [
-        el('div', { class: 'label' }, 'Projected'),
-        el('div', { class: 'value' }, String(projected)),
-        el('div', { class: 'meta' }, projected >= activity.goal ? '✅ on track' : '📉 behind'),
       ]),
     ] : []),
   ]);

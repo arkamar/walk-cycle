@@ -164,21 +164,6 @@ describe('renderActivityDetail', () => {
     expect(target.textContent).toContain('—');
   });
 
-  it('shows projection when goal is set', async () => {
-    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000, goal: 52 });
-    // Enough 2026 records so projection exceeds 52 regardless of test date
-    const records = Array.from({ length: 60 }, (_, i) => ({
-      id: 10 + i, date: `2026-01-${String((i % 28) + 1).padStart(2, '0')}`, count: 1,
-    }));
-    mockDb.listRecordsByActivity.mockResolvedValue(records);
-
-    const { renderActivityDetail } = await import('./activityDetail.js');
-    await renderActivityDetail(target, { id: 1 });
-
-    expect(target.textContent).toContain('Projected');
-    expect(target.textContent).toContain('✅ on track');
-  });
-
   it('shows motivation chart with day/week toggle when goal is set', async () => {
     mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000, goal: 52 });
     mockDb.listRecordsByActivity.mockResolvedValue([]);
@@ -220,19 +205,6 @@ describe('renderActivityDetail', () => {
 
     expect(target.textContent).toContain('2');
     expect(target.textContent).toContain('above goal');
-  });
-
-  it('does not show projection when goal is not set', async () => {
-    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
-    mockDb.listRecordsByActivity.mockResolvedValue([
-      { id: 10, date: '2026-05-10', count: 3 },
-    ]);
-
-    const { renderActivityDetail } = await import('./activityDetail.js');
-    await renderActivityDetail(target, { id: 1 });
-
-    expect(target.textContent).not.toContain('✅');
-    expect(target.textContent).not.toContain('📉');
   });
 
   it('shows empty state when no records exist', async () => {
