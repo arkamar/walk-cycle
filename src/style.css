@@ -493,14 +493,8 @@ h3 { font-size: 1rem; }
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
-}
-
-@media (max-width: 480px) {
-  .stat-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
 }
 
 .stat {
@@ -508,6 +502,7 @@ h3 { font-size: 1rem; }
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.75rem;
+  text-align: center;
 }
 
 .stat .label {
