@@ -421,6 +421,8 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
   let isDragging = false;
   let dragStartX = 0;
   let dragEndX = 0;
+  let initialPinchDist = 0;
+  let pinchFocalIndex = 0;
 
   const pad = { top: 24, right: 12, bottom: 28, left: 40 };
 
@@ -693,6 +695,67 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
 
   const onMouseUp = () => { endDrag(); };
   window.addEventListener('mouseup', onMouseUp);
+
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const rect = canvas.getBoundingClientRect();
+      pinchFocalIndex = pixelToIndex(midX - rect.left);
+      initialPinchDist = dist;
+      isDragging = false;
+      e.preventDefault();
+      return;
+    }
+    if (e.touches.length === 1) {
+      e.preventDefault();
+      startDrag(e.touches[0].clientX);
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2 && initialPinchDist > 0) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const newDist = Math.sqrt(dx * dx + dy * dy);
+      const scale = newDist / initialPinchDist;
+      if (Math.abs(scale - 1) < 0.05) return;
+
+      const curStart = zoom ? zoom.start : 0;
+      const curEnd = zoom ? zoom.end : totalUnits - 1;
+      const curW = curEnd - curStart + 1;
+      let newW = Math.max(2, Math.min(totalUnits, Math.round(curW * scale)));
+      let newStart = Math.round(pinchFocalIndex - (pinchFocalIndex - curStart) * (newW / curW));
+      let newEnd = newStart + newW - 1;
+      if (newStart < 0) { newStart = 0; newEnd = newW - 1; }
+      if (newEnd >= totalUnits) { newEnd = totalUnits - 1; newStart = newEnd - newW + 1; }
+      if (newStart < 0) newStart = 0;
+
+      if (newStart !== curStart || newEnd !== curEnd) {
+        zoom = { start: newStart, end: newEnd };
+        initialPinchDist = newDist;
+        draw();
+        if (onZoomChange) onZoomChange(zoom);
+      }
+      return;
+    }
+    if (e.touches.length === 1) {
+      e.preventDefault();
+      moveDrag(e.touches[0].clientX);
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    if (e.touches.length === 0) {
+      initialPinchDist = 0;
+      endDrag();
+    } else if (e.touches.length < 2) {
+      initialPinchDist = 0;
+    }
+  }, { passive: false });
 
   draw();
   if (typeof ResizeObserver !== 'undefined') {
