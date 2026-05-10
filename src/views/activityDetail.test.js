@@ -192,7 +192,7 @@ describe('renderActivityDetail', () => {
     expect(target.textContent).toContain('to go');
   });
 
-  it('shows done when year count meets or exceeds goal', async () => {
+  it('shows over count when year count exceeds goal', async () => {
     mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000, goal: 10 });
     mockDb.listRecordsByActivity.mockResolvedValue([
       { id: 10, date: '2026-05-10', count: 12 },
@@ -201,8 +201,8 @@ describe('renderActivityDetail', () => {
     const { renderActivityDetail } = await import('./activityDetail.js');
     await renderActivityDetail(target, { id: 1 });
 
-    expect(target.textContent).toContain('✅');
-    expect(target.textContent).toContain('done');
+    expect(target.textContent).toContain('2');
+    expect(target.textContent).toContain('above goal');
   });
 
   it('does not show projection when goal is not set', async () => {

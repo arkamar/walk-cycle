@@ -125,9 +125,9 @@ export async function renderActivityDetail(target, { id }) {
     ]),
     ...(activity.goal ? [
       el('div', { class: 'stat' }, [
-        el('div', { class: 'label' }, 'Remaining'),
-        el('div', { class: 'value' }, yearCount >= activity.goal ? '✅' : String(activity.goal - yearCount)),
-        el('div', { class: 'meta' }, yearCount >= activity.goal ? 'done' : 'to go'),
+        el('div', { class: 'label' }, yearCount >= activity.goal ? 'Over' : 'Remaining'),
+        el('div', { class: 'value' }, String(Math.abs(activity.goal - yearCount))),
+        el('div', { class: 'meta' }, yearCount >= activity.goal ? 'above goal' : 'to go'),
       ]),
     ] : []),
     ...(activity.goal && projected !== null ? [
