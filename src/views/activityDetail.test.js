@@ -377,6 +377,219 @@ describe('renderActivityDetail', () => {
     expect(checkboxes[1].checked).toBe(true);
   });
 
+  it('does not update date when unchanged', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 3 },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const dateSpan = target.querySelector('span[data-edit="date"]');
+    dateSpan.click();
+
+    const dateInput = target.querySelector('input[data-edit="date-input"]');
+    dateInput.dispatchEvent(new Event('blur', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockDb.updateRecord).not.toHaveBeenCalled();
+    expect(dateSpan.style.display).not.toBe('none');
+    expect(dateInput.style.display).toBe('none');
+  });
+
+  it('shows toast when date conflicts with existing record', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity
+      .mockResolvedValueOnce([
+        { id: 10, date: '2026-05-10', count: 3 },
+        { id: 11, date: '2026-06-01', count: 1 },
+      ])
+      .mockResolvedValueOnce([
+        { id: 10, date: '2026-05-10', count: 3 },
+        { id: 11, date: '2026-06-01', count: 1 },
+      ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const dateSpans = target.querySelectorAll('span[data-edit="date"]');
+    dateSpans[0].click();
+
+    const dateInputs = target.querySelectorAll('input[data-edit="date-input"]');
+    dateInputs[0].value = '2026-06-01';
+    dateInputs[0].dispatchEvent(new Event('blur', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockToast).toHaveBeenCalledWith('Record already exists for this date');
+    expect(mockDb.updateRecord).not.toHaveBeenCalled();
+    expect(dateInputs[0].value).toBe('2026-05-10');
+  });
+
+  it('saves date on Enter key', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 3 },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const dateSpan = target.querySelector('span[data-edit="date"]');
+    dateSpan.click();
+
+    const dateInput = target.querySelector('input[data-edit="date-input"]');
+    dateInput.value = '2026-06-01';
+    dateInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { date: '2026-06-01' });
+  });
+
+  it('does not update count when unchanged', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 3 },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const countSpan = target.querySelector('span[data-edit="count"]');
+    countSpan.click();
+
+    const countInput = target.querySelector('input[data-edit="count-input"]');
+    countInput.dispatchEvent(new Event('blur'));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockDb.updateRecord).not.toHaveBeenCalled();
+    expect(countSpan.style.display).not.toBe('none');
+    expect(countInput.style.display).toBe('none');
+  });
+
+  it('saves count on Enter key', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 3 },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const countSpan = target.querySelector('span[data-edit="count"]');
+    countSpan.click();
+
+    const countInput = target.querySelector('input[data-edit="count-input"]');
+    countInput.value = '5';
+    countInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { count: 5 });
+  });
+
+  it('clears goal when input is empty', async () => {
+    mockDb.getActivity
+      .mockResolvedValueOnce({ id: 1, name: 'Hills', createdAt: 3000, goal: 52 })
+      .mockResolvedValueOnce({ id: 1, name: 'Hills', createdAt: 3000, goal: null });
+    mockDb.listRecordsByActivity.mockResolvedValue([]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const square = target.querySelector('span[data-edit="goal"]');
+    square.click();
+
+    const input = target.querySelector('input[data-edit="goal-input"]');
+    input.value = '';
+    input.dispatchEvent(new Event('blur'));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockDb.updateActivity).toHaveBeenCalledWith(1, { goal: null });
+  });
+
+  it('saves goal on Enter key', async () => {
+    mockDb.getActivity
+      .mockResolvedValueOnce({ id: 1, name: 'Hills', createdAt: 3000 })
+      .mockResolvedValueOnce({ id: 1, name: 'Hills', createdAt: 3000, goal: 42 });
+    mockDb.listRecordsByActivity.mockResolvedValue([]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const square = target.querySelector('span[data-edit="goal"]');
+    square.click();
+
+    const input = target.querySelector('input[data-edit="goal-input"]');
+    input.value = '42';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockDb.updateActivity).toHaveBeenCalledWith(1, { goal: 42 });
+  });
+
+  it('switches to day mode when Day button is clicked', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000, goal: 52 });
+    mockDb.listRecordsByActivity.mockResolvedValue([]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const chartCard = Array.from(target.querySelectorAll('.card')).find(
+      c => c.querySelector('h3')?.textContent === 'Motivation'
+    );
+    const buttons = chartCard.querySelectorAll('button');
+    const dayBtn = buttons[0];
+    const weekBtn = buttons[1];
+
+    expect(dayBtn.style.background).toBe('transparent');
+    expect(weekBtn.style.background).toBe('var(--fg)');
+
+    dayBtn.click();
+
+    expect(dayBtn.style.background).toBe('var(--fg)');
+    expect(weekBtn.style.background).toBe('transparent');
+  });
+
+  it('switches back to week mode when Week button is clicked after Day', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000, goal: 52 });
+    mockDb.listRecordsByActivity.mockResolvedValue([]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const chartCard = Array.from(target.querySelectorAll('.card')).find(
+      c => c.querySelector('h3')?.textContent === 'Motivation'
+    );
+    const buttons = chartCard.querySelectorAll('button');
+    const dayBtn = buttons[0];
+    const weekBtn = buttons[1];
+
+    dayBtn.click();
+    weekBtn.click();
+
+    expect(weekBtn.style.background).toBe('var(--fg)');
+    expect(dayBtn.style.background).toBe('transparent');
+  });
+
+  it('shows and clicks reset zoom button', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000, goal: 52 });
+    mockDb.listRecordsByActivity.mockResolvedValue([]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const chartCard = Array.from(target.querySelectorAll('.card')).find(
+      c => c.querySelector('h3')?.textContent === 'Motivation'
+    );
+    const buttons = chartCard.querySelectorAll('button');
+    const resetBtn = buttons[2];
+
+    expect(resetBtn.style.display).toBe('none');
+
+    resetBtn.click();
+    expect(resetBtn.style.display).toBe('none');
+  });
+
   it('toggles written when checkbox is clicked', async () => {
     mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
     mockDb.listRecordsByActivity
