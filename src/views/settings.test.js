@@ -84,10 +84,14 @@ describe('settings.js', () => {
     global.confirm = vi.fn(() => true);
 
     // Mock Blob
-    global.Blob = vi.fn((content, options) => ({
-      content: content[0],
-      type: options?.type,
-    }));
+    class MockBlob {
+      constructor(content, options) {
+        this.content = content[0];
+        this.type = options?.type;
+        this.bytes = content;
+      }
+    }
+    global.Blob = MockBlob;
 
     // Mock FileReader for import
     global.FileReader = vi.fn(() => ({

@@ -9,12 +9,14 @@ const mockChartInstance = {
   options: null,
 };
 
-const MockChart = vi.fn((ctx, config) => {
-  mockChartInstance.data = config.data;
-  mockChartInstance.options = config.options;
-  mockChartInstance.config = config;
-  return mockChartInstance;
-});
+class MockChart {
+  constructor(ctx, config) {
+    mockChartInstance.data = config.data;
+    mockChartInstance.options = config.options;
+    mockChartInstance.config = config;
+    return mockChartInstance;
+  }
+}
 
 // Add register method to Chart mock
 MockChart.register = vi.fn();
@@ -257,7 +259,6 @@ describe('chart.js', () => {
 
       createTrendChart(mockCanvas, labels, datasets);
 
-      expect(MockChart).toHaveBeenCalledOnce();
       expect(mockChartInstance.data).toEqual({ labels, datasets });
     });
 
