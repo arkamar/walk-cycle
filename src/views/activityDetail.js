@@ -110,7 +110,7 @@ export async function renderActivityDetail(target, { id }) {
     goalInput.focus();
   };
 
-  const statsCard = el('div', { class: 'card stat-grid', style: { gridTemplateColumns: activity.goal ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)' } }, [
+  const statsCard = el('div', { class: 'card stat-grid', style: { gridTemplateColumns: activity.goal ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)' } }, [
     el('div', { class: 'stat' }, [
       el('div', { class: 'label' }, 'Total'),
       el('div', { class: 'value' }, String(totalCount)),
@@ -123,6 +123,13 @@ export async function renderActivityDetail(target, { id }) {
         goalInput,
       ]),
     ]),
+    ...(activity.goal ? [
+      el('div', { class: 'stat' }, [
+        el('div', { class: 'label' }, 'Remaining'),
+        el('div', { class: 'value' }, yearCount >= activity.goal ? '✅' : String(activity.goal - yearCount)),
+        el('div', { class: 'meta' }, yearCount >= activity.goal ? 'done' : 'to go'),
+      ]),
+    ] : []),
     ...(activity.goal && projected !== null ? [
       el('div', { class: 'stat' }, [
         el('div', { class: 'label' }, 'Projected'),

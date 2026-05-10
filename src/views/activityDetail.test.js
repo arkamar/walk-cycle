@@ -175,7 +175,34 @@ describe('renderActivityDetail', () => {
     const { renderActivityDetail } = await import('./activityDetail.js');
     await renderActivityDetail(target, { id: 1 });
 
+    expect(target.textContent).toContain('Projected');
+    expect(target.textContent).toContain('✅ on track');
+  });
+
+  it('shows remaining count when year count is below goal', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000, goal: 52 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 12 },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    expect(target.textContent).toContain('40');
+    expect(target.textContent).toContain('to go');
+  });
+
+  it('shows done when year count meets or exceeds goal', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000, goal: 10 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 12 },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
     expect(target.textContent).toContain('✅');
+    expect(target.textContent).toContain('done');
   });
 
   it('does not show projection when goal is not set', async () => {
