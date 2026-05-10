@@ -8,7 +8,9 @@ const mockRenderStats = vi.fn();
 const mockRenderSettings = vi.fn();
 const mockRegisterSW = vi.fn();
 const mockRouterStart = vi.fn();
-const mockCreateRouter = vi.fn(() => ({ start: mockRouterStart }));
+const mockNavigate = vi.fn();
+const mockCurrent = vi.fn(() => '/');
+const mockCreateRouter = vi.fn(() => ({ start: mockRouterStart, current: mockCurrent, navigate: mockNavigate }));
 
 // Mock virtual:pwa-register
 vi.mock('virtual:pwa-register', () => {
@@ -230,6 +232,113 @@ describe('main.js', () => {
     await options.notFound(mockTarget, { path: '/activities/42' });
 
     expect(mockRenderActivityDetail).toHaveBeenCalledWith(mockTarget, { id: 42 });
+  });
+
+  describe('swipe navigation', () => {
+    function fire(name, props) {
+      const ev = new Event(name, { bubbles: true, cancelable: true });
+      Object.assign(ev, props);
+      document.body.dispatchEvent(ev);
+    }
+
+    beforeEach(() => {
+      mockNavigate.mockClear();
+      mockCurrent.mockReturnValue('/');
+    });
+
+    it('swipes left from /sessions to /activities', async () => {
+      await import('./main.js');
+      mockCurrent.mockReturnValue('/sessions');
+      fire('touchstart', { touches: [{ clientX: 200, clientY: 100 }] });
+      fire('touchend', { changedTouches: [{ clientX: 80, clientY: 100 }] });
+      expect(mockNavigate).toHaveBeenCalledWith('/activities');
+    });
+
+    it('swipes right from /sessions to /', async () => {
+      await import('./main.js');
+      mockCurrent.mockReturnValue('/sessions');
+      fire('touchstart', { touches: [{ clientX: 80, clientY: 100 }] });
+      fire('touchend', { changedTouches: [{ clientX: 200, clientY: 100 }] });
+      expect(mockNavigate).toHaveBeenCalledWith('/');
+    });
+
+    it('swipes left from /activities to /stats', async () => {
+      await import('./main.js');
+      mockCurrent.mockReturnValue('/activities');
+      fire('touchstart', { touches: [{ clientX: 200, clientY: 100 }] });
+      fire('touchend', { changedTouches: [{ clientX: 80, clientY: 100 }] });
+      expect(mockNavigate).toHaveBeenCalledWith('/stats');
+    });
+
+    it('swipes left from /stats to /settings', async () => {
+      await import('./main.js');
+      mockCurrent.mockReturnValue('/stats');
+      fire('touchstart', { touches: [{ clientX: 200, clientY: 100 }] });
+      fire('touchend', { changedTouches: [{ clientX: 80, clientY: 100 }] });
+      expect(mockNavigate).toHaveBeenCalledWith('/settings');
+    });
+
+    it('does not swipe past the last tab', async () => {
+      await import('./main.js');
+      mockCurrent.mockReturnValue('/settings');
+      fire('touchstart', { touches: [{ clientX: 200, clientY: 100 }] });
+      fire('touchend', { changedTouches: [{ clientX: 80, clientY: 100 }] });
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('does not swipe past the first tab', async () => {
+      await import('./main.js');
+      mockCurrent.mockReturnValue('/');
+      fire('touchstart', { touches: [{ clientX: 80, clientY: 100 }] });
+      fire('touchend', { changedTouches: [{ clientX: 200, clientY: 100 }] });
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('does not swipe with insufficient distance', async () => {
+      await import('./main.js');
+      fire('touchstart', { touches: [{ clientX: 200, clientY: 100 }] });
+      fire('touchend', { changedTouches: [{ clientX: 180, clientY: 100 }] });
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('does not swipe with vertical movement', async () => {
+      await import('./main.js');
+      fire('touchstart', { touches: [{ clientX: 200, clientY: 100 }] });
+      fire('touchend', { changedTouches: [{ clientX: 100, clientY: 200 }] });
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('does not swipe with two fingers', async () => {
+      await import('./main.js');
+      const ev = new Event('touchstart', { bubbles: true, cancelable: true });
+      ev.touches = [{}, {}];
+      document.body.dispatchEvent(ev);
+      const ev2 = new Event('touchend', { bubbles: true, cancelable: true });
+      ev2.changedTouches = [{ clientX: 80, clientY: 100 }];
+      document.body.dispatchEvent(ev2);
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('does not swipe when touch starts on canvas', async () => {
+      await import('./main.js');
+      const canvas = document.createElement('canvas');
+      document.body.appendChild(canvas);
+      const ev = new Event('touchstart', { bubbles: true, cancelable: true });
+      ev.touches = [{ clientX: 200, clientY: 100 }];
+      canvas.dispatchEvent(ev);
+      const ev2 = new Event('touchend', { bubbles: true, cancelable: true });
+      ev2.changedTouches = [{ clientX: 80, clientY: 100 }];
+      document.body.dispatchEvent(ev2);
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('swipes from activity detail route', async () => {
+      await import('./main.js');
+      mockCurrent.mockReturnValue('/activities/123');
+      fire('touchstart', { touches: [{ clientX: 200, clientY: 100 }] });
+      fire('touchend', { changedTouches: [{ clientX: 80, clientY: 100 }] });
+      expect(mockNavigate).toHaveBeenCalledWith('/stats');
+    });
   });
 
   it('should handle /sessions/:id route in notFound', async () => {

@@ -63,6 +63,45 @@ document.addEventListener('route:changed', (e) => {
   }
 });
 
+// Swipe left/right to switch tabs on mobile.
+let swipeStartX = 0;
+let swipeStartY = 0;
+
+document.addEventListener('touchstart', (e) => {
+  if (e.touches.length !== 1) { swipeStartX = 0; return; }
+  if (e.target.closest('canvas, input, textarea, select, .tab-bar')) { swipeStartX = 0; return; }
+  swipeStartX = e.touches[0].clientX;
+  swipeStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+  if (!swipeStartX) return;
+  const deltaX = e.changedTouches[0].clientX - swipeStartX;
+  const deltaY = e.changedTouches[0].clientY - swipeStartY;
+  swipeStartX = 0;
+
+  if (Math.abs(deltaX) < 50) return;
+  if (Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
+
+  const tabs = TABS.map(t => t.path);
+  let base = router.current();
+  if (base.startsWith('/sessions')) base = '/sessions';
+  else if (base.startsWith('/activities')) base = '/activities';
+
+  let idx = tabs.indexOf(base);
+  if (idx === -1) return;
+
+  if (deltaX < 0) {
+    if (idx >= tabs.length - 1) return;
+    idx++;
+  } else {
+    if (idx <= 0) return;
+    idx--;
+  }
+
+  router.navigate(tabs[idx]);
+}, { passive: true });
+
 const router = createRouter(
   {
     '/': renderTracker,
