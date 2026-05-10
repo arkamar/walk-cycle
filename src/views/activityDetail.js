@@ -506,7 +506,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
         ctx.stroke();
       }
       ctx.setLineDash([]);
-    } else if (mode === 'day' && visibleUnits < 60) {
+    } else {
       const dayStep = visibleUnits < 14 ? 1 : 7;
       ctx.strokeStyle = border;
       ctx.lineWidth = dayStep === 1 ? 0.5 : 1;
