@@ -353,24 +353,29 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
   if (mode === 'week') {
     totalUnits = 52;
     todayIndex = Math.min(Math.floor(todayDayIndex / 7), totalUnits - 1);
-    const recordWeeks = new Set(
-      yearRecords.map(r => Math.floor((new Date(r.date + 'T00:00:00') - startOfYear) / 86400000 / 7))
-    );
+    const weekCounts = new Map();
+    for (const r of yearRecords) {
+      const w = Math.floor((new Date(r.date + 'T00:00:00') - startOfYear) / 86400000 / 7);
+      weekCounts.set(w, (weekCounts.get(w) || 0) + r.count);
+    }
     let runningRecords = 0;
     data = [];
     for (let w = 0; w < totalUnits; w++) {
-      if (recordWeeks.has(w)) runningRecords++;
+      runningRecords += weekCounts.get(w) || 0;
       data.push({ index: w, records: runningRecords, maxPossible: runningRecords + (totalUnits - w - 1) });
     }
   } else {
     totalUnits = daysInYear;
     todayIndex = todayDayIndex;
-    const recordDates = new Set(yearRecords.map(r => r.date));
+    const dayCounts = new Map();
+    for (const r of yearRecords) {
+      dayCounts.set(r.date, (dayCounts.get(r.date) || 0) + r.count);
+    }
     let runningRecords = 0;
     data = [];
     for (let day = 0; day < totalUnits; day++) {
       const dateStr = new Date(currentYear, 0, day + 1).toISOString().slice(0, 10);
-      if (recordDates.has(dateStr)) runningRecords++;
+      runningRecords += dayCounts.get(dateStr) || 0;
       data.push({ index: day, records: runningRecords, maxPossible: runningRecords + (totalUnits - day - 1) });
     }
   }
