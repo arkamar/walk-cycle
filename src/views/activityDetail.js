@@ -102,7 +102,7 @@ export async function renderActivityDetail(target, { id }) {
     goalInput.focus();
   };
 
-  const statsCard = el('div', { class: 'card stat-grid' }, [
+  const statsCard = el('div', { class: 'card stat-grid', style: { gridTemplateColumns: 'repeat(3, 1fr)' } }, [
     el('div', { class: 'stat' }, [
       el('div', { class: 'label' }, 'Total'),
       el('div', { class: 'value' }, String(totalCount)),
