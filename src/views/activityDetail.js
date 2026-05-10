@@ -54,14 +54,6 @@ export async function renderActivityDetail(target, { id }) {
   const yearRecords = records.filter(r => r.date.startsWith(String(currentYear)));
   const yearCount = yearRecords.reduce((s, r) => s + r.count, 0);
 
-  let projected = null;
-  if (activity.goal) {
-    const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
-    const startOfYear = new Date(currentYear, 0, 1).getTime();
-    const elapsedDays = Math.max(1, Math.floor((Date.now() - startOfYear) / 86400000));
-    projected = Math.round((yearCount / elapsedDays) * daysInYear);
-  }
-
   const goalSquare = el('span', {
     dataset: { edit: 'goal' },
     style: {
@@ -110,7 +102,7 @@ export async function renderActivityDetail(target, { id }) {
     goalInput.focus();
   };
 
-  const statsCard = el('div', { class: 'card stat-grid', style: { gridTemplateColumns: activity.goal ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)' } }, [
+  const statsCard = el('div', { class: 'card stat-grid', style: { gridTemplateColumns: activity.goal ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)' } }, [
     el('div', { class: 'stat' }, [
       el('div', { class: 'label' }, 'Total'),
       el('div', { class: 'value' }, String(totalCount)),
@@ -128,13 +120,6 @@ export async function renderActivityDetail(target, { id }) {
         el('div', { class: 'label' }, yearCount >= activity.goal ? 'Over' : 'Remaining'),
         el('div', { class: 'value', style: { color: yearCount >= activity.goal ? 'var(--success)' : 'var(--danger)' } }, String(Math.abs(activity.goal - yearCount))),
         el('div', { class: 'meta' }, yearCount >= activity.goal ? 'above goal' : 'to go'),
-      ]),
-    ] : []),
-    ...(activity.goal && projected !== null ? [
-      el('div', { class: 'stat' }, [
-        el('div', { class: 'label' }, 'Projected'),
-        el('div', { class: 'value' }, String(projected)),
-        el('div', { class: 'meta' }, projected >= activity.goal ? '✅ on track' : '📉 behind'),
       ]),
     ] : []),
   ]);
@@ -161,6 +146,7 @@ export async function renderActivityDetail(target, { id }) {
           activityId: id,
           date: dateInput.value,
           count: Number(countInput.value),
+          note: formNoteInput.value.trim(),
         });
         toast('Record added');
         target.innerHTML = '';
@@ -171,11 +157,18 @@ export async function renderActivityDetail(target, { id }) {
     },
   }, 'Add');
 
+  const formNoteInput = el('input', {
+    type: 'text',
+    placeholder: 'Note (optional)',
+    style: { flex: 1 },
+  });
+
   const formCard = el('div', { class: 'card' }, [
     el('h3', {}, 'Add record'),
     el('div', { class: 'row', style: { gap: '0.5rem', marginTop: '0.5rem' } }, [
       dateInput,
       countInput,
+      formNoteInput,
       addBtn,
     ]),
   ]);
@@ -193,7 +186,7 @@ export async function renderActivityDetail(target, { id }) {
     recordsCard.appendChild(list);
 
     for (const r of records) {
-      const dateSpan = el('span', { dataset: { edit: 'date' }, style: { cursor: 'pointer' } }, r.date);
+      const dateSpan = el('span', { dataset: { edit: 'date' }, style: { cursor: 'pointer' } }, new Date(r.date + 'T00:00:00').toLocaleDateString());
       const dateInput = el('input', {
         type: 'date',
         value: r.date,
@@ -219,7 +212,7 @@ export async function renderActivityDetail(target, { id }) {
         }
         await updateRecord(r.id, { date: newDate });
         r.date = newDate;
-        dateSpan.textContent = newDate;
+        dateSpan.textContent = new Date(newDate + 'T00:00:00').toLocaleDateString();
         dateSpan.style.display = '';
         dateInput.style.display = 'none';
         toast('Date updated');
@@ -271,30 +264,58 @@ export async function renderActivityDetail(target, { id }) {
         },
       });
 
+      const noteSpan = el('span', {
+        dataset: { edit: 'note' },
+        style: { flex: 1, alignSelf: 'stretch', color: 'var(--muted)', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center' },
+      }, r.note);
+      const noteInput = el('input', {
+        type: 'text',
+        value: r.note,
+        dataset: { edit: 'note-input' },
+        style: { flex: 1, display: 'none', fontSize: '0.85rem' },
+        onBlur: async () => { await saveNote(); },
+        onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); noteInput.blur(); } },
+      });
+      async function saveNote() {
+        const val = noteInput.value.trim();
+        if (val !== (r.note || '')) {
+          await updateRecord(r.id, { note: val });
+          r.note = val;
+          toast('Note updated');
+        }
+        noteSpan.textContent = val;
+        noteSpan.style.display = '';
+        noteInput.style.display = 'none';
+      }
+      noteSpan.onclick = () => {
+        noteSpan.style.display = 'none';
+        noteInput.style.display = '';
+        noteInput.focus();
+      };
+
       const children = [
-        el('div', { style: { flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
-          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.5rem' } }, [
-            writtenChk,
-            el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [dateSpan, dateInput]),
-          ]),
-          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.75rem' } }, [
-            el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [countSpan, countInput]),
-            el('span', { style: { color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' } }, String(cumulativeById.get(r.id))),
-          ]),
+        el('span', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem' } }, [
+          writtenChk,
+          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [dateSpan, dateInput]),
+          noteSpan,
+          noteInput,
+        ]),
+        el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.75rem' } }, [
+          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [countSpan, countInput]),
+          el('span', { style: { color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' } }, String(cumulativeById.get(r.id))),
+          el('button', {
+            class: 'btn btn-ghost',
+            style: { color: 'var(--danger)', padding: '0.5rem' },
+            onClick: async () => {
+              if (!confirm('Delete this record?')) return;
+              await deleteRecord(r.id);
+              toast('Record deleted');
+              target.innerHTML = '';
+              renderActivityDetail(target, { id });
+            },
+          }, '🗑'),
         ]),
       ];
-
-      children.push(el('button', {
-        class: 'btn btn-ghost',
-        style: { color: 'var(--danger)', padding: '0.5rem' },
-        onClick: async () => {
-          if (!confirm('Delete this record?')) return;
-          await deleteRecord(r.id);
-          toast('Record deleted');
-          target.innerHTML = '';
-          renderActivityDetail(target, { id });
-        },
-      }, '🗑'));
 
       list.appendChild(el('div', { class: 'list-item' }, children));
     }

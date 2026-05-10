@@ -29,7 +29,7 @@ describe('renderActivityDetail', () => {
 
   beforeEach(() => {
     target = makeTarget();
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockToast.mockClear();
   });
 
@@ -76,7 +76,7 @@ describe('renderActivityDetail', () => {
     expect(mockDb.updateActivity).toHaveBeenCalledWith(1, { name: 'Mountains' });
   });
 
-  it('renders add form with date and count inputs', async () => {
+  it('renders add form with date, count and note inputs', async () => {
     mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
     mockDb.listRecordsByActivity.mockResolvedValue([]);
 
@@ -87,6 +87,8 @@ describe('renderActivityDetail', () => {
     expect(dateInput).toBeTruthy();
     const countInput = target.querySelector('input[data-form="count"]');
     expect(countInput).toBeTruthy();
+    const noteInput = target.querySelector('input[placeholder="Note (optional)"]');
+    expect(noteInput).toBeTruthy();
     const addBtn = target.querySelector('.btn-primary');
     expect(addBtn.textContent).toContain('Add');
   });
@@ -108,7 +110,7 @@ describe('renderActivityDetail', () => {
     const addBtn = target.querySelector('.btn-primary');
     await addBtn.click();
 
-    expect(mockDb.addRecord).toHaveBeenCalledWith({ activityId: 1, date: '2026-05-10', count: 3 });
+    expect(mockDb.addRecord).toHaveBeenCalledWith({ activityId: 1, date: '2026-05-10', count: 3, note: '' });
   });
 
   it('shows toast error when addRecord rejects', async () => {
@@ -142,9 +144,9 @@ describe('renderActivityDetail', () => {
 
     const items = target.querySelectorAll('.list-item');
     expect(items.length).toBe(2);
-    expect(items[0].textContent).toContain('2026-05-10');
+    expect(items[0].textContent).toContain('2026');
     expect(items[0].textContent).toContain('3');
-    expect(items[1].textContent).toContain('2026-05-01');
+    expect(items[1].textContent).toContain('2026');
     expect(items[1].textContent).toContain('1');
   });
 
@@ -162,21 +164,6 @@ describe('renderActivityDetail', () => {
     expect(target.textContent).toContain('4');
     expect(target.textContent).toContain('2026');
     expect(target.textContent).toContain('—');
-  });
-
-  it('shows projection when goal is set', async () => {
-    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000, goal: 52 });
-    // Enough 2026 records so projection exceeds 52 regardless of test date
-    const records = Array.from({ length: 60 }, (_, i) => ({
-      id: 10 + i, date: `2026-01-${String((i % 28) + 1).padStart(2, '0')}`, count: 1,
-    }));
-    mockDb.listRecordsByActivity.mockResolvedValue(records);
-
-    const { renderActivityDetail } = await import('./activityDetail.js');
-    await renderActivityDetail(target, { id: 1 });
-
-    expect(target.textContent).toContain('Projected');
-    expect(target.textContent).toContain('✅ on track');
   });
 
   it('shows motivation chart with day/week toggle when goal is set', async () => {
@@ -220,19 +207,6 @@ describe('renderActivityDetail', () => {
 
     expect(target.textContent).toContain('2');
     expect(target.textContent).toContain('above goal');
-  });
-
-  it('does not show projection when goal is not set', async () => {
-    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
-    mockDb.listRecordsByActivity.mockResolvedValue([
-      { id: 10, date: '2026-05-10', count: 3 },
-    ]);
-
-    const { renderActivityDetail } = await import('./activityDetail.js');
-    await renderActivityDetail(target, { id: 1 });
-
-    expect(target.textContent).not.toContain('✅');
-    expect(target.textContent).not.toContain('📉');
   });
 
   it('shows empty state when no records exist', async () => {
@@ -346,7 +320,7 @@ describe('renderActivityDetail', () => {
 
     const dateSpan = target.querySelector('span[data-edit="date"]');
     expect(dateSpan).toBeTruthy();
-    expect(dateSpan.textContent).toBe('2026-05-10');
+    expect(dateSpan.textContent).toBe(new Date('2026-05-10T00:00:00').toLocaleDateString());
     dateSpan.click();
 
     const dateInput = target.querySelector('input[data-edit="date-input"]');
@@ -612,5 +586,73 @@ describe('renderActivityDetail', () => {
     await new Promise(r => setTimeout(r, 0));
 
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { written: true });
+  });
+
+  it('shows note text when present, empty when not, and supports inline edit', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity
+      .mockResolvedValueOnce([
+        { id: 10, date: '2026-05-10', count: 3, note: 'Park entrance' },
+        { id: 11, date: '2026-05-09', count: 1, note: '' },
+      ])
+      .mockResolvedValueOnce([
+        { id: 10, date: '2026-05-10', count: 3, note: 'Park entrance' },
+        { id: 11, date: '2026-05-09', count: 1, note: '' },
+      ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    expect(target.textContent).toContain('Park entrance');
+
+    const noteSpans = target.querySelectorAll('span[data-edit="note"]');
+    expect(noteSpans.length).toBe(2);
+    expect(noteSpans[0].textContent).toBe('Park entrance');
+    expect(noteSpans[1].textContent).toBe('');
+
+    noteSpans[0].click();
+    const noteInputs = target.querySelectorAll('input[data-edit="note-input"]');
+    expect(noteInputs[0].style.display).not.toBe('none');
+    expect(noteInputs[0].value).toBe('Park entrance');
+
+    noteInputs[0].value = 'River trail';
+    noteInputs[0].dispatchEvent(new Event('blur'));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { note: 'River trail' });
+  });
+
+  it('opens note input when clicking empty note placeholder', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 3, note: '' },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const noteSpan = target.querySelector('span[data-edit="note"]');
+    expect(noteSpan.textContent).toBe('');
+
+    noteSpan.click();
+    const noteInput = target.querySelector('input[data-edit="note-input"]');
+    expect(noteInput.style.display).not.toBe('none');
+
+    noteInput.value = 'Lake view';
+    noteInput.dispatchEvent(new Event('blur'));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { note: 'Lake view' });
+  });
+
+  it('has note input in add form', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity.mockResolvedValue([]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const noteInput = target.querySelector('input[placeholder="Note (optional)"]');
+    expect(noteInput).toBeTruthy();
   });
 });

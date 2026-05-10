@@ -497,6 +497,12 @@ h3 { font-size: 1rem; }
   gap: 0.5rem;
 }
 
+@media (max-width: 480px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
 .stat {
   background: var(--card);
   border: 1px solid var(--border);
