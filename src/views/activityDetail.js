@@ -52,36 +52,72 @@ export async function renderActivityDetail(target, { id }) {
     projected = Math.round((yearCount / elapsedDays) * daysInYear);
   }
 
-  const statsCard = el('div', { class: 'card', style: { display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' } }, [
-    el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
-      el('span', { class: 'muted' }, 'Total:'),
-      el('strong', {}, String(totalCount)),
+  const goalSquare = el('span', {
+    dataset: { edit: 'goal' },
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: '2rem',
+      height: '2rem',
+      border: `2px ${activity.goal ? 'solid' : 'dashed'} var(--border)`,
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '0.9rem',
+      fontWeight: 600,
+      padding: '0 0.25rem',
+    },
+  }, activity.goal ?? '—');
+
+  const goalInput = el('input', {
+    type: 'number',
+    min: 1,
+    value: activity.goal ?? '',
+    placeholder: '—',
+    dataset: { edit: 'goal-input' },
+    style: { width: '3rem', display: 'none' },
+    onBlur: async () => { await saveGoal(); },
+    onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); goalInput.blur(); } },
+  });
+
+  async function saveGoal() {
+    const val = goalInput.value ? Number(goalInput.value) : null;
+    const cleanVal = val && val > 0 ? val : null;
+    if (cleanVal !== activity.goal) {
+      await updateActivity(activity.id, { goal: cleanVal });
+      activity.goal = cleanVal;
+      target.innerHTML = '';
+      renderActivityDetail(target, { id });
+    } else {
+      goalSquare.style.display = '';
+      goalInput.style.display = 'none';
+    }
+  }
+
+  goalSquare.onclick = () => {
+    goalSquare.style.display = 'none';
+    goalInput.style.display = '';
+    goalInput.focus();
+  };
+
+  const statsCard = el('div', { class: 'card stat-grid', style: { gridTemplateColumns: activity.goal ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)' } }, [
+    el('div', { class: 'stat' }, [
+      el('div', { class: 'label' }, 'Total'),
+      el('div', { class: 'value' }, String(totalCount)),
     ]),
-    el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
-      el('span', { class: 'muted' }, `${currentYear}:`),
-      el('strong', {}, String(yearCount)),
-    ]),
-    el('label', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
-      el('span', { class: 'muted' }, 'Goal:'),
-      el('input', {
-        type: 'number',
-        min: 0,
-        value: activity.goal ?? '',
-        placeholder: '—',
-        style: { width: '3.5rem' },
-        onChange: async (e) => {
-          const val = e.target.value ? Number(e.target.value) : null;
-          await updateActivity(activity.id, { goal: val });
-          target.innerHTML = '';
-          renderActivityDetail(target, { id });
-        },
-      }),
+    el('div', { class: 'stat' }, [
+      el('div', { class: 'label' }, `${currentYear}`),
+      el('div', { class: 'value', style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
+        el('span', {}, String(yearCount)),
+        goalSquare,
+        goalInput,
+      ]),
     ]),
     ...(activity.goal && projected !== null ? [
-      el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
-        el('span', { class: 'muted' }, '→'),
-        el('strong', {}, String(projected)),
-        el('span', {}, projected >= activity.goal ? '✅' : '📉'),
+      el('div', { class: 'stat' }, [
+        el('div', { class: 'label' }, 'Projected'),
+        el('div', { class: 'value' }, String(projected)),
+        el('div', { class: 'meta' }, projected >= activity.goal ? '✅ on track' : '📉 behind'),
       ]),
     ] : []),
   ]);

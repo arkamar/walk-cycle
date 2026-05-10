@@ -148,7 +148,7 @@ describe('renderActivityDetail', () => {
     expect(items[1].textContent).toContain('1');
   });
 
-  it('shows stats with total, year count and goal input', async () => {
+  it('shows stats with total, year count and goal square', async () => {
     mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
     mockDb.listRecordsByActivity.mockResolvedValue([
       { id: 10, date: '2026-05-10', count: 3 },
@@ -158,9 +158,10 @@ describe('renderActivityDetail', () => {
     const { renderActivityDetail } = await import('./activityDetail.js');
     await renderActivityDetail(target, { id: 1 });
 
-    expect(target.textContent).toContain('Total:');
+    expect(target.textContent).toContain('Total');
     expect(target.textContent).toContain('4');
-    expect(target.textContent).toContain('2026:');
+    expect(target.textContent).toContain('2026');
+    expect(target.textContent).toContain('—');
   });
 
   it('shows projection when goal is set', async () => {
@@ -258,6 +259,34 @@ describe('renderActivityDetail', () => {
     editInput.dispatchEvent(new Event('blur'));
 
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { count: 5 });
+  });
+
+  it('edits goal inline when clicking the goal square', async () => {
+    mockDb.getActivity
+      .mockResolvedValueOnce({ id: 1, name: 'Hills', createdAt: 3000 })
+      .mockResolvedValueOnce({ id: 1, name: 'Hills', createdAt: 3000, goal: 42 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 3 },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const square = target.querySelector('span[data-edit="goal"]');
+    expect(square).toBeTruthy();
+    expect(square.textContent).toBe('—');
+    square.click();
+
+    const input = target.querySelector('input[data-edit="goal-input"]');
+    expect(input).toBeTruthy();
+    expect(input.value).toBe('');
+
+    input.value = '42';
+    input.dispatchEvent(new Event('blur'));
+
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockDb.updateActivity).toHaveBeenCalledWith(1, { goal: 42 });
   });
 
   it('edits date inline when clicking the date text', async () => {
