@@ -258,6 +258,8 @@ describe('renderActivityDetail', () => {
     editInput.value = '5';
     editInput.dispatchEvent(new Event('blur'));
 
+    await new Promise(r => setTimeout(r, 0));
+
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { count: 5 });
   });
 

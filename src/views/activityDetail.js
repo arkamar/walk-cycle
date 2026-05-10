@@ -237,8 +237,10 @@ export async function renderActivityDetail(target, { id }) {
         const val = Number(countInput.value);
         if (val !== r.count) {
           await updateRecord(r.id, { count: val });
-          r.count = val;
           toast('Count updated');
+          target.innerHTML = '';
+          renderActivityDetail(target, { id });
+          return;
         }
         countSpan.style.display = '';
         countInput.style.display = 'none';
