@@ -305,10 +305,8 @@ export async function renderActivityDetail(target, { id }) {
       onClick: () => switchMode('week'),
     }, 'Week');
 
-    chartCard.appendChild(el('div', { style: { display: 'flex', gap: 0, marginTop: '0.5rem' } }, [dayBtn, weekBtn]));
-
     const resetBtn = el('button', {
-      style: { display: 'none', marginTop: '0.25rem', padding: '0.15rem 0.4rem', fontSize: '0.7rem', cursor: 'pointer', border: '1px solid var(--border)', borderRadius: '3px', background: 'transparent', color: 'var(--fg)' },
+      style: { display: 'none', padding: '0.15rem 0.4rem', fontSize: '0.7rem', cursor: 'pointer', border: '1px solid var(--border)', borderRadius: '3px', background: 'transparent', color: 'var(--fg)' },
       onClick: () => {
         resetBtn.style.display = 'none';
         canvasWrap.innerHTML = '';
@@ -316,7 +314,10 @@ export async function renderActivityDetail(target, { id }) {
       },
     }, '← Reset zoom');
 
-    chartCard.appendChild(resetBtn);
+    chartCard.appendChild(el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' } }, [
+      el('div', { style: { display: 'flex', gap: 0 } }, [dayBtn, weekBtn]),
+      resetBtn,
+    ]));
 
     const canvasWrap = el('div', { style: { marginTop: '0.5rem' } });
     chartCard.appendChild(canvasWrap);
