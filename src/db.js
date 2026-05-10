@@ -1,10 +1,12 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'walk-cycle';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export const STORE_SESSIONS = 'sessions';
 export const STORE_EVENTS = 'events';
+export const STORE_ACTIVITIES = 'activities';
+export const STORE_RECORDS = 'records';
 
 const CURRENT_SESSION_KEY = 'walk-cycle-current-session-id';
 
@@ -76,6 +78,20 @@ export function getDB() {
             await cursor.update(s);
             cursor = await cursor.continue();
           }
+        }
+        if (oldVersion < 4) {
+          const activities = db.createObjectStore(STORE_ACTIVITIES, {
+            keyPath: 'id',
+            autoIncrement: true,
+          });
+          activities.createIndex('createdAt', 'createdAt');
+
+          const records = db.createObjectStore(STORE_RECORDS, {
+            keyPath: 'id',
+            autoIncrement: true,
+          });
+          records.createIndex('activityId', 'activityId');
+          records.createIndex('date', 'date');
         }
       },
     });
@@ -230,6 +246,74 @@ export async function deleteSession(id) {
   await tx.done;
 }
 
+// ---------- Activities ----------
+
+export async function createActivity(name, createdAt = Date.now()) {
+  const db = await getDB();
+  return db.add(STORE_ACTIVITIES, { name, createdAt });
+}
+
+export async function listActivities() {
+  const db = await getDB();
+  const all = await db.getAllFromIndex(STORE_ACTIVITIES, 'createdAt');
+  return all.reverse();
+}
+
+export async function getActivity(id) {
+  const db = await getDB();
+  return db.get(STORE_ACTIVITIES, id);
+}
+
+export async function updateActivity(id, patch) {
+  const db = await getDB();
+  const activity = await db.get(STORE_ACTIVITIES, id);
+  if (!activity) return null;
+  Object.assign(activity, patch);
+  await db.put(STORE_ACTIVITIES, activity);
+  return activity;
+}
+
+export async function deleteActivity(id) {
+  const db = await getDB();
+  const tx = db.transaction([STORE_ACTIVITIES, STORE_RECORDS], 'readwrite');
+  await tx.objectStore(STORE_ACTIVITIES).delete(id);
+  const idx = tx.objectStore(STORE_RECORDS).index('activityId');
+  let cursor = await idx.openCursor(IDBKeyRange.only(id));
+  while (cursor) {
+    await cursor.delete();
+    cursor = await cursor.continue();
+  }
+  await tx.done;
+}
+
+// ---------- Records ----------
+
+export async function addRecord({ activityId, date, count = 1 }) {
+  const db = await getDB();
+  const existing = await listRecordsByActivity(activityId);
+  if (existing.find(r => r.date === date)) {
+    throw new Error(`Record already exists for ${date}`);
+  }
+  const id = await db.add(STORE_RECORDS, { activityId, date, count });
+  return { id, activityId, date, count };
+}
+
+export async function listRecordsByActivity(activityId) {
+  const db = await getDB();
+  const records = await db.getAllFromIndex(STORE_RECORDS, 'activityId', activityId);
+  records.sort((a, b) => {
+    if (a.date > b.date) return -1;
+    if (a.date < b.date) return 1;
+    return 0;
+  });
+  return records;
+}
+
+export async function deleteRecord(id) {
+  const db = await getDB();
+  await db.delete(STORE_RECORDS, id);
+}
+
 // ---------- Events ----------
 
 export async function addEvent({ sessionId, type, ts = Date.now() }) {
@@ -295,8 +379,10 @@ export async function importAll(data, { merge = false } = {}) {
 export async function clearAll() {
   const db = await getDB();
   setCurrentSessionId(null);
-  const tx = db.transaction([STORE_SESSIONS, STORE_EVENTS], 'readwrite');
+  const tx = db.transaction([STORE_SESSIONS, STORE_EVENTS, STORE_ACTIVITIES, STORE_RECORDS], 'readwrite');
   await tx.objectStore(STORE_SESSIONS).clear();
   await tx.objectStore(STORE_EVENTS).clear();
+  await tx.objectStore(STORE_ACTIVITIES).clear();
+  await tx.objectStore(STORE_RECORDS).clear();
   await tx.done;
 }

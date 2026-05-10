@@ -24,10 +24,13 @@ const renderSessions = lazy(() => import('./views/sessions.js'), 'renderSessions
 const renderSessionDetail = lazy(() => import('./views/sessionDetail.js'), 'renderSessionDetail');
 const renderStats = lazy(() => import('./views/stats.js'), 'renderStats');
 const renderSettings = lazy(() => import('./views/settings.js'), 'renderSettings');
+const renderActivities = lazy(() => import('./views/activities.js'), 'renderActivities');
+const renderActivityDetail = lazy(() => import('./views/activityDetail.js'), 'renderActivityDetail');
 
 const TABS = [
   { path: '/', label: 'Track', icon: '⏱' },
   { path: '/sessions', label: 'Sessions', icon: '📋' },
+  { path: '/activities', label: 'Activities', icon: '⚡' },
   { path: '/stats', label: 'Stats', icon: '📈' },
   { path: '/settings', label: 'Settings', icon: '⚙️' },
 ];
@@ -51,7 +54,9 @@ for (const t of TABS) {
 document.addEventListener('route:changed', (e) => {
   const path = e.detail.path;
   // Detail routes still highlight their parent tab.
-  const tabPath = path.startsWith('/sessions') ? '/sessions' : path;
+  const tabPath = path.startsWith('/sessions') ? '/sessions'
+    : path.startsWith('/activities') ? '/activities'
+    : path;
   for (const a of tabBar.querySelectorAll('.tab')) {
     if (a.dataset.path === tabPath) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
@@ -62,12 +67,16 @@ const router = createRouter(
   {
     '/': renderTracker,
     '/sessions': renderSessions,
+    '/activities': renderActivities,
     '/stats': renderStats,
     '/settings': renderSettings,
   },
   {
     mount: '#view',
     notFound: (target, ctx) => {
+      // Detail routes like /activities/:id
+      const mActivity = ctx.path.match(/^\/activities\/(\d+)$/);
+      if (mActivity) return renderActivityDetail(target, { id: Number(mActivity[1]) });
       // Detail routes like /sessions/:id (also accept legacy /history/:id)
       const m = ctx.path.match(/^\/(?:sessions|history)\/(\d+)$/);
       if (m) return renderSessionDetail(target, { id: Number(m[1]) });

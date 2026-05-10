@@ -20,6 +20,9 @@ vi.mock('./router.js', () => {
   return { createRouter: mockCreateRouter };
 });
 
+const mockRenderActivities = vi.fn();
+const mockRenderActivityDetail = vi.fn();
+
 // Mock view modules - need to return the mock render functions
 // The lazy() function calls import() and uses mod[name]
 vi.mock('./views/tracker.js', () => {
@@ -40,6 +43,14 @@ vi.mock('./views/stats.js', () => {
 
 vi.mock('./views/settings.js', () => {
   return { renderSettings: mockRenderSettings };
+});
+
+vi.mock('./views/activities.js', () => {
+  return { renderActivities: mockRenderActivities };
+});
+
+vi.mock('./views/activityDetail.js', () => {
+  return { renderActivityDetail: mockRenderActivityDetail };
 });
 
 describe('main.js', () => {
@@ -70,7 +81,7 @@ describe('main.js', () => {
     expect(tabBar).toBeTruthy();
 
     const tabs = tabBar.querySelectorAll('.tab');
-    expect(tabs.length).toBe(4);
+    expect(tabs.length).toBe(5);
 
     // Check Track tab
     expect(tabs[0].dataset.path).toBe('/');
@@ -83,15 +94,20 @@ describe('main.js', () => {
     expect(tabs[1].innerHTML).toContain('Sessions');
     expect(tabs[1].innerHTML).toContain('📋');
 
+    // Check Activities tab
+    expect(tabs[2].dataset.path).toBe('/activities');
+    expect(tabs[2].innerHTML).toContain('Activities');
+    expect(tabs[2].innerHTML).toContain('⚡');
+
     // Check Stats tab
-    expect(tabs[2].dataset.path).toBe('/stats');
-    expect(tabs[2].innerHTML).toContain('Stats');
-    expect(tabs[2].innerHTML).toContain('📈');
+    expect(tabs[3].dataset.path).toBe('/stats');
+    expect(tabs[3].innerHTML).toContain('Stats');
+    expect(tabs[3].innerHTML).toContain('📈');
 
     // Check Settings tab
-    expect(tabs[3].dataset.path).toBe('/settings');
-    expect(tabs[3].innerHTML).toContain('Settings');
-    expect(tabs[3].innerHTML).toContain('⚙️');
+    expect(tabs[4].dataset.path).toBe('/settings');
+    expect(tabs[4].innerHTML).toContain('Settings');
+    expect(tabs[4].innerHTML).toContain('⚙️');
   });
 
   it('should create router with correct routes', async () => {
@@ -104,6 +120,7 @@ describe('main.js', () => {
     // Check routes object
     expect(typeof routes['/']).toBe('function');
     expect(typeof routes['/sessions']).toBe('function');
+    expect(typeof routes['/activities']).toBe('function');
     expect(typeof routes['/stats']).toBe('function');
     expect(typeof routes['/settings']).toBe('function');
 
@@ -143,13 +160,22 @@ describe('main.js', () => {
     dispatchRouteChanged('/sessions/123');
     expect(tabs[1].getAttribute('aria-current')).toBe('page');
 
+    // Simulate route:changed to /activities
+    dispatchRouteChanged('/activities');
+    expect(tabs[2].getAttribute('aria-current')).toBe('page');
+    expect(tabs[1].hasAttribute('aria-current')).toBe(false);
+
+    // Simulate route:changed to /activities/1 (detail route)
+    dispatchRouteChanged('/activities/1');
+    expect(tabs[2].getAttribute('aria-current')).toBe('page');
+
     // Simulate route:changed to /stats
     dispatchRouteChanged('/stats');
-    expect(tabs[2].getAttribute('aria-current')).toBe('page');
+    expect(tabs[3].getAttribute('aria-current')).toBe('page');
 
     // Simulate route:changed to /settings
     dispatchRouteChanged('/settings');
-    expect(tabs[3].getAttribute('aria-current')).toBe('page');
+    expect(tabs[4].getAttribute('aria-current')).toBe('page');
   });
 
   it('should handle legacy /history route in notFound', async () => {
@@ -193,6 +219,17 @@ describe('main.js', () => {
     await options.notFound(mockTarget, { path: '/history/123' });
 
     expect(mockRenderSessionDetail).toHaveBeenCalledWith(mockTarget, { id: 123 });
+  });
+
+  it('should handle /activities/:id route in notFound', async () => {
+    await import('./main.js');
+
+    const [, options] = mockCreateRouter.mock.calls[0];
+    const mockTarget = document.createElement('div');
+
+    await options.notFound(mockTarget, { path: '/activities/42' });
+
+    expect(mockRenderActivityDetail).toHaveBeenCalledWith(mockTarget, { id: 42 });
   });
 
   it('should handle /sessions/:id route in notFound', async () => {

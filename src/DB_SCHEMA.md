@@ -2,7 +2,7 @@
 
 **Type**: IndexedDB (via [`idb`](https://github.com/jakearchibald/idb) wrapper)
 **Name**: `walk-cycle`
-**Current version**: `3`
+**Current version**: `4`
 
 ## Object stores
 
@@ -37,6 +37,38 @@
 | `sessionId` | `sessionId` | no |
 | `ts`        | `ts`        | no |
 | `type`      | `type`      | no |
+
+### `activities`
+
+| Field       | Type     | Nullable | Default         | Description |
+|-------------|----------| -------- | --------------- |-------------|
+| `id`        | `number` | no       | autoIncrement   | Primary key |
+| `name`      | `string` | no       | —               | User-provided name (e.g. "Hills") |
+| `createdAt` | `number` | no       | `Date.now()`    | Millis since epoch when created |
+
+**Indexes**:
+
+| Index name  | Key path    | Unique |
+|-------------|-------------|--------|
+| `createdAt` | `createdAt` | no     |
+
+### `records`
+
+| Field       | Type     | Nullable | Default         | Description |
+|-------------|----------| -------- | --------------- |-------------|
+| `id`        | `number` | no       | autoIncrement   | Primary key |
+| `activityId`| `number` | no       | —               | Foreign key → `activities.id` (not enforced by IndexedDB) |
+| `date`      | `string` | no       | —               | YYYY-MM-DD |
+| `count`     | `number` | no       | `1`             | Number of times the activity was performed on that date |
+
+**Uniqueness**: `(activityId, date)` is unique — `addRecord` throws if a record already exists for the same activity and date.
+
+**Indexes**:
+
+| Index name  | Key path    | Unique |
+|-------------|-------------|--------|
+| `activityId`| `activityId`| no     |
+| `date`      | `date`      | no     |
 
 ## Session lifecycle states
 
@@ -76,6 +108,11 @@ There is no separate "ended" state — sessions are never permanently finished; 
 - For sessions that had `stoppedAt` set, a `session_stopped` event is created with `ts = stoppedAt`, and `isStopped` is set to `true`.
 - Session lifecycle is now fully event-driven: stopping a session creates a `session_stopped` event; resuming deletes it.
 
+### v3 → v4
+
+- Added `activities` store with `createdAt` index.
+- Added `records` store with `activityId` and `date` indexes.
+
 ## API surface
 
 All functions are `async` and return `Promise<T>`.
@@ -105,13 +142,31 @@ All functions are `async` and return `Promise<T>`.
 | `listEventsBySession` | `(sessionId)` | `Promise<Event[]>` | Filtered by session, sorted by `ts` asc |
 | `listAllEvents` | `()` | `Promise<Event[]>` | All events, sorted by `ts` asc |
 
+### Activities
+
+| Function | Args | Returns | Description |
+| -------- | ---- | ------- | ----------- |
+| `createActivity` | `(name, createdAt?)` | `Promise<number>` id | Creates an activity |
+| `listActivities` | `()` | `Promise<Activity[]>` | Newest-first |
+| `getActivity` | `(id)` | `Promise<Activity \| undefined>` | Single record or `undefined` |
+| `updateActivity` | `(id, patch)` | `Promise<Activity \| null>` | Applies arbitrary patch |
+| `deleteActivity` | `(id)` | `Promise<void>` | Removes activity + cascades records |
+
+### Records
+
+| Function | Args | Returns | Description |
+| -------- | ---- | ------- | ----------- |
+| `addRecord` | `({ activityId, date, count? })` | `Promise<Record>` | Default count = 1; throws if `(activityId, date)` exists |
+| `listRecordsByActivity` | `(activityId)` | `Promise<Record[]>` | Sorted by date desc |
+| `deleteRecord` | `(id)` | `Promise<void>` | Removes a single record |
+
 ### Bulk operations
 
 | Function | Args | Returns | Description |
 | -------- | ---- | ------- | ----------- |
 | `exportAll` | `()` | `Promise<ExportData>` | `{ version, exportedAt, sessions, events }` |
 | `importAll` | `(data, { merge? }?)` | `Promise<void>` | Replace (default) or merge; re-keys IDs to avoid collisions |
-| `clearAll` | `()` | `Promise<void>` | Empties both stores and clears current session from localStorage |
+| `clearAll` | `()` | `Promise<void>` | Empties all stores and clears current session from localStorage |
 
 ## Consumers
 
@@ -122,3 +177,5 @@ All functions are `async` and return `Promise<T>`.
 | `views/sessionDetail.js` | `getSession`, `listEventsBySession`, `deleteSession`, `getActiveSession`, `setCurrentSession`, `stopSession`, `updateSession` |
 | `views/settings.js` | `exportAll`, `importAll`, `clearAll` |
 | `views/stats.js` | `listSessions`, `listEventsBySession`, `getCurrentSession` |
+| `views/activities.js` | `createActivity`, `listActivities`, `deleteActivity`, `listRecordsByActivity` |
+| `views/activityDetail.js` | `getActivity`, `updateActivity`, `addRecord`, `listRecordsByActivity`, `deleteRecord` |
