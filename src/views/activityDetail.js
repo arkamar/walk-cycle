@@ -398,7 +398,14 @@ export async function renderActivityDetail(target, { id }) {
     }
   }
 
-  target.appendChild(el('div', {}, [headerRow, headerCard, statsCard, formCard, recordsCard, ...(chartCard ? [chartCard] : [])]));
+  target.appendChild(el('div', {}, [
+    headerRow,
+    headerCard,
+    statsCard,
+    ...(chartCard ? [chartCard] : []),
+    formCard,
+    recordsCard
+  ]));
 }
 
 function renderMotivationChart(container, yearRecords, goal, yearCount, mode, initialZoom, onZoomChange) {
