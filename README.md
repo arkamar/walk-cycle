@@ -11,6 +11,7 @@ durations so you can see whether you're getting faster or slower over time.
 - Auto dark/light theme (follows the OS)
 - Vanilla JS + Vite, no framework, ~5 KB initial bundle (Chart.js loaded
   on-demand for the Stats screen)
+- Activity tracking with per-record notes, written checkbox, goal + motivation chart
 
 ## Stack
 
@@ -30,13 +31,15 @@ src/
 ├── style.css           # Theme variables (light/dark), layout
 ├── router.js           # Hash router with cleanup hooks
 ├── ui.js               # el(), toast(), date helpers
-├── db.js               # IndexedDB wrapper (sessions, events, export/import)
+├── db.js               # IndexedDB wrapper (sessions, events, activities, records)
 ├── stateMachine.js     # Strict 5-state walk-cycle FSM
 ├── analytics.js        # segmentsFromEvents, cyclesFromSegments, formatters
 └── views/
     ├── tracker.js
     ├── history.js
     ├── historyDetail.js
+    ├── activities.js
+    ├── activityDetail.js
     ├── stats.js
     └── settings.js
 public/
