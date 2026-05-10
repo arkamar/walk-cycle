@@ -43,56 +43,47 @@ export async function renderActivityDetail(target, { id }) {
   const currentYear = new Date().getFullYear();
   const yearRecords = records.filter(r => r.date.startsWith(String(currentYear)));
   const yearCount = yearRecords.reduce((s, r) => s + r.count, 0);
-  const goal = activity.goal ?? 52;
-  const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
-  const startOfYear = new Date(currentYear, 0, 1).getTime();
-  const now = Date.now();
-  const elapsedDays = Math.max(1, Math.floor((now - startOfYear) / 86400000));
-  const projected = Math.round((yearCount / elapsedDays) * daysInYear);
 
-  const goalSpan = el('span', { dataset: { edit: 'goal' }, style: { cursor: 'pointer' } }, String(goal));
-  const goalInput = el('input', {
-    type: 'number',
-    min: 1,
-    value: goal,
-    dataset: { edit: 'goal-input' },
-    style: { width: '3rem', display: 'none' },
-    onBlur: async () => { await saveGoal(); },
-    onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); goalInput.blur(); } },
-  });
-  async function saveGoal() {
-    const val = Number(goalInput.value);
-    if (val !== goal) {
-      await updateActivity(activity.id, { goal: val });
-      activity.goal = val;
-      toast('Goal updated');
-    }
-    goalSpan.style.display = '';
-    goalInput.style.display = 'none';
+  let projected = null;
+  if (activity.goal) {
+    const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
+    const startOfYear = new Date(currentYear, 0, 1).getTime();
+    const elapsedDays = Math.max(1, Math.floor((Date.now() - startOfYear) / 86400000));
+    projected = Math.round((yearCount / elapsedDays) * daysInYear);
   }
-  goalSpan.onclick = () => {
-    goalSpan.style.display = 'none';
-    goalInput.style.display = '';
-    goalInput.focus();
-  };
 
-  const statsCard = el('div', { class: 'card stat-grid', style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' } }, [
-    el('div', { class: 'stat' }, [
-      el('div', { class: 'label' }, 'Total'),
-      el('div', { class: 'value' }, String(totalCount)),
+  const statsCard = el('div', { class: 'card', style: { display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' } }, [
+    el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
+      el('span', { class: 'muted' }, 'Total:'),
+      el('strong', {}, String(totalCount)),
     ]),
-    el('div', { class: 'stat' }, [
-      el('div', { class: 'label' }, `${currentYear}`),
-      el('div', { class: 'value', style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
-        el('span', {}, `${yearCount} / `),
-        el('span', { style: { cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [goalSpan, goalInput]),
+    el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
+      el('span', { class: 'muted' }, `${currentYear}:`),
+      el('strong', {}, String(yearCount)),
+    ]),
+    el('label', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
+      el('span', { class: 'muted' }, 'Goal:'),
+      el('input', {
+        type: 'number',
+        min: 0,
+        value: activity.goal ?? '',
+        placeholder: '—',
+        style: { width: '3.5rem' },
+        onChange: async (e) => {
+          const val = e.target.value ? Number(e.target.value) : null;
+          await updateActivity(activity.id, { goal: val });
+          target.innerHTML = '';
+          renderActivityDetail(target, { id });
+        },
+      }),
+    ]),
+    ...(activity.goal && projected !== null ? [
+      el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
+        el('span', { class: 'muted' }, '→'),
+        el('strong', {}, String(projected)),
+        el('span', {}, projected >= activity.goal ? '✅' : '📉'),
       ]),
-    ]),
-    el('div', { class: 'stat' }, [
-      el('div', { class: 'label' }, 'Projected'),
-      el('div', { class: 'value' }, `${projected}`),
-      el('div', { class: 'meta' }, projected >= goal ? '✅ on track' : '📉 behind'),
-    ]),
+    ] : []),
   ]);
 
   const today = new Date().toISOString().slice(0, 10);

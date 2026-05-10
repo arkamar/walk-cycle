@@ -148,7 +148,7 @@ describe('renderActivityDetail', () => {
     expect(items[1].textContent).toContain('1');
   });
 
-  it('shows stats card with total count and year projection', async () => {
+  it('shows stats with total, year count and goal input', async () => {
     mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
     mockDb.listRecordsByActivity.mockResolvedValue([
       { id: 10, date: '2026-05-10', count: 3 },
@@ -158,12 +158,36 @@ describe('renderActivityDetail', () => {
     const { renderActivityDetail } = await import('./activityDetail.js');
     await renderActivityDetail(target, { id: 1 });
 
-    const stats = target.querySelectorAll('.stat');
-    expect(stats.length).toBe(3);
-    expect(stats[0].textContent).toContain('Total');
-    expect(stats[0].textContent).toContain('4');
-    expect(stats[1].textContent).toContain('2026');
-    expect(stats[1].textContent).toContain('4 / 52');
+    expect(target.textContent).toContain('Total:');
+    expect(target.textContent).toContain('4');
+    expect(target.textContent).toContain('2026:');
+  });
+
+  it('shows projection when goal is set', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000, goal: 52 });
+    // Enough 2026 records so projection exceeds 52 regardless of test date
+    const records = Array.from({ length: 60 }, (_, i) => ({
+      id: 10 + i, date: `2026-01-${String((i % 28) + 1).padStart(2, '0')}`, count: 1,
+    }));
+    mockDb.listRecordsByActivity.mockResolvedValue(records);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    expect(target.textContent).toContain('✅');
+  });
+
+  it('does not show projection when goal is not set', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 3 },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    expect(target.textContent).not.toContain('✅');
+    expect(target.textContent).not.toContain('📉');
   });
 
   it('shows empty state when no records exist', async () => {
