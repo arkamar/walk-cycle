@@ -217,4 +217,30 @@ describe('renderActivityDetail', () => {
 
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { count: 5 });
   });
+
+  it('edits date inline when clicking the date text', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 3 },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const dateSpan = target.querySelector('span[data-edit="date"]');
+    expect(dateSpan).toBeTruthy();
+    expect(dateSpan.textContent).toBe('2026-05-10');
+    dateSpan.click();
+
+    const dateInput = target.querySelector('input[data-edit="date-input"]');
+    expect(dateInput).toBeTruthy();
+    expect(dateInput.style.display).not.toBe('none');
+
+    dateInput.value = '2026-06-01';
+    dateInput.dispatchEvent(new Event('blur', { bubbles: true }));
+
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { date: '2026-06-01' });
+  });
 });

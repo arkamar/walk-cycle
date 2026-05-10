@@ -92,7 +92,44 @@ export async function renderActivityDetail(target, { id }) {
     recordsCard.appendChild(list);
 
     for (const r of records) {
-      const countSpan = el('span', { dataset: { edit: 'count' } }, `${r.count}`);
+      const dateSpan = el('span', { dataset: { edit: 'date' }, style: { cursor: 'pointer' } }, r.date);
+      const dateInput = el('input', {
+        type: 'date',
+        value: r.date,
+        dataset: { edit: 'date-input' },
+        style: { display: 'none' },
+        onBlur: async () => { await saveDate(); },
+        onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); dateInput.blur(); } },
+      });
+      async function saveDate() {
+        const newDate = dateInput.value;
+        if (newDate === r.date) {
+          dateSpan.style.display = '';
+          dateInput.style.display = 'none';
+          return;
+        }
+        const existing = await listRecordsByActivity(activity.id);
+        if (existing.find(rec => rec.date === newDate && rec.id !== r.id)) {
+          toast('Record already exists for this date');
+          dateInput.value = r.date;
+          dateSpan.style.display = '';
+          dateInput.style.display = 'none';
+          return;
+        }
+        await updateRecord(r.id, { date: newDate });
+        r.date = newDate;
+        dateSpan.textContent = newDate;
+        dateSpan.style.display = '';
+        dateInput.style.display = 'none';
+        toast('Date updated');
+      }
+      dateSpan.onclick = () => {
+        dateSpan.style.display = 'none';
+        dateInput.style.display = '';
+        dateInput.focus();
+      };
+
+      const countSpan = el('span', { dataset: { edit: 'count' }, style: { cursor: 'pointer' } }, `${r.count}`);
       const countInput = el('input', {
         type: 'number',
         min: 1,
@@ -120,7 +157,7 @@ export async function renderActivityDetail(target, { id }) {
 
       const children = [
         el('div', { style: { flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
-          el('span', {}, r.date),
+          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [dateSpan, dateInput]),
           el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [countSpan, countInput]),
         ]),
       ];
