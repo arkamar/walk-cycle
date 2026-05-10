@@ -491,8 +491,13 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
     visibleData.forEach((d, i) => {
       const xx = x(d.index);
       const yy = y(d.maxPossible);
-      if (i === 0) ctx.moveTo(xx, yy);
-      else ctx.lineTo(xx, yy);
+      if (i === 0) {
+        ctx.moveTo(xx, yy);
+      } else {
+        const prev = visibleData[i - 1];
+        ctx.lineTo(xx, y(prev.maxPossible));
+        ctx.lineTo(xx, yy);
+      }
     });
     ctx.lineTo(x(visibleEnd), y(0));
     ctx.lineTo(x(visibleStart), y(0));
@@ -506,8 +511,13 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
     visibleData.forEach((d, i) => {
       const xx = x(d.index);
       const yy = y(d.maxPossible);
-      if (i === 0) ctx.moveTo(xx, yy);
-      else ctx.lineTo(xx, yy);
+      if (i === 0) {
+        ctx.moveTo(xx, yy);
+      } else {
+        const prev = visibleData[i - 1];
+        ctx.lineTo(xx, y(prev.maxPossible));
+        ctx.lineTo(xx, yy);
+      }
     });
     ctx.stroke();
 
