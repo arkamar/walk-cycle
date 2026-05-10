@@ -157,6 +157,7 @@ All functions are `async` and return `Promise<T>`.
 | Function | Args | Returns | Description |
 | -------- | ---- | ------- | ----------- |
 | `addRecord` | `({ activityId, date, count? })` | `Promise<Record>` | Default count = 1; throws if `(activityId, date)` exists |
+| `updateRecord` | `(id, patch)` | `Promise<Record \| null>` | Applies arbitrary patch (e.g. `{ count: 5 }`) |
 | `listRecordsByActivity` | `(activityId)` | `Promise<Record[]>` | Sorted by date desc |
 | `deleteRecord` | `(id)` | `Promise<void>` | Removes a single record |
 

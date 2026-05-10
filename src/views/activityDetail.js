@@ -4,6 +4,7 @@ import {
   updateActivity,
   addRecord,
   listRecordsByActivity,
+  updateRecord,
   deleteRecord,
 } from '../db.js';
 
@@ -91,10 +92,36 @@ export async function renderActivityDetail(target, { id }) {
     recordsCard.appendChild(list);
 
     for (const r of records) {
+      const countSpan = el('span', { dataset: { edit: 'count' } }, `${r.count}`);
+      const countInput = el('input', {
+        type: 'number',
+        min: 1,
+        value: r.count,
+        dataset: { edit: 'count-input' },
+        style: { width: '3rem', display: 'none' },
+        onBlur: async () => { await saveCount(); },
+        onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); countInput.blur(); } },
+      });
+      async function saveCount() {
+        const val = Number(countInput.value);
+        if (val !== r.count) {
+          await updateRecord(r.id, { count: val });
+          r.count = val;
+          toast('Count updated');
+        }
+        countSpan.style.display = '';
+        countInput.style.display = 'none';
+      }
+      countSpan.onclick = () => {
+        countSpan.style.display = 'none';
+        countInput.style.display = '';
+        countInput.focus();
+      };
+
       const children = [
-        el('div', { style: { flex: 1, display: 'flex', justifyContent: 'space-between' } }, [
+        el('div', { style: { flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
           el('span', {}, r.date),
-          el('span', {}, `${r.count}`),
+          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [countSpan, countInput]),
         ]),
       ];
 

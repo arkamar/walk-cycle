@@ -25,6 +25,7 @@ import {
   deleteActivity,
   addRecord,
   listRecordsByActivity,
+  updateRecord,
   deleteRecord,
 } from './db.js';
 
@@ -812,6 +813,20 @@ describe('importAll', () => {
       it('returns empty array for activity with no records', async () => {
         const id = await createActivity('Empty');
         expect(await listRecordsByActivity(id)).toEqual([]);
+      });
+    });
+
+    describe('updateRecord', () => {
+      it('updates count on a record', async () => {
+        const id = await createActivity('Hills');
+        const r = await addRecord({ activityId: id, date: '2026-01-01', count: 1 });
+        await updateRecord(r.id, { count: 5 });
+        const records = await listRecordsByActivity(id);
+        expect(records[0].count).toBe(5);
+      });
+
+      it('returns null for unknown id', async () => {
+        expect(await updateRecord(9999, { count: 3 })).toBeNull();
       });
     });
 

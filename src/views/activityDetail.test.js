@@ -12,6 +12,7 @@ vi.mock('../db.js', () => ({
   updateActivity: vi.fn(),
   addRecord: vi.fn(),
   listRecordsByActivity: vi.fn(),
+  updateRecord: vi.fn(),
   deleteRecord: vi.fn(),
 }));
 
@@ -192,5 +193,28 @@ describe('renderActivityDetail', () => {
     await deleteBtn.click();
 
     expect(mockDb.deleteRecord).not.toHaveBeenCalled();
+  });
+
+  it('edits count inline when clicking the count text', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 3 },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const countSpan = target.querySelector('span[data-edit="count"]');
+    expect(countSpan).toBeTruthy();
+    countSpan.click();
+
+    const editInput = target.querySelector('input[data-edit="count-input"]');
+    expect(editInput).toBeTruthy();
+    expect(Number(editInput.value)).toBe(3);
+
+    editInput.value = '5';
+    editInput.dispatchEvent(new Event('blur'));
+
+    expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { count: 5 });
   });
 });

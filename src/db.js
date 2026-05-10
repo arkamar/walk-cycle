@@ -309,6 +309,15 @@ export async function listRecordsByActivity(activityId) {
   return records;
 }
 
+export async function updateRecord(id, patch) {
+  const db = await getDB();
+  const record = await db.get(STORE_RECORDS, id);
+  if (!record) return null;
+  Object.assign(record, patch);
+  await db.put(STORE_RECORDS, record);
+  return record;
+}
+
 export async function deleteRecord(id) {
   const db = await getDB();
   await db.delete(STORE_RECORDS, id);
