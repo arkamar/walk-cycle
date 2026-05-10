@@ -423,6 +423,8 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
   let dragEndX = 0;
   let initialPinchDist = 0;
   let pinchFocalIndex = 0;
+  let panStartX = 0;
+  let panStartZoom = null;
 
   const pad = { top: 24, right: 12, bottom: 28, left: 40 };
 
@@ -705,13 +707,14 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
       const rect = canvas.getBoundingClientRect();
       pinchFocalIndex = pixelToIndex(midX - rect.left);
       initialPinchDist = dist;
-      isDragging = false;
+      panStartZoom = null;
       e.preventDefault();
       return;
     }
     if (e.touches.length === 1) {
       e.preventDefault();
-      startDrag(e.touches[0].clientX);
+      panStartX = e.touches[0].clientX;
+      panStartZoom = zoom ? { start: zoom.start, end: zoom.end } : null;
     }
   }, { passive: false });
 
@@ -721,7 +724,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const newDist = Math.sqrt(dx * dx + dy * dy);
-      const scale = newDist / initialPinchDist;
+      const scale = initialPinchDist / newDist;
       if (Math.abs(scale - 1) < 0.05) return;
 
       const curStart = zoom ? zoom.start : 0;
@@ -742,19 +745,30 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
       }
       return;
     }
-    if (e.touches.length === 1) {
+    if (e.touches.length === 1 && panStartZoom) {
       e.preventDefault();
-      moveDrag(e.touches[0].clientX);
+      const plotW = getPlotW();
+      if (plotW <= 0) return;
+      const vu = panStartZoom.end - panStartZoom.start + 1;
+      const deltaPx = e.touches[0].clientX - panStartX;
+      const deltaIdx = Math.round(-(deltaPx / plotW) * vu);
+      let newStart = panStartZoom.start + deltaIdx;
+      let newEnd = panStartZoom.end + deltaIdx;
+      if (newStart < 0) { newStart = 0; newEnd = vu - 1; }
+      if (newEnd >= totalUnits) { newEnd = totalUnits - 1; newStart = newEnd - vu + 1; }
+      if (newStart < 0) newStart = 0;
+      if (newStart !== zoom.start || newEnd !== zoom.end) {
+        zoom = { start: newStart, end: newEnd };
+        draw();
+        if (onZoomChange) onZoomChange(zoom);
+      }
     }
   }, { passive: false });
 
-  canvas.addEventListener('touchend', (e) => {
-    if (e.touches.length === 0) {
-      initialPinchDist = 0;
-      endDrag();
-    } else if (e.touches.length < 2) {
-      initialPinchDist = 0;
-    }
+  canvas.addEventListener('touchend', () => {
+    panStartZoom = null;
+    panStartX = 0;
+    initialPinchDist = 0;
   }, { passive: false });
 
   draw();
