@@ -126,7 +126,7 @@ export async function renderActivityDetail(target, { id }) {
     ...(activity.goal ? [
       el('div', { class: 'stat' }, [
         el('div', { class: 'label' }, yearCount >= activity.goal ? 'Over' : 'Remaining'),
-        el('div', { class: 'value' }, String(Math.abs(activity.goal - yearCount))),
+        el('div', { class: 'value', style: { color: yearCount >= activity.goal ? 'var(--success)' : 'var(--danger)' } }, String(Math.abs(activity.goal - yearCount))),
         el('div', { class: 'meta' }, yearCount >= activity.goal ? 'above goal' : 'to go'),
       ]),
     ] : []),
