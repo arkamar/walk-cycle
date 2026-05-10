@@ -14,6 +14,8 @@ npm run lint:fix   # Run ESLint with auto-fix
 
 ## Key facts
 
+- Run `npm test` and `npm run lint` after every change to catch regressions.
+
 - **Service worker**: Disabled in dev (`devOptions.enabled: false`), enabled in preview/production. Test PWA features with `npm run preview`.
 - **Tests**: Vitest `npm run test` / `npm run test:watch`. Test files live alongside source as `*.test.js` (e.g., `src/stateMachine.test.js`).
 - **Lint**: ESLint with recommended rules, `npm run lint` / `npm run lint:fix`
@@ -22,11 +24,12 @@ npm run lint:fix   # Run ESLint with auto-fix
 ## Architecture
 
 - Vanilla JS + Vite (no framework)
-- IndexedDB via `idb` package
-- Chart.js loaded on-demand in Stats view
-- Custom hash router in `src/router.js`
+- IndexedDB via `idb` package; 4 stores (sessions, events, activities, records)
+- Chart.js loaded on-demand in Stats view; motivation chart in activity detail uses raw `<canvas>`
+- Custom hash router in `src/router.js` — 5 tabs: Track, Sessions, Activities, Stats, Settings
 - 5-state FSM in `src/stateMachine.js`: idle → going_up → at_top → going_down → at_bottom → ...
 - Tracker button rules live in `buttonStatesFor()` in `src/stateMachine.js` (pure, unit-tested).
+- Activity detail view with stats grid (3 equal columns), per-record inline editing (date, count, note), written checkbox, cumulative sums, motivation chart with day/week toggle and drag-to-zoom.
 
 ## Vocabulary
 
