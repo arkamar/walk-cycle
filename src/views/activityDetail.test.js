@@ -179,6 +179,22 @@ describe('renderActivityDetail', () => {
     expect(target.textContent).toContain('✅ on track');
   });
 
+  it('shows motivation chart with day/week toggle when goal is set', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000, goal: 52 });
+    mockDb.listRecordsByActivity.mockResolvedValue([]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const chartCard = Array.from(target.querySelectorAll('.card')).find(
+      c => c.querySelector('h3')?.textContent === 'Motivation'
+    );
+    const buttons = chartCard.querySelectorAll('button');
+    expect(buttons.length).toBe(2);
+    expect(buttons[0].textContent).toBe('Day');
+    expect(buttons[1].textContent).toBe('Week');
+  });
+
   it('shows remaining count when year count is below goal', async () => {
     mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000, goal: 52 });
     mockDb.listRecordsByActivity.mockResolvedValue([

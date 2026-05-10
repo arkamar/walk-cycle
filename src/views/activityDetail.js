@@ -284,5 +284,209 @@ export async function renderActivityDetail(target, { id }) {
     }
   }
 
-  target.appendChild(el('div', {}, [headerRow, headerCard, statsCard, formCard, recordsCard]));
+  let chartCard;
+  if (activity.goal) {
+    chartCard = el('div', { class: 'card' }, [
+      el('h3', {}, 'Motivation'),
+    ]);
+
+    let chartMode = 'week';
+
+    const activeBtn = { background: 'var(--fg)', color: 'var(--bg)', border: '1px solid var(--fg)' };
+    const inactiveBtn = { background: 'transparent', color: 'var(--fg)', border: '1px solid var(--border)' };
+
+    const dayBtn = el('button', {
+      style: { ...inactiveBtn, padding: '0.2rem 0.5rem', fontSize: '0.75rem', borderRadius: '4px 0 0 4px', cursor: 'pointer' },
+      onClick: () => switchMode('day'),
+    }, 'Day');
+
+    const weekBtn = el('button', {
+      style: { ...activeBtn, padding: '0.2rem 0.5rem', fontSize: '0.75rem', borderRadius: '0 4px 4px 0', cursor: 'pointer' },
+      onClick: () => switchMode('week'),
+    }, 'Week');
+
+    chartCard.appendChild(el('div', { style: { display: 'flex', gap: 0, marginTop: '0.5rem' } }, [dayBtn, weekBtn]));
+
+    const canvasWrap = el('div', { style: { marginTop: '0.5rem' } });
+    chartCard.appendChild(canvasWrap);
+    renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, 'week');
+
+    function switchMode(mode) {
+      if (mode === chartMode) return;
+      chartMode = mode;
+      Object.assign(dayBtn.style, mode === 'day' ? activeBtn : inactiveBtn);
+      Object.assign(weekBtn.style, mode === 'week' ? activeBtn : inactiveBtn);
+      canvasWrap.innerHTML = '';
+      renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, mode);
+    }
+  }
+
+  target.appendChild(el('div', {}, [headerRow, headerCard, statsCard, formCard, recordsCard, ...(chartCard ? [chartCard] : [])]));
+}
+
+function renderMotivationChart(container, yearRecords, goal, yearCount, mode) {
+  const currentYear = new Date().getFullYear();
+  const startOfYear = new Date(currentYear, 0, 1);
+  const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
+  const todayDayIndex = Math.floor((Date.now() - startOfYear.getTime()) / 86400000);
+
+  let data;
+  let totalUnits;
+  let todayIndex;
+
+  if (mode === 'week') {
+    totalUnits = 52;
+    todayIndex = Math.min(Math.floor(todayDayIndex / 7), totalUnits - 1);
+    const recordWeeks = new Set(
+      yearRecords.map(r => Math.floor((new Date(r.date + 'T00:00:00') - startOfYear) / 86400000 / 7))
+    );
+    let runningRecords = 0;
+    data = [];
+    for (let w = 0; w < totalUnits; w++) {
+      if (recordWeeks.has(w)) runningRecords++;
+      data.push({ index: w, records: runningRecords, maxPossible: runningRecords + (totalUnits - w - 1) });
+    }
+  } else {
+    totalUnits = daysInYear;
+    todayIndex = todayDayIndex;
+    const recordDates = new Set(yearRecords.map(r => r.date));
+    let runningRecords = 0;
+    data = [];
+    for (let day = 0; day < totalUnits; day++) {
+      const dateStr = new Date(currentYear, 0, day + 1).toISOString().slice(0, 10);
+      if (recordDates.has(dateStr)) runningRecords++;
+      data.push({ index: day, records: runningRecords, maxPossible: runningRecords + (totalUnits - day - 1) });
+    }
+  }
+
+  const canvas = el('canvas', {
+    style: { width: '100%', height: '200px', display: 'block' },
+  });
+  container.appendChild(canvas);
+
+  const draw = () => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    const pad = { top: 24, right: 12, bottom: 28, left: 40 };
+    const plotW = w - pad.left - pad.right;
+    const plotH = h - pad.top - pad.bottom;
+    if (plotW <= 0 || plotH <= 0) return;
+
+    const style = getComputedStyle(canvas);
+    const fg = style.getPropertyValue('--fg').trim() || '#333';
+    const muted = style.getPropertyValue('--muted').trim() || '#999';
+    const border = style.getPropertyValue('--border').trim() || '#ddd';
+    const success = style.getPropertyValue('--success').trim() || '#16a34a';
+    const danger = style.getPropertyValue('--danger').trim() || '#dc2626';
+
+    const maxVal = Math.max(goal, data.at(-1)?.maxPossible ?? 0, 1);
+
+    const x = (idx) => pad.left + (idx / totalUnits) * plotW;
+    const y = (val) => pad.top + plotH - (val / maxVal) * plotH;
+
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = muted;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+
+    const ySteps = 4;
+    for (let i = 0; i <= ySteps; i++) {
+      const val = Math.round((maxVal / ySteps) * i);
+      const yy = y(val);
+      ctx.beginPath();
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 1;
+      ctx.moveTo(pad.left, yy);
+      ctx.lineTo(pad.left + plotW, yy);
+      ctx.stroke();
+      ctx.fillText(String(val), pad.left - 4, yy);
+    }
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let m = 0; m < 12; m++) {
+      const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
+      const idx = mode === 'week' ? Math.floor(dayOfMonth / 7) : dayOfMonth;
+      ctx.fillText(
+        new Date(currentYear, m, 1).toLocaleDateString('en', { month: 'short' }),
+        x(Math.min(idx, totalUnits - 1)),
+        pad.top + plotH + 4
+      );
+    }
+
+    const currentPossible = data[todayIndex]?.maxPossible ?? 0;
+    const belowGoal = currentPossible < goal;
+
+    ctx.beginPath();
+    data.forEach((d, i) => {
+      const xx = x(d.index);
+      const yy = y(d.maxPossible);
+      if (i === 0) ctx.moveTo(xx, yy);
+      else ctx.lineTo(xx, yy);
+    });
+    ctx.lineTo(x(totalUnits - 1), y(0));
+    ctx.lineTo(x(0), y(0));
+    ctx.closePath();
+    ctx.fillStyle = (belowGoal ? danger : success) + '18';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.strokeStyle = belowGoal ? danger : success;
+    ctx.lineWidth = 2;
+    data.forEach((d, i) => {
+      const xx = x(d.index);
+      const yy = y(d.maxPossible);
+      if (i === 0) ctx.moveTo(xx, yy);
+      else ctx.lineTo(xx, yy);
+    });
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.strokeStyle = success;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    const goalY = y(goal);
+    ctx.moveTo(pad.left, goalY);
+    ctx.lineTo(pad.left + plotW, goalY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = success;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.font = '10px sans-serif';
+    ctx.fillText('goal', pad.left + plotW, goalY - 2);
+
+    ctx.beginPath();
+    ctx.strokeStyle = fg;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
+    const todayX = x(todayIndex);
+    ctx.moveTo(todayX, pad.top);
+    ctx.lineTo(todayX, pad.top + plotH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = fg;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.font = '10px sans-serif';
+    ctx.fillText('today', todayX, pad.top - 2);
+  };
+
+  draw();
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(draw);
+    ro.observe(canvas);
+  }
 }
