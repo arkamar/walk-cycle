@@ -473,15 +473,47 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    for (let m = 0; m < 12; m++) {
-      const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
-      const idx = mode === 'week' ? Math.floor(dayOfMonth / 7) : dayOfMonth;
-      if (idx < visibleStart || idx > visibleEnd) continue;
-      ctx.fillText(
-        new Date(currentYear, m, 1).toLocaleDateString('en', { month: 'short' }),
-        x(Math.min(idx, totalUnits - 1)),
-        pad.top + plotH + 4
-      );
+
+    if (mode === 'day') {
+      if (visibleUnits > 60) {
+        for (let m = 0; m < 12; m++) {
+          const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
+          if (dayOfMonth < visibleStart || dayOfMonth > visibleEnd) continue;
+          ctx.fillText(
+            new Date(currentYear, m, 1).toLocaleDateString('en', { month: 'short' }),
+            x(dayOfMonth), pad.top + plotH + 4
+          );
+        }
+      } else {
+        const step = visibleUnits > 20 ? 7 : Math.max(1, Math.floor(visibleUnits / 8));
+        for (let day = Math.ceil(visibleStart / step) * step; day <= visibleEnd; day += step) {
+          const d = new Date(currentYear, 0, day + 1);
+          ctx.fillText(
+            d.toLocaleDateString('en', { day: 'numeric', month: 'short' }),
+            x(day), pad.top + plotH + 4
+          );
+        }
+      }
+    } else {
+      if (visibleUnits > 16) {
+        for (let m = 0; m < 12; m++) {
+          const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
+          const idx = Math.floor(dayOfMonth / 7);
+          if (idx < visibleStart || idx > visibleEnd) continue;
+          ctx.fillText(
+            new Date(currentYear, m, 1).toLocaleDateString('en', { month: 'short' }),
+            x(idx), pad.top + plotH + 4
+          );
+        }
+      } else {
+        for (let w = visibleStart; w <= visibleEnd; w++) {
+          const d = new Date(currentYear, 0, w * 7 + 1);
+          ctx.fillText(
+            d.toLocaleDateString('en', { day: 'numeric', month: 'short' }),
+            x(w), pad.top + plotH + 4
+          );
+        }
+      }
     }
 
     const currentPossible = data[todayIndex]?.maxPossible ?? 0;
