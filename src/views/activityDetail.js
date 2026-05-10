@@ -22,6 +22,16 @@ export async function renderActivityDetail(target, { id }) {
 
   const records = await listRecordsByActivity(id);
 
+  const cumulativeById = new Map();
+  {
+    const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
+    let total = 0;
+    for (const r of sorted) {
+      total += r.count;
+      cumulativeById.set(r.id, total);
+    }
+  }
+
   const headerRow = el('div', { class: 'row between' }, [
     el('a', { class: 'btn btn-ghost', href: '#/activities' }, '← Back'),
   ]);
@@ -242,7 +252,10 @@ export async function renderActivityDetail(target, { id }) {
       const children = [
         el('div', { style: { flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
           el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [dateSpan, dateInput]),
-          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [countSpan, countInput]),
+          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.75rem' } }, [
+            el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [countSpan, countInput]),
+            el('span', { style: { color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' } }, String(cumulativeById.get(r.id))),
+          ]),
         ]),
       ];
 
