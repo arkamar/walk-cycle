@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'walk-cycle';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 export const STORE_SESSIONS = 'sessions';
 export const STORE_EVENTS = 'events';
@@ -92,6 +92,20 @@ export function getDB() {
           });
           records.createIndex('activityId', 'activityId');
           records.createIndex('date', 'date');
+        }
+        if (oldVersion < 5) {
+          const store = tx.objectStore(STORE_RECORDS);
+          if (store) {
+            let cursor = await store.openCursor();
+            while (cursor) {
+              const r = cursor.value;
+              if (!Object.prototype.hasOwnProperty.call(r, 'written')) {
+                r.written = false;
+                await cursor.update(r);
+              }
+              cursor = await cursor.continue();
+            }
+          }
         }
       },
     });
@@ -288,14 +302,14 @@ export async function deleteActivity(id) {
 
 // ---------- Records ----------
 
-export async function addRecord({ activityId, date, count = 1 }) {
+export async function addRecord({ activityId, date, count = 1, written = false }) {
   const db = await getDB();
   const existing = await listRecordsByActivity(activityId);
   if (existing.find(r => r.date === date)) {
     throw new Error(`Record already exists for ${date}`);
   }
-  const id = await db.add(STORE_RECORDS, { activityId, date, count });
-  return { id, activityId, date, count };
+  const id = await db.add(STORE_RECORDS, { activityId, date, count, written });
+  return { id, activityId, date, count, written };
 }
 
 export async function listRecordsByActivity(activityId) {

@@ -360,4 +360,44 @@ describe('renderActivityDetail', () => {
 
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { date: '2026-06-01' });
   });
+
+  it('shows written checkbox for each record', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity.mockResolvedValue([
+      { id: 10, date: '2026-05-10', count: 3, written: false },
+      { id: 11, date: '2026-05-09', count: 1, written: true },
+    ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const checkboxes = target.querySelectorAll('input[data-edit="written"]');
+    expect(checkboxes.length).toBe(2);
+    expect(checkboxes[0].checked).toBe(false);
+    expect(checkboxes[1].checked).toBe(true);
+  });
+
+  it('toggles written when checkbox is clicked', async () => {
+    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+    mockDb.listRecordsByActivity
+      .mockResolvedValueOnce([
+        { id: 10, date: '2026-05-10', count: 3, written: false },
+      ])
+      .mockResolvedValueOnce([
+        { id: 10, date: '2026-05-10', count: 3, written: false },
+      ]);
+
+    const { renderActivityDetail } = await import('./activityDetail.js');
+    await renderActivityDetail(target, { id: 1 });
+
+    const checkbox = target.querySelector('input[data-edit="written"]');
+    expect(checkbox.checked).toBe(false);
+
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { written: true });
+  });
 });

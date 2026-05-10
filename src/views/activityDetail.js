@@ -258,9 +258,25 @@ export async function renderActivityDetail(target, { id }) {
         countInput.focus();
       };
 
+      const writtenChk = el('input', {
+        type: 'checkbox',
+        checked: r.written,
+        dataset: { edit: 'written' },
+        style: { cursor: 'pointer', margin: 0 },
+        onChange: async (e) => {
+          await updateRecord(r.id, { written: e.target.checked });
+          toast(e.target.checked ? 'Marked as written' : 'Marked as not written');
+          target.innerHTML = '';
+          renderActivityDetail(target, { id });
+        },
+      });
+
       const children = [
         el('div', { style: { flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
-          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [dateSpan, dateInput]),
+          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.5rem' } }, [
+            writtenChk,
+            el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [dateSpan, dateInput]),
+          ]),
           el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.75rem' } }, [
             el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [countSpan, countInput]),
             el('span', { style: { color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' } }, String(cumulativeById.get(r.id))),

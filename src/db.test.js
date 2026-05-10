@@ -501,11 +501,9 @@ describe('exportAll', () => {
     await clearAll();
   });
 
-  it('returns correct shape with version 4', async () => {
-    const id = await createSession(1000, 'test');
-    await addEvent({ sessionId: id, type: 'up', ts: 2000 });
+  it('returns correct shape with version 5', async () => {
     const data = await exportAll();
-    expect(data.version).toBe(4);
+    expect(data.version).toBe(5);
     expect(typeof data.exportedAt).toBe('number');
     expect(Array.isArray(data.sessions)).toBe(true);
     expect(Array.isArray(data.events)).toBe(true);
@@ -768,6 +766,18 @@ describe('importAll', () => {
         expect(r.count).toBe(1);
       });
 
+      it('defaults written to false', async () => {
+        const id = await createActivity('Hills');
+        const r = await addRecord({ activityId: id, date: '2026-06-01', count: 2 });
+        expect(r.written).toBe(false);
+      });
+
+      it('accepts written as true', async () => {
+        const id = await createActivity('Hills');
+        const r = await addRecord({ activityId: id, date: '2026-06-01', count: 2, written: true });
+        expect(r.written).toBe(true);
+      });
+
       it('throws for duplicate date on the same activity', async () => {
         const id = await createActivity('Hills');
         await addRecord({ activityId: id, date: '2026-05-10', count: 2 });
@@ -823,6 +833,14 @@ describe('importAll', () => {
         await updateRecord(r.id, { count: 5 });
         const records = await listRecordsByActivity(id);
         expect(records[0].count).toBe(5);
+      });
+
+      it('updates written on a record', async () => {
+        const id = await createActivity('Hills');
+        const r = await addRecord({ activityId: id, date: '2026-01-01', count: 1 });
+        await updateRecord(r.id, { written: true });
+        const records = await listRecordsByActivity(id);
+        expect(records[0].written).toBe(true);
       });
 
       it('returns null for unknown id', async () => {

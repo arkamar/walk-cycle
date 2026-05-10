@@ -2,7 +2,7 @@
 
 **Type**: IndexedDB (via [`idb`](https://github.com/jakearchibald/idb) wrapper)
 **Name**: `walk-cycle`
-**Current version**: `4`
+**Current version**: `5`
 
 ## Object stores
 
@@ -61,6 +61,7 @@
 | `activityId`| `number` | no       | —               | Foreign key → `activities.id` (not enforced by IndexedDB) |
 | `date`      | `string` | no       | —               | YYYY-MM-DD |
 | `count`     | `number` | no       | `1`             | Number of times the activity was performed on that date |
+| `written`   | `boolean`| no       | `false`         | Whether the record has been written to the book |
 
 **Uniqueness**: `(activityId, date)` is unique — `addRecord` throws if a record already exists for the same activity and date.
 
@@ -114,6 +115,12 @@ There is no separate "ended" state — sessions are never permanently finished; 
 - Added `activities` store with `createdAt` index.
 - Added `records` store with `activityId` and `date` indexes.
 
+### v4 → v5
+
+- Added `written: false` to all existing records (migration loop sets the field on every record).
+- `addRecord` now defaults `written: false` and accepts an optional `{ written }` parameter.
+- `updateRecord` supports patching `written` (used by the written checkbox in activity detail).
+
 ## API surface
 
 All functions are `async` and return `Promise<T>`.
@@ -157,8 +164,8 @@ All functions are `async` and return `Promise<T>`.
 
 | Function | Args | Returns | Description |
 | -------- | ---- | ------- | ----------- |
-| `addRecord` | `({ activityId, date, count? })` | `Promise<Record>` | Default count = 1; throws if `(activityId, date)` exists |
-| `updateRecord` | `(id, patch)` | `Promise<Record \| null>` | Applies arbitrary patch (e.g. `{ count: 5 }`) |
+| `addRecord` | `({ activityId, date, count?, written? })` | `Promise<Record>` | Default count = 1, written = false; throws if `(activityId, date)` exists |
+| `updateRecord` | `(id, patch)` | `Promise<Record \| null>` | Applies arbitrary patch (e.g. `{ count: 5, written: true }`) |
 | `listRecordsByActivity` | `(activityId)` | `Promise<Record[]>` | Sorted by date desc |
 | `deleteRecord` | `(id)` | `Promise<void>` | Removes a single record |
 
