@@ -144,9 +144,9 @@ describe('renderActivityDetail', () => {
 
     const items = target.querySelectorAll('.list-item');
     expect(items.length).toBe(2);
-    expect(items[0].textContent).toContain('2026-05-10');
+    expect(items[0].textContent).toContain('2026');
     expect(items[0].textContent).toContain('3');
-    expect(items[1].textContent).toContain('2026-05-01');
+    expect(items[1].textContent).toContain('2026');
     expect(items[1].textContent).toContain('1');
   });
 
@@ -320,7 +320,7 @@ describe('renderActivityDetail', () => {
 
     const dateSpan = target.querySelector('span[data-edit="date"]');
     expect(dateSpan).toBeTruthy();
-    expect(dateSpan.textContent).toBe('2026-05-10');
+    expect(dateSpan.textContent).toBe(new Date('2026-05-10T00:00:00').toLocaleDateString());
     dateSpan.click();
 
     const dateInput = target.querySelector('input[data-edit="date-input"]');

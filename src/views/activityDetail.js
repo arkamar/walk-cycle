@@ -186,7 +186,7 @@ export async function renderActivityDetail(target, { id }) {
     recordsCard.appendChild(list);
 
     for (const r of records) {
-      const dateSpan = el('span', { dataset: { edit: 'date' }, style: { cursor: 'pointer' } }, r.date);
+      const dateSpan = el('span', { dataset: { edit: 'date' }, style: { cursor: 'pointer' } }, new Date(r.date + 'T00:00:00').toLocaleDateString());
       const dateInput = el('input', {
         type: 'date',
         value: r.date,
@@ -212,7 +212,7 @@ export async function renderActivityDetail(target, { id }) {
         }
         await updateRecord(r.id, { date: newDate });
         r.date = newDate;
-        dateSpan.textContent = newDate;
+        dateSpan.textContent = new Date(newDate + 'T00:00:00').toLocaleDateString();
         dateSpan.style.display = '';
         dateInput.style.display = 'none';
         toast('Date updated');
