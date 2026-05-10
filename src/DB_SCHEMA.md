@@ -2,7 +2,7 @@
 
 **Type**: IndexedDB (via [`idb`](https://github.com/jakearchibald/idb) wrapper)
 **Name**: `walk-cycle`
-**Current version**: `3`
+**Current version**: `5`
 
 ## Object stores
 
@@ -38,6 +38,40 @@
 | `ts`        | `ts`        | no |
 | `type`      | `type`      | no |
 
+### `activities`
+
+| Field       | Type     | Nullable | Default         | Description |
+|-------------|----------| -------- | --------------- |-------------|
+| `id`        | `number` | no       | autoIncrement   | Primary key |
+| `name`      | `string` | no       | —               | User-provided name (e.g. "Hills") |
+| `createdAt` | `number` | no       | `Date.now()`    | Millis since epoch when created |
+| `goal`      | `number` | yes      | `null`          | Annual goal (defaults to 52 in the UI) |
+
+**Indexes**:
+
+| Index name  | Key path    | Unique |
+|-------------|-------------|--------|
+| `createdAt` | `createdAt` | no     |
+
+### `records`
+
+| Field       | Type     | Nullable | Default         | Description |
+|-------------|----------| -------- | --------------- |-------------|
+| `id`        | `number` | no       | autoIncrement   | Primary key |
+| `activityId`| `number` | no       | —               | Foreign key → `activities.id` (not enforced by IndexedDB) |
+| `date`      | `string` | no       | —               | YYYY-MM-DD |
+| `count`     | `number` | no       | `1`             | Number of times the activity was performed on that date |
+| `written`   | `boolean`| no       | `false`         | Whether the record has been written to the book |
+
+**Uniqueness**: `(activityId, date)` is unique — `addRecord` throws if a record already exists for the same activity and date.
+
+**Indexes**:
+
+| Index name  | Key path    | Unique |
+|-------------|-------------|--------|
+| `activityId`| `activityId`| no     |
+| `date`      | `date`      | no     |
+
 ## Session lifecycle states
 
 The `isStopped` boolean defines the session's state:
@@ -58,6 +92,16 @@ There is no separate "ended" state — sessions are never permanently finished; 
 
 ## Migration history
 
+### v0 → v1 (initial)
+
+- Created `sessions` store with `createdAt` index.
+- Created `events` store with `sessionId`, `ts`, and `type` indexes.
+
+### v1 → v2
+
+- Renamed `pausedAt` → `stoppedAt` on existing sessions (UI vocabulary change: the 4th button became "Stop" / "Resume").
+- Added `stoppedAt: null` to sessions that never had `pausedAt` (ensures `getActiveSession()` predicate works correctly for all migrated records).
+
 ### v2 → v3
 
 - Renamed `startedAt` → `createdAt` on sessions and the corresponding index.
@@ -66,15 +110,16 @@ There is no separate "ended" state — sessions are never permanently finished; 
 - For sessions that had `stoppedAt` set, a `session_stopped` event is created with `ts = stoppedAt`, and `isStopped` is set to `true`.
 - Session lifecycle is now fully event-driven: stopping a session creates a `session_stopped` event; resuming deletes it.
 
-### v1 → v2
+### v3 → v4
 
-- Renamed `pausedAt` → `stoppedAt` on existing sessions (UI vocabulary change: the 4th button became "Stop" / "Resume").
-- Added `stoppedAt: null` to sessions that never had `pausedAt` (ensures `getActiveSession()` predicate works correctly for all migrated records).
+- Added `activities` store with `createdAt` index.
+- Added `records` store with `activityId` and `date` indexes.
 
-### v0 → v1 (initial)
+### v4 → v5
 
-- Created `sessions` store with `createdAt` index.
-- Created `events` store with `sessionId`, `ts`, and `type` indexes.
+- Added `written: false` to all existing records (migration loop sets the field on every record).
+- `addRecord` now defaults `written: false` and accepts an optional `{ written }` parameter.
+- `updateRecord` supports patching `written` (used by the written checkbox in activity detail).
 
 ## API surface
 
@@ -105,13 +150,32 @@ All functions are `async` and return `Promise<T>`.
 | `listEventsBySession` | `(sessionId)` | `Promise<Event[]>` | Filtered by session, sorted by `ts` asc |
 | `listAllEvents` | `()` | `Promise<Event[]>` | All events, sorted by `ts` asc |
 
+### Activities
+
+| Function | Args | Returns | Description |
+| -------- | ---- | ------- | ----------- |
+| `createActivity` | `(name, createdAt?)` | `Promise<number>` id | Creates an activity |
+| `listActivities` | `()` | `Promise<Activity[]>` | Newest-first |
+| `getActivity` | `(id)` | `Promise<Activity \| undefined>` | Single record or `undefined` |
+| `updateActivity` | `(id, patch)` | `Promise<Activity \| null>` | Applies arbitrary patch |
+| `deleteActivity` | `(id)` | `Promise<void>` | Removes activity + cascades records |
+
+### Records
+
+| Function | Args | Returns | Description |
+| -------- | ---- | ------- | ----------- |
+| `addRecord` | `({ activityId, date, count?, written? })` | `Promise<Record>` | Default count = 1, written = false; throws if `(activityId, date)` exists |
+| `updateRecord` | `(id, patch)` | `Promise<Record \| null>` | Applies arbitrary patch (e.g. `{ count: 5, written: true }`) |
+| `listRecordsByActivity` | `(activityId)` | `Promise<Record[]>` | Sorted by date desc |
+| `deleteRecord` | `(id)` | `Promise<void>` | Removes a single record |
+
 ### Bulk operations
 
 | Function | Args | Returns | Description |
 | -------- | ---- | ------- | ----------- |
 | `exportAll` | `()` | `Promise<ExportData>` | `{ version, exportedAt, sessions, events }` |
 | `importAll` | `(data, { merge? }?)` | `Promise<void>` | Replace (default) or merge; re-keys IDs to avoid collisions |
-| `clearAll` | `()` | `Promise<void>` | Empties both stores and clears current session from localStorage |
+| `clearAll` | `()` | `Promise<void>` | Empties all stores and clears current session from localStorage |
 
 ## Consumers
 
@@ -122,3 +186,5 @@ All functions are `async` and return `Promise<T>`.
 | `views/sessionDetail.js` | `getSession`, `listEventsBySession`, `deleteSession`, `getActiveSession`, `setCurrentSession`, `stopSession`, `updateSession` |
 | `views/settings.js` | `exportAll`, `importAll`, `clearAll` |
 | `views/stats.js` | `listSessions`, `listEventsBySession`, `getCurrentSession` |
+| `views/activities.js` | `createActivity`, `listActivities`, `deleteActivity`, `listRecordsByActivity` |
+| `views/activityDetail.js` | `getActivity`, `updateActivity`, `addRecord`, `listRecordsByActivity`, `deleteRecord` |

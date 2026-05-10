@@ -246,7 +246,7 @@ describe('renderSessions', () => {
       isStopped,
     });
 
-    it('shows "current" status for current session', async () => {
+    it('shows status text for current session (visual indicator + status)', async () => {
       const sessions = [createMockSession(1, 1000000)];
       listSessions.mockResolvedValue(sessions);
       listEventsBySession.mockResolvedValue([]);
@@ -256,10 +256,12 @@ describe('renderSessions', () => {
       await renderSessions(target);
 
       const metaText = target.querySelector('.meta').textContent;
-      expect(metaText).toContain('· current');
+      expect(metaText).toContain('▶');
+      const row = target.querySelector('.list-item');
+      expect(row.classList.contains('list-item--current')).toBe(true);
     });
 
-    it('shows "active" status for non-current active session', async () => {
+    it('shows ▶ icon for active session', async () => {
       const sessions = [createMockSession(1, 1000000)];
       listSessions.mockResolvedValue(sessions);
       listEventsBySession.mockResolvedValue([]);
@@ -269,10 +271,10 @@ describe('renderSessions', () => {
       await renderSessions(target);
 
       const metaText = target.querySelector('.meta').textContent;
-      expect(metaText).toContain('· active');
+      expect(metaText).toContain('▶');
     });
 
-    it('shows "stopped" status for stopped session', async () => {
+    it('shows ■ icon for stopped session', async () => {
       const sessions = [createMockSession(1, 1000000, null, true)];
       listSessions.mockResolvedValue(sessions);
       listEventsBySession.mockResolvedValue([]);
@@ -282,7 +284,7 @@ describe('renderSessions', () => {
       await renderSessions(target);
 
       const metaText = target.querySelector('.meta').textContent;
-      expect(metaText).toContain('· stopped');
+      expect(metaText).toContain('■');
     });
   });
 
@@ -305,9 +307,9 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const button = target.querySelector('.list-item .btn-primary');
-      expect(button).toBeTruthy();
-      expect(button.textContent).toBe('Set as current');
+      const buttons = target.querySelectorAll('.list-item .btn-ghost');
+      const playBtn = Array.from(buttons).find(b => b.textContent === '▶');
+      expect(playBtn).toBeTruthy();
     });
 
     it('calls setCurrentSession and shows toast when clicked', async () => {
@@ -318,8 +320,9 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const button = target.querySelector('.list-item .btn-primary');
-      await button.click();
+      const buttons = target.querySelectorAll('.list-item .btn-ghost');
+      const playBtn = Array.from(buttons).find(b => b.textContent === '▶');
+      await playBtn.click();
 
       expect(setCurrentSession).toHaveBeenCalledWith(1);
       expect(toast).toHaveBeenCalledWith('Session is now current');
@@ -333,8 +336,9 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const button = target.querySelector('.list-item .btn-primary');
-      await button.click();
+      const buttons = target.querySelectorAll('.list-item .btn-ghost');
+      const playBtn = Array.from(buttons).find(b => b.textContent === '▶');
+      await playBtn.click();
 
       expect(mockLocation.hash).toBe('/');
     });
@@ -347,8 +351,9 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const buttons = target.querySelectorAll('.list-item .btn-primary');
-      expect(buttons.length).toBe(0);
+      const buttons = target.querySelectorAll('.list-item .btn-ghost');
+      const playBtn = Array.from(buttons).find(b => b.textContent === '▶');
+      expect(playBtn).toBeFalsy();
     });
   });
 
@@ -371,9 +376,9 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const button = target.querySelector('.list-item .btn-primary');
-      expect(button).toBeTruthy();
-      expect(button.textContent).toBe('Set as current');
+      const buttons = target.querySelectorAll('.list-item .btn-ghost');
+      const playBtn = Array.from(buttons).find(b => b.textContent === '▶');
+      expect(playBtn).toBeTruthy();
     });
 
     it('calls setCurrentSession when clicked', async () => {
@@ -384,8 +389,9 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const button = target.querySelector('.list-item .btn-primary');
-      await button.click();
+      const buttons = target.querySelectorAll('.list-item .btn-ghost');
+      const playBtn = Array.from(buttons).find(b => b.textContent === '▶');
+      await playBtn.click();
 
       expect(setCurrentSession).toHaveBeenCalledWith(1);
       expect(toast).toHaveBeenCalledWith('Session is now current');
@@ -405,6 +411,15 @@ describe('renderSessions', () => {
       window.confirm = vi.fn();
     });
 
+    function findDeleteButtons(target) {
+      return Array.from(target.querySelectorAll('.btn-ghost'))
+        .filter(b => b.textContent === '🗑');
+    }
+
+    function findDeleteButton(target) {
+      return findDeleteButtons(target)[0];
+    }
+
     it('renders delete button for each session', async () => {
       const sessions = [
         createMockSession(1, 1000000),
@@ -415,9 +430,8 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const deleteButtons = target.querySelectorAll('.btn-ghost');
+      const deleteButtons = findDeleteButtons(target);
       expect(deleteButtons.length).toBe(2);
-      expect(deleteButtons[0].textContent).toBe('🗑');
     });
 
     it('calls deleteSession after confirmation', async () => {
@@ -428,7 +442,7 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const deleteButton = target.querySelector('.btn-ghost');
+      const deleteButton = findDeleteButton(target);
       await deleteButton.click();
 
       expect(window.confirm).toHaveBeenCalledWith('Delete this session?');
@@ -443,7 +457,7 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const deleteButton = target.querySelector('.btn-ghost');
+      const deleteButton = findDeleteButton(target);
       await deleteButton.click();
 
       expect(toast).toHaveBeenCalledWith('Session deleted');
@@ -457,7 +471,7 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const deleteButton = target.querySelector('.btn-ghost');
+      const deleteButton = findDeleteButton(target);
       await deleteButton.click();
 
       expect(deleteSession).not.toHaveBeenCalled();
@@ -475,7 +489,7 @@ describe('renderSessions', () => {
 
       await renderSessions(target);
 
-      const deleteButton = target.querySelector('.btn-ghost');
+      const deleteButton = findDeleteButton(target);
 
       // Mock the async behavior - when deleteSession is called, we need to simulate what happens
       // The code calls renderSessions again after deletion, which is async

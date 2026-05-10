@@ -473,6 +473,11 @@ h3 { font-size: 1rem; }
   cursor: pointer;
 }
 
+.list-item--current {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
 .list-item .meta {
   color: var(--muted);
   font-size: 0.85rem;

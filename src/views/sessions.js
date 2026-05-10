@@ -66,13 +66,13 @@ export async function renderSessions(target) {
     const status = sessionStatus(s);
     const isCurrent = s.id === currentId;
 
-    const statusSuffix =
-      isCurrent ? ' · current'
-      : status === 'active' ? ' · active'
-      : status === 'stopped' ? ' · stopped'
+    const rowClass = `list-item${isCurrent ? ' list-item--current' : ''}`;
+    const statusIcon =
+      status === 'active' ? ' ▶'
+      : status === 'stopped' ? ' ■'
       : '';
 
-    const baseMeta = `${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'} · ${formatDuration(durationMs)}${statusSuffix}`;
+    const baseMeta = `${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'}${statusIcon} · ${formatDuration(durationMs)}`;
     const metaText = s.name
       ? `${formatDateTime(s.createdAt)} · ${baseMeta}`
       : baseMeta;
@@ -88,8 +88,8 @@ export async function renderSessions(target) {
 
     if (!isCurrent) {
       children.push(el('button', {
-        class: 'btn btn-primary',
-        style: { padding: '0.4rem 0.75rem', fontSize: '0.85rem' },
+        class: 'btn btn-ghost',
+        style: { padding: '0.5rem' },
         type: 'button',
         onClick: async (e) => {
           e.preventDefault();
@@ -98,7 +98,7 @@ export async function renderSessions(target) {
           toast('Session is now current');
           window.location.hash = '/';
         },
-      }, 'Set as current'));
+      }, '▶'));
     }
 
     children.push(el('button', {
@@ -113,6 +113,6 @@ export async function renderSessions(target) {
       }
     }, '🗑'));
 
-    list.appendChild(el('div', { class: 'list-item' }, children));
+    list.appendChild(el('div', { class: rowClass }, children));
   }
 }
