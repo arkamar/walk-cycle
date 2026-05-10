@@ -454,8 +454,8 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
 
     if (mode === 'week') {
       ctx.strokeStyle = border;
-      ctx.lineWidth = 0.5;
-      ctx.setLineDash([1, 3]);
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 4]);
       for (let w = Math.max(0, visibleStart); w <= visibleEnd; w++) {
         const xx = x(w);
         ctx.beginPath();
