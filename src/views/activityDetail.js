@@ -470,6 +470,19 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
         ctx.stroke();
       }
       ctx.setLineDash([]);
+    } else if (mode === 'day' && visibleUnits < 60) {
+      const dayStep = visibleUnits < 14 ? 1 : 7;
+      ctx.strokeStyle = border;
+      ctx.lineWidth = dayStep === 1 ? 0.5 : 1;
+      ctx.setLineDash([2, 4]);
+      for (let day = Math.max(0, visibleStart); day <= visibleEnd; day += dayStep) {
+        const xx = x(day);
+        ctx.beginPath();
+        ctx.moveTo(xx, pad.top);
+        ctx.lineTo(xx, pad.top + plotH);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
     }
 
     ctx.textAlign = 'center';
