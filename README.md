@@ -1,8 +1,8 @@
 # Walk Cycle
 
-A small **Progressive Web App** for tracking repeated up-and-down walking
-cycles. Tap **Up** when you start climbing, **Pause** when you reach the
-top, **Down** when you start walking back, **Pause** again at the bottom,
+A small, vibecoded, **Progressive Web App** for tracking repeated up-and-down
+walking cycles. Tap **Up** when you start climbing, **Pause** when you reach
+the top, **Down** when you start walking back, **Pause** again at the bottom,
 and repeat. Every press is timestamped and the app derives per-segment
 durations so you can see whether you're getting faster or slower over time.
 
