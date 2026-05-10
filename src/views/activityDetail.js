@@ -187,7 +187,28 @@ export async function renderActivityDetail(target, { id }) {
     const list = el('div', { class: 'list' });
     recordsCard.appendChild(list);
 
+    let prevYear = null;
+
     for (const r of records) {
+      const year = r.date.slice(0, 4);
+      if (year !== prevYear) {
+        if (year !== String(currentYear)) {
+          const yearLabel = el('div', {
+            style: {
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 600,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              padding: '0.5rem 0.25rem',
+            },
+          }, [
+            el('span', { style: { flex: 1, height: '1px', background: 'var(--border)' } }),
+            el('span', {}, year),
+            el('span', { style: { flex: 1, height: '1px', background: 'var(--border)' } }),
+          ]);
+          list.appendChild(yearLabel);
+        }
+        prevYear = year;
+      }
       const dateSpan = el('span', { dataset: { edit: 'date' }, style: { cursor: 'pointer' } }, new Date(r.date + 'T00:00:00').toLocaleDateString());
       const dateInput = el('input', {
         type: 'date',
