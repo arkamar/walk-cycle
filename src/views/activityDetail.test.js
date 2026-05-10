@@ -190,9 +190,10 @@ describe('renderActivityDetail', () => {
       c => c.querySelector('h3')?.textContent === 'Motivation'
     );
     const buttons = chartCard.querySelectorAll('button');
-    expect(buttons.length).toBe(2);
+    expect(buttons.length).toBe(3);
     expect(buttons[0].textContent).toBe('Day');
     expect(buttons[1].textContent).toBe('Week');
+    expect(buttons[2].textContent).toContain('Reset');
   });
 
   it('shows remaining count when year count is below goal', async () => {

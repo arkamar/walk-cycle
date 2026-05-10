@@ -307,24 +307,40 @@ export async function renderActivityDetail(target, { id }) {
 
     chartCard.appendChild(el('div', { style: { display: 'flex', gap: 0, marginTop: '0.5rem' } }, [dayBtn, weekBtn]));
 
+    const resetBtn = el('button', {
+      style: { display: 'none', marginTop: '0.25rem', padding: '0.15rem 0.4rem', fontSize: '0.7rem', cursor: 'pointer', border: '1px solid var(--border)', borderRadius: '3px', background: 'transparent', color: 'var(--fg)' },
+      onClick: () => {
+        resetBtn.style.display = 'none';
+        canvasWrap.innerHTML = '';
+        renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, chartMode, null, onZoomChange);
+      },
+    }, '← Reset zoom');
+
+    chartCard.appendChild(resetBtn);
+
     const canvasWrap = el('div', { style: { marginTop: '0.5rem' } });
     chartCard.appendChild(canvasWrap);
-    renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, 'week');
+    renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, 'week', null, onZoomChange);
+
+    function onZoomChange(bounds) {
+      resetBtn.style.display = bounds ? '' : 'none';
+    }
 
     function switchMode(mode) {
       if (mode === chartMode) return;
       chartMode = mode;
+      resetBtn.style.display = 'none';
       Object.assign(dayBtn.style, mode === 'day' ? activeBtn : inactiveBtn);
       Object.assign(weekBtn.style, mode === 'week' ? activeBtn : inactiveBtn);
       canvasWrap.innerHTML = '';
-      renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, mode);
+      renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, mode, null, onZoomChange);
     }
   }
 
   target.appendChild(el('div', {}, [headerRow, headerCard, statsCard, formCard, recordsCard, ...(chartCard ? [chartCard] : [])]));
 }
 
-function renderMotivationChart(container, yearRecords, goal, yearCount, mode) {
+function renderMotivationChart(container, yearRecords, goal, yearCount, mode, initialZoom, onZoomChange) {
   const currentYear = new Date().getFullYear();
   const startOfYear = new Date(currentYear, 0, 1);
   const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
@@ -359,10 +375,30 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode) {
     }
   }
 
+  let zoom = initialZoom;
+
   const canvas = el('canvas', {
     style: { width: '100%', height: '200px', display: 'block' },
   });
   container.appendChild(canvas);
+
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragEndX = 0;
+
+  const pad = { top: 24, right: 12, bottom: 28, left: 40 };
+
+  function getPlotW() {
+    const rect = canvas.getBoundingClientRect();
+    return rect.width - pad.left - pad.right;
+  }
+
+  function pixelToIndex(px) {
+    const plotW = getPlotW();
+    if (plotW <= 0) return 0;
+    const raw = ((px - pad.left) / plotW) * totalUnits;
+    return Math.round(Math.max(0, Math.min(totalUnits - 1, raw)));
+  }
 
   const draw = () => {
     const ctx = canvas.getContext('2d');
@@ -375,10 +411,14 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode) {
 
     const w = rect.width;
     const h = rect.height;
-    const pad = { top: 24, right: 12, bottom: 28, left: 40 };
     const plotW = w - pad.left - pad.right;
     const plotH = h - pad.top - pad.bottom;
     if (plotW <= 0 || plotH <= 0) return;
+
+    const visibleStart = zoom ? zoom.start : 0;
+    const visibleEnd = zoom ? zoom.end : totalUnits - 1;
+    const visibleUnits = visibleEnd - visibleStart + 1;
+    const visibleData = data.slice(visibleStart, visibleEnd + 1);
 
     const style = getComputedStyle(canvas);
     const fg = style.getPropertyValue('--fg').trim() || '#333';
@@ -387,9 +427,9 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode) {
     const success = style.getPropertyValue('--success').trim() || '#16a34a';
     const danger = style.getPropertyValue('--danger').trim() || '#dc2626';
 
-    const maxVal = Math.max(goal, data.at(-1)?.maxPossible ?? 0, 1);
+    const maxVal = Math.max(goal, ...visibleData.map(d => d.maxPossible), 1);
 
-    const x = (idx) => pad.left + (idx / totalUnits) * plotW;
+    const x = (idx) => pad.left + ((idx - visibleStart) / visibleUnits) * plotW;
     const y = (val) => pad.top + plotH - (val / maxVal) * plotH;
 
     ctx.clearRect(0, 0, w, h);
@@ -417,6 +457,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode) {
     for (let m = 0; m < 12; m++) {
       const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
       const idx = mode === 'week' ? Math.floor(dayOfMonth / 7) : dayOfMonth;
+      if (idx < visibleStart || idx > visibleEnd) continue;
       ctx.fillText(
         new Date(currentYear, m, 1).toLocaleDateString('en', { month: 'short' }),
         x(Math.min(idx, totalUnits - 1)),
@@ -428,14 +469,14 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode) {
     const belowGoal = currentPossible < goal;
 
     ctx.beginPath();
-    data.forEach((d, i) => {
+    visibleData.forEach((d, i) => {
       const xx = x(d.index);
       const yy = y(d.maxPossible);
       if (i === 0) ctx.moveTo(xx, yy);
       else ctx.lineTo(xx, yy);
     });
-    ctx.lineTo(x(totalUnits - 1), y(0));
-    ctx.lineTo(x(0), y(0));
+    ctx.lineTo(x(visibleEnd), y(0));
+    ctx.lineTo(x(visibleStart), y(0));
     ctx.closePath();
     ctx.fillStyle = (belowGoal ? danger : success) + '18';
     ctx.fill();
@@ -443,7 +484,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode) {
     ctx.beginPath();
     ctx.strokeStyle = belowGoal ? danger : success;
     ctx.lineWidth = 2;
-    data.forEach((d, i) => {
+    visibleData.forEach((d, i) => {
       const xx = x(d.index);
       const yy = y(d.maxPossible);
       if (i === 0) ctx.moveTo(xx, yy);
@@ -467,22 +508,84 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode) {
     ctx.font = '10px sans-serif';
     ctx.fillText('goal', pad.left + plotW, goalY - 2);
 
-    ctx.beginPath();
-    ctx.strokeStyle = fg;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 4]);
-    const todayX = x(todayIndex);
-    ctx.moveTo(todayX, pad.top);
-    ctx.lineTo(todayX, pad.top + plotH);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    if (todayIndex >= visibleStart && todayIndex <= visibleEnd) {
+      ctx.beginPath();
+      ctx.strokeStyle = fg;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      const todayX = x(todayIndex);
+      ctx.moveTo(todayX, pad.top);
+      ctx.lineTo(todayX, pad.top + plotH);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-    ctx.fillStyle = fg;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.font = '10px sans-serif';
-    ctx.fillText('today', todayX, pad.top - 2);
+      ctx.fillStyle = fg;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.font = '10px sans-serif';
+      ctx.fillText('today', todayX, pad.top - 2);
+    }
+
+    if (isDragging) {
+      const minX = Math.min(dragStartX, dragEndX);
+      const maxX = Math.max(dragStartX, dragEndX);
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.12)';
+      ctx.fillRect(minX, pad.top, maxX - minX, plotH);
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(minX, pad.top, maxX - minX, plotH);
+    }
   };
+
+  const startDrag = (clientX) => {
+    const rect = canvas.getBoundingClientRect();
+    isDragging = true;
+    dragStartX = clientX - rect.left;
+    dragEndX = dragStartX;
+    canvas.style.cursor = 'ew-resize';
+    draw();
+  };
+
+  const moveDrag = (clientX) => {
+    if (!isDragging) return;
+    const rect = canvas.getBoundingClientRect();
+    dragEndX = clientX - rect.left;
+    draw();
+  };
+
+  const endDrag = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    canvas.style.cursor = '';
+
+    const minX = Math.min(dragStartX, dragEndX);
+    const maxX = Math.max(dragStartX, dragEndX);
+    const dist = maxX - minX;
+
+    const plotW = getPlotW();
+    if (plotW <= 0 || dist < 5) {
+      draw();
+      return;
+    }
+
+    const start = pixelToIndex(minX);
+    const end = pixelToIndex(maxX);
+    if (start >= end) {
+      draw();
+      return;
+    }
+
+    zoom = { start, end };
+    draw();
+
+    if (onZoomChange) onZoomChange(zoom);
+  };
+
+  canvas.addEventListener('mousedown', (e) => { startDrag(e.clientX); });
+  canvas.addEventListener('mousemove', (e) => { moveDrag(e.clientX); });
+
+  const onMouseUp = () => { endDrag(); };
+  window.addEventListener('mouseup', onMouseUp);
 
   draw();
   if (typeof ResizeObserver !== 'undefined') {
