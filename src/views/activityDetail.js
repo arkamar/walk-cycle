@@ -402,7 +402,9 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
   function pixelToIndex(px) {
     const plotW = getPlotW();
     if (plotW <= 0) return 0;
-    const raw = ((px - pad.left) / plotW) * totalUnits;
+    const vs = zoom ? zoom.start : 0;
+    const vu = zoom ? (zoom.end - zoom.start + 1) : totalUnits;
+    const raw = vs + ((px - pad.left) / plotW) * vu;
     return Math.round(Math.max(0, Math.min(totalUnits - 1, raw)));
   }
 
