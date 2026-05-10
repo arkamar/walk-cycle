@@ -76,7 +76,7 @@ describe('renderActivityDetail', () => {
     expect(mockDb.updateActivity).toHaveBeenCalledWith(1, { name: 'Mountains' });
   });
 
-  it('renders add form with date, count and note inputs', async () => {
+  it('renders add form with date and count inputs', async () => {
     mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
     mockDb.listRecordsByActivity.mockResolvedValue([]);
 
@@ -87,8 +87,6 @@ describe('renderActivityDetail', () => {
     expect(dateInput).toBeTruthy();
     const countInput = target.querySelector('input[data-form="count"]');
     expect(countInput).toBeTruthy();
-    const noteInput = target.querySelector('input[placeholder="Note (optional)"]');
-    expect(noteInput).toBeTruthy();
     const addBtn = target.querySelector('.btn-primary');
     expect(addBtn.textContent).toContain('Add');
   });
@@ -110,7 +108,7 @@ describe('renderActivityDetail', () => {
     const addBtn = target.querySelector('.btn-primary');
     await addBtn.click();
 
-    expect(mockDb.addRecord).toHaveBeenCalledWith({ activityId: 1, date: '2026-05-10', count: 3, note: '' });
+    expect(mockDb.addRecord).toHaveBeenCalledWith({ activityId: 1, date: '2026-05-10', count: 3 });
   });
 
   it('shows toast error when addRecord rejects', async () => {
@@ -645,14 +643,4 @@ describe('renderActivityDetail', () => {
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { note: 'Lake view' });
   });
 
-  it('has note input in add form', async () => {
-    mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
-    mockDb.listRecordsByActivity.mockResolvedValue([]);
-
-    const { renderActivityDetail } = await import('./activityDetail.js');
-    await renderActivityDetail(target, { id: 1 });
-
-    const noteInput = target.querySelector('input[placeholder="Note (optional)"]');
-    expect(noteInput).toBeTruthy();
-  });
 });

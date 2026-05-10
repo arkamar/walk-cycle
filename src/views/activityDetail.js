@@ -102,15 +102,16 @@ export async function renderActivityDetail(target, { id }) {
     goalInput.focus();
   };
 
-  const statsCard = el('div', { class: 'card stat-grid', style: { gridTemplateColumns: activity.goal ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)' } }, [
+  const statsCard = el('div', { class: 'card stat-grid' }, [
     el('div', { class: 'stat' }, [
       el('div', { class: 'label' }, 'Total'),
       el('div', { class: 'value' }, String(totalCount)),
     ]),
     el('div', { class: 'stat' }, [
       el('div', { class: 'label' }, `${currentYear}`),
-      el('div', { class: 'value', style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } }, [
+      el('div', { class: 'value', style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' } }, [
         el('span', {}, String(yearCount)),
+        el('span', { style: { color: 'var(--muted)' } }, '/'),
         goalSquare,
         goalInput,
       ]),
@@ -146,7 +147,6 @@ export async function renderActivityDetail(target, { id }) {
           activityId: id,
           date: dateInput.value,
           count: Number(countInput.value),
-          note: formNoteInput.value.trim(),
         });
         toast('Record added');
         target.innerHTML = '';
@@ -157,18 +157,11 @@ export async function renderActivityDetail(target, { id }) {
     },
   }, 'Add');
 
-  const formNoteInput = el('input', {
-    type: 'text',
-    placeholder: 'Note (optional)',
-    style: { flex: 1 },
-  });
-
   const formCard = el('div', { class: 'card' }, [
     el('h3', {}, 'Add record'),
     el('div', { class: 'row', style: { gap: '0.5rem', marginTop: '0.5rem' } }, [
       dateInput,
       countInput,
-      formNoteInput,
       addBtn,
     ]),
   ]);
