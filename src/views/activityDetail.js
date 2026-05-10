@@ -146,6 +146,7 @@ export async function renderActivityDetail(target, { id }) {
           activityId: id,
           date: dateInput.value,
           count: Number(countInput.value),
+          note: formNoteInput.value.trim(),
         });
         toast('Record added');
         target.innerHTML = '';
@@ -156,11 +157,18 @@ export async function renderActivityDetail(target, { id }) {
     },
   }, 'Add');
 
+  const formNoteInput = el('input', {
+    type: 'text',
+    placeholder: 'Note (optional)',
+    style: { flex: 1 },
+  });
+
   const formCard = el('div', { class: 'card' }, [
     el('h3', {}, 'Add record'),
     el('div', { class: 'row', style: { gap: '0.5rem', marginTop: '0.5rem' } }, [
       dateInput,
       countInput,
+      formNoteInput,
       addBtn,
     ]),
   ]);
@@ -256,30 +264,58 @@ export async function renderActivityDetail(target, { id }) {
         },
       });
 
+      const noteSpan = el('span', {
+        dataset: { edit: 'note' },
+        style: { flex: 1, alignSelf: 'stretch', color: 'var(--muted)', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center' },
+      }, r.note);
+      const noteInput = el('input', {
+        type: 'text',
+        value: r.note,
+        dataset: { edit: 'note-input' },
+        style: { flex: 1, display: 'none', fontSize: '0.85rem' },
+        onBlur: async () => { await saveNote(); },
+        onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); noteInput.blur(); } },
+      });
+      async function saveNote() {
+        const val = noteInput.value.trim();
+        if (val !== (r.note || '')) {
+          await updateRecord(r.id, { note: val });
+          r.note = val;
+          toast('Note updated');
+        }
+        noteSpan.textContent = val;
+        noteSpan.style.display = '';
+        noteInput.style.display = 'none';
+      }
+      noteSpan.onclick = () => {
+        noteSpan.style.display = 'none';
+        noteInput.style.display = '';
+        noteInput.focus();
+      };
+
       const children = [
-        el('div', { style: { flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }, [
-          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.5rem' } }, [
-            writtenChk,
-            el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [dateSpan, dateInput]),
-          ]),
-          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.75rem' } }, [
-            el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [countSpan, countInput]),
-            el('span', { style: { color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' } }, String(cumulativeById.get(r.id))),
-          ]),
+        el('span', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem' } }, [
+          writtenChk,
+          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [dateSpan, dateInput]),
+          noteSpan,
+          noteInput,
+        ]),
+        el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.75rem' } }, [
+          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [countSpan, countInput]),
+          el('span', { style: { color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' } }, String(cumulativeById.get(r.id))),
+          el('button', {
+            class: 'btn btn-ghost',
+            style: { color: 'var(--danger)', padding: '0.5rem' },
+            onClick: async () => {
+              if (!confirm('Delete this record?')) return;
+              await deleteRecord(r.id);
+              toast('Record deleted');
+              target.innerHTML = '';
+              renderActivityDetail(target, { id });
+            },
+          }, '🗑'),
         ]),
       ];
-
-      children.push(el('button', {
-        class: 'btn btn-ghost',
-        style: { color: 'var(--danger)', padding: '0.5rem' },
-        onClick: async () => {
-          if (!confirm('Delete this record?')) return;
-          await deleteRecord(r.id);
-          toast('Record deleted');
-          target.innerHTML = '';
-          renderActivityDetail(target, { id });
-        },
-      }, '🗑'));
 
       list.appendChild(el('div', { class: 'list-item' }, children));
     }

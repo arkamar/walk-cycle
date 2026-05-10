@@ -501,9 +501,9 @@ describe('exportAll', () => {
     await clearAll();
   });
 
-  it('returns correct shape with version 5', async () => {
+  it('returns correct shape with version 6', async () => {
     const data = await exportAll();
-    expect(data.version).toBe(5);
+    expect(data.version).toBe(6);
     expect(typeof data.exportedAt).toBe('number');
     expect(Array.isArray(data.sessions)).toBe(true);
     expect(Array.isArray(data.events)).toBe(true);
@@ -778,6 +778,18 @@ describe('importAll', () => {
         expect(r.written).toBe(true);
       });
 
+      it('defaults note to empty string', async () => {
+        const id = await createActivity('Hills');
+        const r = await addRecord({ activityId: id, date: '2026-06-01', count: 2 });
+        expect(r.note).toBe('');
+      });
+
+      it('accepts note param', async () => {
+        const id = await createActivity('Hills');
+        const r = await addRecord({ activityId: id, date: '2026-06-01', count: 2, note: 'Park entrance' });
+        expect(r.note).toBe('Park entrance');
+      });
+
       it('throws for duplicate date on the same activity', async () => {
         const id = await createActivity('Hills');
         await addRecord({ activityId: id, date: '2026-05-10', count: 2 });
@@ -841,6 +853,14 @@ describe('importAll', () => {
         await updateRecord(r.id, { written: true });
         const records = await listRecordsByActivity(id);
         expect(records[0].written).toBe(true);
+      });
+
+      it('updates note on a record', async () => {
+        const id = await createActivity('Hills');
+        const r = await addRecord({ activityId: id, date: '2026-01-01', count: 1 });
+        await updateRecord(r.id, { note: 'River trail' });
+        const records = await listRecordsByActivity(id);
+        expect(records[0].note).toBe('River trail');
       });
 
       it('returns null for unknown id', async () => {

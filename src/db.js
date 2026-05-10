@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'walk-cycle';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 export const STORE_SESSIONS = 'sessions';
 export const STORE_EVENTS = 'events';
@@ -101,6 +101,20 @@ export function getDB() {
               const r = cursor.value;
               if (!Object.prototype.hasOwnProperty.call(r, 'written')) {
                 r.written = false;
+                await cursor.update(r);
+              }
+              cursor = await cursor.continue();
+            }
+          }
+        }
+        if (oldVersion < 6) {
+          const store = tx.objectStore(STORE_RECORDS);
+          if (store) {
+            let cursor = await store.openCursor();
+            while (cursor) {
+              const r = cursor.value;
+              if (!Object.prototype.hasOwnProperty.call(r, 'note')) {
+                r.note = '';
                 await cursor.update(r);
               }
               cursor = await cursor.continue();
@@ -302,14 +316,14 @@ export async function deleteActivity(id) {
 
 // ---------- Records ----------
 
-export async function addRecord({ activityId, date, count = 1, written = false }) {
+export async function addRecord({ activityId, date, count = 1, written = false, note = '' }) {
   const db = await getDB();
   const existing = await listRecordsByActivity(activityId);
   if (existing.find(r => r.date === date)) {
     throw new Error(`Record already exists for ${date}`);
   }
-  const id = await db.add(STORE_RECORDS, { activityId, date, count, written });
-  return { id, activityId, date, count, written };
+  const id = await db.add(STORE_RECORDS, { activityId, date, count, written, note });
+  return { id, activityId, date, count, written, note };
 }
 
 export async function listRecordsByActivity(activityId) {
