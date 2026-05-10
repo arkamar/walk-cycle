@@ -58,6 +58,16 @@ There is no separate "ended" state — sessions are never permanently finished; 
 
 ## Migration history
 
+### v0 → v1 (initial)
+
+- Created `sessions` store with `createdAt` index.
+- Created `events` store with `sessionId`, `ts`, and `type` indexes.
+
+### v1 → v2
+
+- Renamed `pausedAt` → `stoppedAt` on existing sessions (UI vocabulary change: the 4th button became "Stop" / "Resume").
+- Added `stoppedAt: null` to sessions that never had `pausedAt` (ensures `getActiveSession()` predicate works correctly for all migrated records).
+
 ### v2 → v3
 
 - Renamed `startedAt` → `createdAt` on sessions and the corresponding index.
@@ -65,16 +75,6 @@ There is no separate "ended" state — sessions are never permanently finished; 
 - Added `isStopped: boolean` field to sessions (`true` if a `session_stopped` event exists).
 - For sessions that had `stoppedAt` set, a `session_stopped` event is created with `ts = stoppedAt`, and `isStopped` is set to `true`.
 - Session lifecycle is now fully event-driven: stopping a session creates a `session_stopped` event; resuming deletes it.
-
-### v1 → v2
-
-- Renamed `pausedAt` → `stoppedAt` on existing sessions (UI vocabulary change: the 4th button became "Stop" / "Resume").
-- Added `stoppedAt: null` to sessions that never had `pausedAt` (ensures `getActiveSession()` predicate works correctly for all migrated records).
-
-### v0 → v1 (initial)
-
-- Created `sessions` store with `createdAt` index.
-- Created `events` store with `sessionId`, `ts`, and `type` indexes.
 
 ## API surface
 
