@@ -115,6 +115,7 @@ export async function renderActivityDetail(target, { id }) {
         goalSquare,
         goalInput,
       ]),
+      ...(activity.goal ? [el('div', { class: 'meta' }, `${Math.round(yearCount / activity.goal * 100)}%`)] : []),
     ]),
     ...(activity.goal ? [
       el('div', { class: 'stat' }, [
