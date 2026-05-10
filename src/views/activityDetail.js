@@ -452,6 +452,20 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
       ctx.fillText(String(val), pad.left - 4, yy);
     }
 
+    if (mode === 'week') {
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([1, 3]);
+      for (let w = Math.max(0, visibleStart); w <= visibleEnd; w++) {
+        const xx = x(w);
+        ctx.beginPath();
+        ctx.moveTo(xx, pad.top);
+        ctx.lineTo(xx, pad.top + plotH);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     for (let m = 0; m < 12; m++) {
