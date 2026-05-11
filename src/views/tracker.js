@@ -334,43 +334,6 @@ export async function renderTracker(target) {
     const sessionName = session?.name ? `${session.name} · ` : '';
     cycleCountEl.textContent = (session || events.length > 0) ? `${sessionName}Cycle ${upCount}` : '';
 
-    const goal = getCompetitionGoal();
-    if (goal && (session || events.length > 0)) {
-      goalProgressEl.style.display = '';
-      let parts = [];
-
-      if (goal.ups) {
-        const remaining = goal.ups - upCount;
-        if (remaining > 0) {
-          parts.push(`${remaining} up`);
-        } else if (remaining < 0) {
-          parts.push(`${-remaining} over`);
-        }
-      }
-
-      if (goal.endTime) {
-        const now = new Date();
-        const [h, m] = goal.endTime.split(':').map(Number);
-        const target = new Date(now);
-        target.setHours(h, m, 0, 0);
-        if (target < now) target.setDate(target.getDate() + 1);
-        const diffMs = target - now;
-        if (diffMs > 0) {
-          parts.push(formatLive(diffMs));
-        } else {
-          parts.push('time up');
-        }
-      }
-
-      if (parts.length > 0) {
-        goalProgressEl.textContent = parts.join(' · ');
-      } else {
-        goalProgressEl.style.display = 'none';
-      }
-    } else {
-      goalProgressEl.style.display = 'none';
-    }
-
     const btnStates = buttonStatesFor({ session, events });
 
     for (const b of BUTTONS) {
