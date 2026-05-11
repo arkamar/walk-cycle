@@ -1,5 +1,4 @@
 import { el } from '../ui.js';
-import { Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Title, Filler } from 'chart.js';
 import { listSessions, listEventsBySession, getCurrentSession } from '../db.js';
 import {
   segmentsFromEvents,
@@ -11,18 +10,6 @@ import {
   SEGMENT_COLORS,
 } from '../analytics.js';
 import { createTrendChart, buildCycleDatasets } from '../chart.js';
-
-Chart.register(
-  LineController,
-  LineElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Tooltip,
-  Legend,
-  Title,
-  Filler
-);
 
 const RANGES = [
   { value: 'all', label: 'All time' },
