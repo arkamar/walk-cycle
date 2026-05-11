@@ -355,17 +355,17 @@ export async function renderTracker(target) {
   }
 
   function renderLog() {
-    renderLogEntries(logList, events, {
-      isRunning: session && !session.isStopped,
-      eventLabels: EVENT_LABELS,
-    });
-
     for (let i = 0; i < events.length - 1; i++) {
       events[i].nextTs = events[i + 1].ts;
     }
     if (events.length > 0 && session) {
       events[events.length - 1].nextTs = Date.now();
     }
+
+    renderLogEntries(logList, events, {
+      isRunning: session && !session.isStopped,
+      eventLabels: EVENT_LABELS,
+    });
   }
 
   function updateLiveTimer() {
