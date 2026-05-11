@@ -409,6 +409,7 @@ export async function renderActivityDetail(target, { id }) {
 }
 
 const _mouseUpHandlers = new Map();
+const _resizeObservers = new Map();
 
 function renderMotivationChart(container, yearRecords, goal, yearCount, mode, initialZoom, onZoomChange) {
   const currentYear = new Date().getFullYear();
@@ -816,8 +817,11 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
   }, { passive: false });
 
   draw();
+  const prevRo = _resizeObservers.get(container);
+  if (prevRo) prevRo.disconnect();
   if (typeof ResizeObserver !== 'undefined') {
     const ro = new ResizeObserver(draw);
     ro.observe(canvas);
+    _resizeObservers.set(container, ro);
   }
 }
