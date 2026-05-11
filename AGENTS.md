@@ -28,6 +28,7 @@ npm run lint:fix   # Run ESLint with auto-fix
 - Chart.js loaded on-demand in Stats view; motivation chart in activity detail uses raw `<canvas>`
 - Custom hash router in `src/router.js` — 5 tabs: Track, Sessions, Activities, Stats, Settings
 - 5-state FSM in `src/stateMachine.js`: idle → going_up → at_top → going_down → at_bottom → ...
+- Shared rendering helpers in `src/sessionLog.js` (log entry rendering, `enrichNextTs`) and `src/chart.js` (Chart.js trend chart factory).
 - Tracker button rules live in `buttonStatesFor()` in `src/stateMachine.js` (pure, unit-tested).
 - Activity detail view with stats grid (3 equal columns), per-record inline editing (date, count, note), written checkbox, cumulative sums, motivation chart with day/week toggle and drag-to-zoom.
 
