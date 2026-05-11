@@ -21,7 +21,7 @@ import {
   formatLive,
   formatDuration,
 } from '../analytics.js';
-import { renderLogEntries } from '../sessionLog.js';
+import { enrichNextTs, renderLogEntries } from '../sessionLog.js';
 
 function getGoalDeadlineInfo(endTime) {
   const now = new Date();
@@ -125,14 +125,13 @@ export async function renderTracker(target) {
     }
 
     events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
-    for (let i = 0; i < events.length - 1; i++) {
-      events[i].nextTs = events[i + 1].ts;
-    }
+    let lastNextTs = Date.now();
     if (events.length > 0) {
       const allEvents = await listEventsBySession(session.id);
       const stoppedEvent = allEvents.findLast(e => e.type === 'session_stopped');
-      events[events.length - 1].nextTs = stoppedEvent?.ts || Date.now();
+      if (stoppedEvent?.ts) lastNextTs = stoppedEvent.ts;
     }
+    enrichNextTs(events, lastNextTs);
     state = stateFromEvents(events);
     lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
     render();
@@ -158,9 +157,7 @@ export async function renderTracker(target) {
       events.pop();
       state = stateFromEvents(events);
       lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
-      if (events.length > 0) {
-        events[events.length - 1].nextTs = Date.now();
-      }
+      enrichNextTs(events);
       render();
       renderLog();
       renderGoalProgress();
@@ -183,12 +180,7 @@ export async function renderTracker(target) {
         }
         session = resumed;
         events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
-        for (let i = 0; i < events.length - 1; i++) {
-          events[i].nextTs = events[i + 1].ts;
-        }
-        if (events.length > 0) {
-          events[events.length - 1].nextTs = Date.now();
-        }
+        enrichNextTs(events);
         state = stateFromEvents(events);
         lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
         toast('Session resumed');
@@ -355,12 +347,7 @@ export async function renderTracker(target) {
   }
 
   function renderLog() {
-    for (let i = 0; i < events.length - 1; i++) {
-      events[i].nextTs = events[i + 1].ts;
-    }
-    if (events.length > 0 && session) {
-      events[events.length - 1].nextTs = Date.now();
-    }
+    if (session) enrichNextTs(events);
 
     renderLogEntries(logList, events, {
       isRunning: session && !session.isStopped,

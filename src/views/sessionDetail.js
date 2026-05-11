@@ -20,7 +20,7 @@ import {
   SEGMENT_COLORS,
 } from '../analytics.js';
 import { sessionStatus } from '../stateMachine.js';
-import { renderLogEntries } from '../sessionLog.js';
+import { enrichNextTs, renderLogEntries } from '../sessionLog.js';
 
 export async function renderSessionDetail(target, { id }) {
   const session = await getSession(id);
@@ -49,15 +49,13 @@ export async function renderSessionDetail(target, { id }) {
     down: 'Down',
   };
 
-  // Build nextTs for each event (for duration calculation)
-  for (let i = 0; i < events.length - 1; i++) {
-    events[i].nextTs = events[i + 1].ts;
-  }
+  let lastNextTs;
   if (events.length > 0) {
     const allEvents = await listEventsBySession(id);
     const stoppedEvent = allEvents.findLast(e => e.type === 'session_stopped');
-    events[events.length - 1].nextTs = stoppedEvent?.ts || events[events.length - 1].ts;
+    lastNextTs = stoppedEvent?.ts ?? events[events.length - 1].ts;
   }
+  enrichNextTs(events, lastNextTs);
 
   const current = await getCurrentSession();
   const isCurrent = current && current.id === id;

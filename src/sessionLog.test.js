@@ -18,8 +18,41 @@ vi.mock('./analytics.js', () => ({
   findPrevSameType: vi.fn(() => null),
 }));
 
-import { renderLogEntries } from './sessionLog.js';
+import { enrichNextTs, renderLogEntries } from './sessionLog.js';
 import { findPrevSameType } from './analytics.js';
+
+describe('enrichNextTs', () => {
+  it('does nothing for empty events', () => {
+    const events = [];
+    enrichNextTs(events);
+    expect(events).toEqual([]);
+  });
+
+  it('sets nextTs on a single event using provided value', () => {
+    const events = [{ id: 1, ts: 1000 }];
+    enrichNextTs(events, 5000);
+    expect(events[0].nextTs).toBe(5000);
+  });
+
+  it('sets intermediate events to next event ts and last to provided value', () => {
+    const events = [
+      { id: 1, ts: 1000 },
+      { id: 2, ts: 3000 },
+      { id: 3, ts: 6000 },
+    ];
+    enrichNextTs(events, 9999);
+    expect(events[0].nextTs).toBe(3000);
+    expect(events[1].nextTs).toBe(6000);
+    expect(events[2].nextTs).toBe(9999);
+  });
+
+  it('defaults lastNextTs to Date.now()', () => {
+    const now = Date.now();
+    const events = [{ id: 1, ts: 1000 }];
+    enrichNextTs(events);
+    expect(events[0].nextTs).toBeGreaterThanOrEqual(now);
+  });
+});
 
 describe('sessionLog.js', () => {
   let container;

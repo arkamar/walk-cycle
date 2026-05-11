@@ -7,6 +7,15 @@ const DEFAULT_EVENT_LABELS = {
   down: 'Down',
 };
 
+export function enrichNextTs(events, lastNextTs = Date.now()) {
+  for (let i = 0; i < events.length - 1; i++) {
+    events[i].nextTs = events[i + 1].ts;
+  }
+  if (events.length > 0) {
+    events[events.length - 1].nextTs = lastNextTs;
+  }
+}
+
 export function renderLogEntries(container, events, options = {}) {
   const {
     isRunning = false,
