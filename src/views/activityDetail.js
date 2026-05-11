@@ -408,6 +408,8 @@ export async function renderActivityDetail(target, { id }) {
   ]));
 }
 
+const _mouseUpHandlers = new Map();
+
 function renderMotivationChart(container, yearRecords, goal, yearCount, mode, initialZoom, onZoomChange) {
   const currentYear = new Date().getFullYear();
   const startOfYear = new Date(currentYear, 0, 1);
@@ -734,8 +736,11 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
   canvas.addEventListener('mousedown', (e) => { startDrag(e.clientX); });
   canvas.addEventListener('mousemove', (e) => { moveDrag(e.clientX); });
 
+  const prevHandler = _mouseUpHandlers.get(container);
+  if (prevHandler) window.removeEventListener('mouseup', prevHandler);
   const onMouseUp = () => { endDrag(); };
   window.addEventListener('mouseup', onMouseUp);
+  _mouseUpHandlers.set(container, onMouseUp);
 
   canvas.addEventListener('touchstart', (e) => {
     if (e.touches.length === 2) {
