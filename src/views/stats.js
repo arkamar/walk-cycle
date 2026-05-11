@@ -1,5 +1,4 @@
 import { el } from '../ui.js';
-import { Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Title, Filler } from 'chart.js';
 import { listSessions, listEventsBySession, getCurrentSession } from '../db.js';
 import {
   segmentsFromEvents,
@@ -11,18 +10,6 @@ import {
   SEGMENT_COLORS,
 } from '../analytics.js';
 import { createTrendChart, buildCycleDatasets } from '../chart.js';
-
-Chart.register(
-  LineController,
-  LineElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Tooltip,
-  Legend,
-  Title,
-  Filler
-);
 
 const RANGES = [
   { value: 'all', label: 'All time' },
@@ -67,7 +54,7 @@ export async function renderStats(target) {
         rerender();
       },
     },
-    RANGES.map((r) => el('option', { value: r.value }, r.label))
+    RANGES.map((r) => el('option', { value: r.value }, r.label)),
   );
   rangeSel.value = range;
 
@@ -81,7 +68,7 @@ export async function renderStats(target) {
         rerender();
       },
     },
-    VIEWS.map((v) => el('option', { value: v.value }, v.label))
+    VIEWS.map((v) => el('option', { value: v.value }, v.label)),
   );
   viewSel.value = view;
 
@@ -104,7 +91,7 @@ export async function renderStats(target) {
     el(
       'p',
       { class: 'muted', style: { marginTop: '0.5rem' } },
-      'Lower lines = faster. A rising line for "Up" or "Down" means you\'re slowing down (degrading); falling lines mean improvement.'
+      'Lower lines = faster. A rising line for "Up" or "Down" means you\'re slowing down (degrading); falling lines mean improvement.',
     ),
   ]);
 
@@ -133,7 +120,7 @@ export async function renderStats(target) {
       const cs = cyclesFromSegments(segs);
       return cs.map(c => ({ ...c, sessionId: session.id }));
     }
-    
+
     const sessions = await listSessions({ limit: 500 });
     const cutoff = computeCutoff(range);
     const cycles = [];
@@ -189,8 +176,8 @@ export async function renderStats(target) {
           [
             el('div', { class: 'label' }, c.label),
             el('div', { class: 'value' }, c.value),
-          ]
-        )
+          ],
+        ),
       );
     }
   }
@@ -221,7 +208,7 @@ export async function renderStats(target) {
               justifyContent: 'center',
             },
           },
-          'No data yet — track some cycles first.'
+          'No data yet — track some cycles first.',
         );
         wrap.appendChild(placeholder);
       }
@@ -261,7 +248,7 @@ export async function renderStats(target) {
       }
       const sortedDays = [...byDay.keys()].sort((a, b) => a - b);
       labels = sortedDays.map((t) =>
-        new Date(t).toLocaleDateString(undefined, { month: 'short', day: '2-digit' })
+        new Date(t).toLocaleDateString(undefined, { month: 'short', day: '2-digit' }),
       );
       for (const k of Object.values(SEGMENT_KINDS)) {
         datasets.push({

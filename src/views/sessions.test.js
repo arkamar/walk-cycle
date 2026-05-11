@@ -584,7 +584,7 @@ describe('renderSessions', () => {
 
       // Check that segmentsFromEvents was called with filtered events
       expect(segmentsFromEvents).toHaveBeenCalledWith(
-        events.filter(e => e.type !== 'session_stopped')
+        events.filter(e => e.type !== 'session_stopped'),
       );
     });
   });

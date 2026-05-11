@@ -93,7 +93,7 @@ describe('stateFromEvents', () => {
 
   it('lands on at_top after up,pause', () => {
     expect(
-      stateFromEvents([{ type: EVENTS.UP }, { type: EVENTS.PAUSE }])
+      stateFromEvents([{ type: EVENTS.UP }, { type: EVENTS.PAUSE }]),
     ).toBe(STATES.AT_TOP);
   });
 
@@ -136,13 +136,13 @@ describe('sessionStatus', () => {
 
   it('returns "active" when isStopped is false', () => {
     expect(
-      sessionStatus({ id: 1, createdAt: 0, isStopped: false })
+      sessionStatus({ id: 1, createdAt: 0, isStopped: false }),
     ).toBe('active');
   });
 
   it('returns "stopped" when isStopped is true', () => {
     expect(
-      sessionStatus({ id: 1, createdAt: 0, isStopped: true })
+      sessionStatus({ id: 1, createdAt: 0, isStopped: true }),
     ).toBe('stopped');
   });
 });
@@ -192,7 +192,7 @@ describe('buttonStatesFor', () => {
 
     it('AT_TOP: only down enabled, Stop active', () => {
       const r = buttonStatesFor(
-        running([{ type: EVENTS.UP }, { type: EVENTS.PAUSE }])
+        running([{ type: EVENTS.UP }, { type: EVENTS.PAUSE }]),
       );
       expect(r.up.enabled).toBe(false);
       expect(r.pause.enabled).toBe(false);
@@ -206,7 +206,7 @@ describe('buttonStatesFor', () => {
           { type: EVENTS.UP },
           { type: EVENTS.PAUSE },
           { type: EVENTS.DOWN },
-        ])
+        ]),
       );
       expect(r.up.enabled).toBe(true);
       expect(r.pause.enabled).toBe(true);
@@ -221,7 +221,7 @@ describe('buttonStatesFor', () => {
           { type: EVENTS.PAUSE },
           { type: EVENTS.DOWN },
           { type: EVENTS.PAUSE },
-        ])
+        ]),
       );
       expect(r.up.enabled).toBe(true);
       expect(r.pause.enabled).toBe(false);
@@ -236,7 +236,7 @@ describe('buttonStatesFor', () => {
         stopped([
           { type: EVENTS.UP },
           { type: EVENTS.PAUSE },
-        ])
+        ]),
       );
       expect(r.stop).toEqual({ enabled: true, label: 'Resume' });
       expect(r.up.enabled).toBe(false);
@@ -244,8 +244,6 @@ describe('buttonStatesFor', () => {
       expect(r.down.enabled).toBe(false);
     });
   });
-
-
 
   describe('defensive', () => {
     it('handles missing input', () => {

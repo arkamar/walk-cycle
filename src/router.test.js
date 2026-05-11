@@ -19,7 +19,7 @@ describe('createRouter', () => {
 
   it('throws if mount element not found', () => {
     expect(() => createRouter({}, { mount: '#nonexistent' })).toThrow(
-      'Router mount not found: #nonexistent'
+      'Router mount not found: #nonexistent',
     );
   });
 
@@ -161,7 +161,7 @@ describe('createRouter', () => {
       const handler2 = vi.fn().mockReturnValue(cleanup2);
       const router = createRouter(
         { '/a': handler1, '/b': handler2 },
-        { mount: container }
+        { mount: container },
       );
       // Start with /a
       window.location.hash = '#/a';
@@ -187,7 +187,7 @@ describe('createRouter', () => {
       const handler2 = vi.fn();
       const router = createRouter(
         { '/a': handler1, '/b': handler2 },
-        { mount: container }
+        { mount: container },
       );
       window.location.hash = '#/a';
       router.start();
@@ -207,7 +207,7 @@ describe('createRouter', () => {
       const handler2 = vi.fn();
       const router = createRouter(
         { '/a': handler1, '/b': handler2 },
-        { mount: container }
+        { mount: container },
       );
       window.location.hash = '#/a';
       router.start();
@@ -241,7 +241,7 @@ describe('createRouter', () => {
       const notFound = vi.fn();
       const router = createRouter(
         { '/exists': vi.fn() },
-        { mount: container, notFound }
+        { mount: container, notFound },
       );
       window.location.hash = '#/doesnotexist';
       router.start();

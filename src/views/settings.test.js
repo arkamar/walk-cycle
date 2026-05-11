@@ -278,7 +278,7 @@ describe('settings.js', () => {
       expect(exportAll).toHaveBeenCalled();
       expect(global.URL.createObjectURL).toHaveBeenCalled();
       expect(toast).toHaveBeenCalledWith(
-        'Exported 1 session and 1 event'
+        'Exported 1 session and 1 event',
       );
     });
 
@@ -325,7 +325,7 @@ describe('settings.js', () => {
       const file = new File(
         [JSON.stringify({ sessions: [{ id: 1 }], events: [], exportedAt: Date.now() })],
         'backup.json',
-        { type: 'application/json' }
+        { type: 'application/json' },
       );
 
       Object.defineProperty(importInput, 'files', {
@@ -342,7 +342,7 @@ describe('settings.js', () => {
 
       expect(importAll).toHaveBeenCalledWith(
         expect.any(Object),
-        expect.objectContaining({ merge: true })
+        expect.objectContaining({ merge: true }),
       );
     });
 
@@ -356,7 +356,7 @@ describe('settings.js', () => {
       const file = new File(
         [JSON.stringify({ sessions: [], events: [], exportedAt: Date.now() })],
         'backup.json',
-        { type: 'application/json' }
+        { type: 'application/json' },
       );
 
       Object.defineProperty(importInput, 'files', {
@@ -372,7 +372,7 @@ describe('settings.js', () => {
 
       expect(importAll).toHaveBeenCalledWith(
         expect.any(Object),
-        expect.objectContaining({ merge: false })
+        expect.objectContaining({ merge: false }),
       );
     });
 
@@ -386,7 +386,7 @@ describe('settings.js', () => {
       const file = new File(
         [JSON.stringify({ sessions: [{ id: 1 }], events: [], exportedAt: Date.now() })],
         'backup.json',
-        { type: 'application/json' }
+        { type: 'application/json' },
       );
 
       Object.defineProperty(importInput, 'files', {
@@ -411,7 +411,7 @@ describe('settings.js', () => {
       const file = new File(
         [JSON.stringify({ sessions: [], events: [] })],
         'backup.json',
-        { type: 'application/json' }
+        { type: 'application/json' },
       );
 
       Object.defineProperty(importInput, 'files', {
@@ -438,7 +438,7 @@ describe('settings.js', () => {
       const file = new File(
         [JSON.stringify({ sessions: [], events: [] })],
         'backup.json',
-        { type: 'application/json' }
+        { type: 'application/json' },
       );
 
       Object.defineProperty(importInput, 'files', {

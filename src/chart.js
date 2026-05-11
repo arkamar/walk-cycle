@@ -19,13 +19,13 @@ Chart.register(
   CategoryScale,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 );
 
 export function buildCycleDatasets(cycles) {
   const labels = cycles.map((_, i) => `#${i + 1}`);
   const datasets = [];
-  
+
   for (const k of Object.values(SEGMENT_KINDS)) {
     const data = cycles.map(c => {
       const ms = c.segments[k]?.durationMs ?? null;
@@ -43,7 +43,7 @@ export function buildCycleDatasets(cycles) {
       });
     }
   }
-  
+
   return { labels, datasets };
 }
 
@@ -53,7 +53,7 @@ export function createTrendChart(canvas, labels, datasets) {
   const fg = isDark ? '#ddd' : '#333';
   const muted = isDark ? '#888' : '#666';
   const grid = isDark ? '#333' : '#eee';
-  
+
   const chart = new Chart(ctx, {
     type: 'line',
     data: { labels, datasets },
@@ -89,6 +89,6 @@ export function createTrendChart(canvas, labels, datasets) {
       },
     },
   });
-  
+
   return chart;
 }

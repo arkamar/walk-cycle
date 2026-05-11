@@ -31,9 +31,9 @@ export async function renderSessionDetail(target, { id }) {
         el(
           'a',
           { class: 'btn', href: '#/sessions' },
-          '← Back to sessions'
+          '← Back to sessions',
         ),
-      ])
+      ]),
     );
     return;
   }
@@ -67,51 +67,51 @@ export async function renderSessionDetail(target, { id }) {
     el(
       'a',
       { class: 'btn btn-ghost', href: '#/sessions' },
-      '← Back'
+      '← Back',
     ),
     isCurrent && !session.isStopped
       ? el(
+        'button',
+        {
+          class: 'btn btn-primary',
+          type: 'button',
+          onClick: async () => {
+            await stopSession(id);
+            toast('Session stopped');
+            target.innerHTML = '';
+            renderSessionDetail(target, { id });
+          },
+        },
+        'Stop',
+      )
+      : isCurrent && session.isStopped
+        ? el(
           'button',
           {
             class: 'btn btn-primary',
             type: 'button',
             onClick: async () => {
-              await stopSession(id);
-              toast('Session stopped');
+              await resumeSession(id);
+              toast('Session resumed');
               target.innerHTML = '';
               renderSessionDetail(target, { id });
             },
           },
-          'Stop'
+          'Resume',
         )
-      : isCurrent && session.isStopped
-        ? el(
-            'button',
-            {
-              class: 'btn btn-primary',
-              type: 'button',
-              onClick: async () => {
-                await resumeSession(id);
-                toast('Session resumed');
-                target.innerHTML = '';
-                renderSessionDetail(target, { id });
-              },
-            },
-            'Resume'
-          )
         : el(
-            'button',
-            {
-              class: 'btn btn-primary',
-              type: 'button',
-              onClick: async () => {
-                await setCurrentSession(id);
-                toast('Session is now current');
-                window.location.hash = '/';
-              },
+          'button',
+          {
+            class: 'btn btn-primary',
+            type: 'button',
+            onClick: async () => {
+              await setCurrentSession(id);
+              toast('Session is now current');
+              window.location.hash = '/';
             },
-            promoteLabel
-          ),
+          },
+          promoteLabel,
+        ),
     el(
       'button',
       {
@@ -124,7 +124,7 @@ export async function renderSessionDetail(target, { id }) {
           window.location.hash = '/sessions';
         },
       },
-      'Delete'
+      'Delete',
     ),
   ]);
 
@@ -175,24 +175,24 @@ export async function renderSessionDetail(target, { id }) {
             el(
               'div',
               { class: 'value' },
-              byKind[k].count ? formatDuration(byKind[k].avgMs) : '–'
+              byKind[k].count ? formatDuration(byKind[k].avgMs) : '–',
             ),
             el(
               'div',
               { class: 'meta muted' },
               byKind[k].count
                 ? `min ${formatDuration(byKind[k].minMs)} · max ${formatDuration(byKind[k].maxMs)}`
-                : 'no data'
+                : 'no data',
             ),
-          ]
-        )
-      )
+          ],
+        ),
+      ),
     ),
   ]);
 
-// Trend chart from cycles (same as stats view cycles mode)
+  // Trend chart from cycles (same as stats view cycles mode)
   const cycleChartCanvas = el('canvas');
-  
+
   // Trend chart card
   const trendsCard = el('div', { class: 'card' }, [
     el('h3', {}, 'Trend'),
@@ -213,7 +213,7 @@ export async function renderSessionDetail(target, { id }) {
 
   if (!cycles.length && events.filter(e => e.type === 'up').length === 0) {
     cyclesCard.appendChild(
-      el('p', { class: 'muted' }, 'No cycles yet.')
+      el('p', { class: 'muted' }, 'No cycles yet.'),
     );
   } else {
     const list = el('div', { class: 'list' });
@@ -231,14 +231,14 @@ export async function renderSessionDetail(target, { id }) {
                 `top ${formatDuration(c.segments[SEGMENT_KINDS.TOP_REST]?.durationMs ?? 0)}`,
                 `down ${formatDuration(c.segments[SEGMENT_KINDS.DOWN]?.durationMs ?? 0)}`,
                 `bot ${formatDuration(c.segments[SEGMENT_KINDS.BOTTOM_REST]?.durationMs ?? 0)}`,
-              ].join(' · ')
+              ].join(' · '),
             ),
           ]),
           el('div', { class: 'meta' }, formatDuration(c.totalMs)),
-        ])
+        ]),
       );
     }
-    
+
     // Show ongoing partial cycle (last Up without full cycle)
     const upEvents = events.filter(e => e.type === 'up');
     if (upEvents.length > cycles.length) {
@@ -249,7 +249,7 @@ export async function renderSessionDetail(target, { id }) {
       for (let i = lastUpIdx + 1; i < events.length; i++) {
         const seg = events[i];
         const segType = seg.type === 'pause' ? (i === lastUpIdx + 1 ? 'top' : 'bot') : 'down';
-        const dur = seg.ts - events[i-1].ts;
+        const dur = seg.ts - events[i - 1].ts;
         parts.push(`${segType} ${formatDuration(dur)}`);
         partialDuration += dur;
       }
@@ -263,7 +263,7 @@ export async function renderSessionDetail(target, { id }) {
             el('div', { class: 'meta' }, parts.join(' · ') || 'in progress'),
           ]),
           el('div', { class: 'meta' }, partialDuration ? formatDuration(partialDuration) : '–'),
-        ])
+        ]),
       );
     }
   }

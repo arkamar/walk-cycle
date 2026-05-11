@@ -161,7 +161,7 @@ describe('v1 → v3 migration (full upgrade)', () => {
         { sessionId: 1, type: 'up', ts: 100 },
         { sessionId: 1, type: 'pause', ts: 500 },
         { sessionId: 1, type: 'down', ts: 900 },
-      ]
+      ],
     );
 
     const dbModule = await import('./db.js');

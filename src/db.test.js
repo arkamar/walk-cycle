@@ -418,7 +418,7 @@ describe('addEvent', () => {
   it('throws for invalid event type', async () => {
     const id = await createSession();
     await expect(addEvent({ sessionId: id, type: 'foo' })).rejects.toThrow(
-      'Invalid event type: foo'
+      'Invalid event type: foo',
     );
   });
 
@@ -542,13 +542,13 @@ describe('importAll', () => {
 
   it('throws for missing sessions array', async () => {
     await expect(
-      importAll({ sessions: null, events: [] })
+      importAll({ sessions: null, events: [] }),
     ).rejects.toThrow('Invalid import data');
   });
 
   it('throws for missing events array', async () => {
     await expect(
-      importAll({ sessions: [], events: null })
+      importAll({ sessions: [], events: null }),
     ).rejects.toThrow('Invalid import data');
   });
 
@@ -567,7 +567,7 @@ describe('importAll', () => {
         sessions: [{ id: 999, createdAt: 2000, note: 'imported', isStopped: false }],
         events: [],
       },
-      { merge: true }
+      { merge: true },
     );
     const sessions = await listSessions();
     expect(sessions).toHaveLength(2);
@@ -613,274 +613,274 @@ describe('importAll', () => {
         sessions: [{ id: 200, createdAt: 3000, note: 'orphan-event', isStopped: false }],
         events: [{ id: 50, sessionId: existingId, type: 'down', ts: 400 }],
       },
-      { merge: true }
+      { merge: true },
     );
     const events = await listEventsBySession(existingId);
     expect(events.some((e) => e.type === 'down' && e.ts === 400)).toBe(true);
   });
 });
 
-  describe('clearAll', () => {
-    afterEach(() => {
-      localStorage.removeItem(CURRENT_SESSION_KEY);
+describe('clearAll', () => {
+  afterEach(() => {
+    localStorage.removeItem(CURRENT_SESSION_KEY);
+  });
+
+  it('empties both stores', async () => {
+    const id = await createSession();
+    await addEvent({ sessionId: id, type: 'up' });
+    await clearAll();
+    expect(await listSessions()).toEqual([]);
+    expect(await listAllEvents()).toEqual([]);
+  });
+
+  it('clears current session from localStorage', async () => {
+    const id = await createSession();
+    expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBe(String(id));
+    await clearAll();
+    expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBeNull();
+  });
+});
+
+describe('setCurrentSessionId(null) via clearAll', () => {
+  it('clears current session key (line 95)', async () => {
+    const id = await createSession();
+    expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBe(String(id));
+    await clearAll();
+    expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBeNull();
+  });
+});
+
+describe('activities', () => {
+  beforeEach(async () => {
+    await clearAll();
+  });
+
+  describe('createActivity', () => {
+    it('creates an activity with given name and createdAt', async () => {
+      const id = await createActivity('Hills', 1000);
+      const a = await getActivity(id);
+      expect(a.name).toBe('Hills');
+      expect(a.createdAt).toBe(1000);
     });
 
-    it('empties both stores', async () => {
-      const id = await createSession();
-      await addEvent({ sessionId: id, type: 'up' });
-      await clearAll();
-      expect(await listSessions()).toEqual([]);
-      expect(await listAllEvents()).toEqual([]);
+    it('defaults createdAt to Date.now()', async () => {
+      const before = Date.now();
+      const id = await createActivity('Trails');
+      const after = Date.now();
+      const a = await getActivity(id);
+      expect(a.createdAt).toBeGreaterThanOrEqual(before);
+      expect(a.createdAt).toBeLessThanOrEqual(after);
     });
 
-    it('clears current session from localStorage', async () => {
-      const id = await createSession();
-      expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBe(String(id));
-      await clearAll();
-      expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBeNull();
+    it('returns auto-incremented numeric id', async () => {
+      const id1 = await createActivity('A');
+      const id2 = await createActivity('B');
+      expect(typeof id1).toBe('number');
+      expect(typeof id2).toBe('number');
+      expect(id2).toBeGreaterThan(id1);
     });
   });
 
-  describe('setCurrentSessionId(null) via clearAll', () => {
-    it('clears current session key (line 95)', async () => {
-      const id = await createSession();
-      expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBe(String(id));
-      await clearAll();
-      expect(localStorage.getItem(CURRENT_SESSION_KEY)).toBeNull();
+  describe('listActivities', () => {
+    it('returns activities newest-first', async () => {
+      await createActivity('Old', 1000);
+      await createActivity('New', 3000);
+      await createActivity('Middle', 2000);
+      const list = await listActivities();
+      expect(list.map(a => a.name)).toEqual(['New', 'Middle', 'Old']);
+    });
+
+    it('returns empty array when none exist', async () => {
+      expect(await listActivities()).toEqual([]);
     });
   });
 
-  describe('activities', () => {
-    beforeEach(async () => {
-      await clearAll();
+  describe('updateActivity', () => {
+    it('updates name on an activity', async () => {
+      const id = await createActivity('Old name', 1000);
+      await updateActivity(id, { name: 'New name' });
+      const a = await getActivity(id);
+      expect(a.name).toBe('New name');
+      expect(a.createdAt).toBe(1000);
     });
 
-    describe('createActivity', () => {
-      it('creates an activity with given name and createdAt', async () => {
-        const id = await createActivity('Hills', 1000);
-        const a = await getActivity(id);
-        expect(a.name).toBe('Hills');
-        expect(a.createdAt).toBe(1000);
-      });
-
-      it('defaults createdAt to Date.now()', async () => {
-        const before = Date.now();
-        const id = await createActivity('Trails');
-        const after = Date.now();
-        const a = await getActivity(id);
-        expect(a.createdAt).toBeGreaterThanOrEqual(before);
-        expect(a.createdAt).toBeLessThanOrEqual(after);
-      });
-
-      it('returns auto-incremented numeric id', async () => {
-        const id1 = await createActivity('A');
-        const id2 = await createActivity('B');
-        expect(typeof id1).toBe('number');
-        expect(typeof id2).toBe('number');
-        expect(id2).toBeGreaterThan(id1);
-      });
-    });
-
-    describe('listActivities', () => {
-      it('returns activities newest-first', async () => {
-        await createActivity('Old', 1000);
-        await createActivity('New', 3000);
-        await createActivity('Middle', 2000);
-        const list = await listActivities();
-        expect(list.map(a => a.name)).toEqual(['New', 'Middle', 'Old']);
-      });
-
-      it('returns empty array when none exist', async () => {
-        expect(await listActivities()).toEqual([]);
-      });
-    });
-
-    describe('updateActivity', () => {
-      it('updates name on an activity', async () => {
-        const id = await createActivity('Old name', 1000);
-        await updateActivity(id, { name: 'New name' });
-        const a = await getActivity(id);
-        expect(a.name).toBe('New name');
-        expect(a.createdAt).toBe(1000);
-      });
-
-      it('returns null for unknown id', async () => {
-        expect(await updateActivity(9999, { name: 'x' })).toBeNull();
-      });
-    });
-
-    describe('deleteActivity', () => {
-      it('removes the activity', async () => {
-        const id = await createActivity('Test');
-        await deleteActivity(id);
-        expect(await getActivity(id)).toBeUndefined();
-      });
-
-      it('cascades to associated records', async () => {
-        const id = await createActivity('Test');
-        await addRecord({ activityId: id, date: '2026-01-01', count: 2 });
-        await addRecord({ activityId: id, date: '2026-01-02', count: 1 });
-        await deleteActivity(id);
-        expect(await listRecordsByActivity(id)).toEqual([]);
-      });
-
-      it('leaves other activities and records untouched', async () => {
-        const keepId = await createActivity('Keep');
-        const delId = await createActivity('Delete');
-        await addRecord({ activityId: keepId, date: '2026-01-01', count: 1 });
-        await addRecord({ activityId: delId, date: '2026-01-02', count: 3 });
-        await deleteActivity(delId);
-        expect(await getActivity(keepId)).toBeDefined();
-        const keepRecords = await listRecordsByActivity(keepId);
-        expect(keepRecords).toHaveLength(1);
-        expect(keepRecords[0].count).toBe(1);
-      });
-
-      it('is a no-op for unknown id', async () => {
-        await createActivity('A');
-        const before = await listActivities();
-        await deleteActivity(9999);
-        expect(await listActivities()).toEqual(before);
-      });
+    it('returns null for unknown id', async () => {
+      expect(await updateActivity(9999, { name: 'x' })).toBeNull();
     });
   });
 
-  describe('records', () => {
-    beforeEach(async () => {
-      await clearAll();
+  describe('deleteActivity', () => {
+    it('removes the activity', async () => {
+      const id = await createActivity('Test');
+      await deleteActivity(id);
+      expect(await getActivity(id)).toBeUndefined();
     });
 
-    describe('addRecord', () => {
-      it('stores date and count for an activity', async () => {
-        const id = await createActivity('Hills');
-        const r = await addRecord({ activityId: id, date: '2026-05-10', count: 3 });
-        expect(r.id).toBeDefined();
-        expect(r.activityId).toBe(id);
-        expect(r.date).toBe('2026-05-10');
-        expect(r.count).toBe(3);
-      });
-
-      it('defaults count to 1', async () => {
-        const id = await createActivity('Hills');
-        const r = await addRecord({ activityId: id, date: '2026-05-10' });
-        expect(r.count).toBe(1);
-      });
-
-      it('defaults written to false', async () => {
-        const id = await createActivity('Hills');
-        const r = await addRecord({ activityId: id, date: '2026-06-01', count: 2 });
-        expect(r.written).toBe(false);
-      });
-
-      it('accepts written as true', async () => {
-        const id = await createActivity('Hills');
-        const r = await addRecord({ activityId: id, date: '2026-06-01', count: 2, written: true });
-        expect(r.written).toBe(true);
-      });
-
-      it('defaults note to empty string', async () => {
-        const id = await createActivity('Hills');
-        const r = await addRecord({ activityId: id, date: '2026-06-01', count: 2 });
-        expect(r.note).toBe('');
-      });
-
-      it('accepts note param', async () => {
-        const id = await createActivity('Hills');
-        const r = await addRecord({ activityId: id, date: '2026-06-01', count: 2, note: 'Park entrance' });
-        expect(r.note).toBe('Park entrance');
-      });
-
-      it('throws for duplicate date on the same activity', async () => {
-        const id = await createActivity('Hills');
-        await addRecord({ activityId: id, date: '2026-05-10', count: 2 });
-        await expect(
-          addRecord({ activityId: id, date: '2026-05-10', count: 5 })
-        ).rejects.toThrow('Record already exists for 2026-05-10');
-      });
-
-      it('allows same date for different activities', async () => {
-        const id1 = await createActivity('Hills');
-        const id2 = await createActivity('Trails');
-        await addRecord({ activityId: id1, date: '2026-05-10', count: 2 });
-        await addRecord({ activityId: id2, date: '2026-05-10', count: 3 });
-        const r1 = await listRecordsByActivity(id1);
-        const r2 = await listRecordsByActivity(id2);
-        expect(r1).toHaveLength(1);
-        expect(r2).toHaveLength(1);
-        expect(r1[0].count).toBe(2);
-        expect(r2[0].count).toBe(3);
-      });
+    it('cascades to associated records', async () => {
+      const id = await createActivity('Test');
+      await addRecord({ activityId: id, date: '2026-01-01', count: 2 });
+      await addRecord({ activityId: id, date: '2026-01-02', count: 1 });
+      await deleteActivity(id);
+      expect(await listRecordsByActivity(id)).toEqual([]);
     });
 
-    describe('listRecordsByActivity', () => {
-      it('returns records for the given activity sorted by date desc', async () => {
-        const id = await createActivity('Hills');
-        await addRecord({ activityId: id, date: '2026-05-01', count: 1 });
-        await addRecord({ activityId: id, date: '2026-05-10', count: 2 });
-        await addRecord({ activityId: id, date: '2026-05-05', count: 3 });
-        const records = await listRecordsByActivity(id);
-        expect(records.map(r => r.date)).toEqual(['2026-05-10', '2026-05-05', '2026-05-01']);
-      });
-
-      it('returns only records for that activity', async () => {
-        const id1 = await createActivity('A');
-        const id2 = await createActivity('B');
-        await addRecord({ activityId: id1, date: '2026-01-01', count: 1 });
-        await addRecord({ activityId: id2, date: '2026-01-02', count: 2 });
-        const records = await listRecordsByActivity(id1);
-        expect(records).toHaveLength(1);
-        expect(records[0].activityId).toBe(id1);
-      });
-
-      it('returns empty array for activity with no records', async () => {
-        const id = await createActivity('Empty');
-        expect(await listRecordsByActivity(id)).toEqual([]);
-      });
+    it('leaves other activities and records untouched', async () => {
+      const keepId = await createActivity('Keep');
+      const delId = await createActivity('Delete');
+      await addRecord({ activityId: keepId, date: '2026-01-01', count: 1 });
+      await addRecord({ activityId: delId, date: '2026-01-02', count: 3 });
+      await deleteActivity(delId);
+      expect(await getActivity(keepId)).toBeDefined();
+      const keepRecords = await listRecordsByActivity(keepId);
+      expect(keepRecords).toHaveLength(1);
+      expect(keepRecords[0].count).toBe(1);
     });
 
-    describe('updateRecord', () => {
-      it('updates count on a record', async () => {
-        const id = await createActivity('Hills');
-        const r = await addRecord({ activityId: id, date: '2026-01-01', count: 1 });
-        await updateRecord(r.id, { count: 5 });
-        const records = await listRecordsByActivity(id);
-        expect(records[0].count).toBe(5);
-      });
-
-      it('updates written on a record', async () => {
-        const id = await createActivity('Hills');
-        const r = await addRecord({ activityId: id, date: '2026-01-01', count: 1 });
-        await updateRecord(r.id, { written: true });
-        const records = await listRecordsByActivity(id);
-        expect(records[0].written).toBe(true);
-      });
-
-      it('updates note on a record', async () => {
-        const id = await createActivity('Hills');
-        const r = await addRecord({ activityId: id, date: '2026-01-01', count: 1 });
-        await updateRecord(r.id, { note: 'River trail' });
-        const records = await listRecordsByActivity(id);
-        expect(records[0].note).toBe('River trail');
-      });
-
-      it('returns null for unknown id', async () => {
-        expect(await updateRecord(9999, { count: 3 })).toBeNull();
-      });
-    });
-
-    describe('deleteRecord', () => {
-      it('removes a single record', async () => {
-        const id = await createActivity('Hills');
-        const r1 = await addRecord({ activityId: id, date: '2026-01-01', count: 1 });
-        const r2 = await addRecord({ activityId: id, date: '2026-01-02', count: 2 });
-        await deleteRecord(r1.id);
-        const records = await listRecordsByActivity(id);
-        expect(records).toHaveLength(1);
-        expect(records[0].id).toBe(r2.id);
-      });
-
-      it('is a no-op for unknown id', async () => {
-        await expect(deleteRecord(9999)).resolves.toBeUndefined();
-      });
+    it('is a no-op for unknown id', async () => {
+      await createActivity('A');
+      const before = await listActivities();
+      await deleteActivity(9999);
+      expect(await listActivities()).toEqual(before);
     });
   });
+});
+
+describe('records', () => {
+  beforeEach(async () => {
+    await clearAll();
+  });
+
+  describe('addRecord', () => {
+    it('stores date and count for an activity', async () => {
+      const id = await createActivity('Hills');
+      const r = await addRecord({ activityId: id, date: '2026-05-10', count: 3 });
+      expect(r.id).toBeDefined();
+      expect(r.activityId).toBe(id);
+      expect(r.date).toBe('2026-05-10');
+      expect(r.count).toBe(3);
+    });
+
+    it('defaults count to 1', async () => {
+      const id = await createActivity('Hills');
+      const r = await addRecord({ activityId: id, date: '2026-05-10' });
+      expect(r.count).toBe(1);
+    });
+
+    it('defaults written to false', async () => {
+      const id = await createActivity('Hills');
+      const r = await addRecord({ activityId: id, date: '2026-06-01', count: 2 });
+      expect(r.written).toBe(false);
+    });
+
+    it('accepts written as true', async () => {
+      const id = await createActivity('Hills');
+      const r = await addRecord({ activityId: id, date: '2026-06-01', count: 2, written: true });
+      expect(r.written).toBe(true);
+    });
+
+    it('defaults note to empty string', async () => {
+      const id = await createActivity('Hills');
+      const r = await addRecord({ activityId: id, date: '2026-06-01', count: 2 });
+      expect(r.note).toBe('');
+    });
+
+    it('accepts note param', async () => {
+      const id = await createActivity('Hills');
+      const r = await addRecord({ activityId: id, date: '2026-06-01', count: 2, note: 'Park entrance' });
+      expect(r.note).toBe('Park entrance');
+    });
+
+    it('throws for duplicate date on the same activity', async () => {
+      const id = await createActivity('Hills');
+      await addRecord({ activityId: id, date: '2026-05-10', count: 2 });
+      await expect(
+        addRecord({ activityId: id, date: '2026-05-10', count: 5 }),
+      ).rejects.toThrow('Record already exists for 2026-05-10');
+    });
+
+    it('allows same date for different activities', async () => {
+      const id1 = await createActivity('Hills');
+      const id2 = await createActivity('Trails');
+      await addRecord({ activityId: id1, date: '2026-05-10', count: 2 });
+      await addRecord({ activityId: id2, date: '2026-05-10', count: 3 });
+      const r1 = await listRecordsByActivity(id1);
+      const r2 = await listRecordsByActivity(id2);
+      expect(r1).toHaveLength(1);
+      expect(r2).toHaveLength(1);
+      expect(r1[0].count).toBe(2);
+      expect(r2[0].count).toBe(3);
+    });
+  });
+
+  describe('listRecordsByActivity', () => {
+    it('returns records for the given activity sorted by date desc', async () => {
+      const id = await createActivity('Hills');
+      await addRecord({ activityId: id, date: '2026-05-01', count: 1 });
+      await addRecord({ activityId: id, date: '2026-05-10', count: 2 });
+      await addRecord({ activityId: id, date: '2026-05-05', count: 3 });
+      const records = await listRecordsByActivity(id);
+      expect(records.map(r => r.date)).toEqual(['2026-05-10', '2026-05-05', '2026-05-01']);
+    });
+
+    it('returns only records for that activity', async () => {
+      const id1 = await createActivity('A');
+      const id2 = await createActivity('B');
+      await addRecord({ activityId: id1, date: '2026-01-01', count: 1 });
+      await addRecord({ activityId: id2, date: '2026-01-02', count: 2 });
+      const records = await listRecordsByActivity(id1);
+      expect(records).toHaveLength(1);
+      expect(records[0].activityId).toBe(id1);
+    });
+
+    it('returns empty array for activity with no records', async () => {
+      const id = await createActivity('Empty');
+      expect(await listRecordsByActivity(id)).toEqual([]);
+    });
+  });
+
+  describe('updateRecord', () => {
+    it('updates count on a record', async () => {
+      const id = await createActivity('Hills');
+      const r = await addRecord({ activityId: id, date: '2026-01-01', count: 1 });
+      await updateRecord(r.id, { count: 5 });
+      const records = await listRecordsByActivity(id);
+      expect(records[0].count).toBe(5);
+    });
+
+    it('updates written on a record', async () => {
+      const id = await createActivity('Hills');
+      const r = await addRecord({ activityId: id, date: '2026-01-01', count: 1 });
+      await updateRecord(r.id, { written: true });
+      const records = await listRecordsByActivity(id);
+      expect(records[0].written).toBe(true);
+    });
+
+    it('updates note on a record', async () => {
+      const id = await createActivity('Hills');
+      const r = await addRecord({ activityId: id, date: '2026-01-01', count: 1 });
+      await updateRecord(r.id, { note: 'River trail' });
+      const records = await listRecordsByActivity(id);
+      expect(records[0].note).toBe('River trail');
+    });
+
+    it('returns null for unknown id', async () => {
+      expect(await updateRecord(9999, { count: 3 })).toBeNull();
+    });
+  });
+
+  describe('deleteRecord', () => {
+    it('removes a single record', async () => {
+      const id = await createActivity('Hills');
+      const r1 = await addRecord({ activityId: id, date: '2026-01-01', count: 1 });
+      const r2 = await addRecord({ activityId: id, date: '2026-01-02', count: 2 });
+      await deleteRecord(r1.id);
+      const records = await listRecordsByActivity(id);
+      expect(records).toHaveLength(1);
+      expect(records[0].id).toBe(r2.id);
+    });
+
+    it('is a no-op for unknown id', async () => {
+      await expect(deleteRecord(9999)).resolves.toBeUndefined();
+    });
+  });
+});

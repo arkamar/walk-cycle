@@ -29,7 +29,7 @@ export async function renderActivities(target) {
       el('div', { class: 'empty' }, [
         el('p', {}, 'No activities yet.'),
         el('p', { class: 'muted' }, 'Create one to start tracking.'),
-      ])
+      ]),
     );
     return;
   }
@@ -39,7 +39,7 @@ export async function renderActivities(target) {
       const records = await listRecordsByActivity(a.id);
       const totalCount = records.reduce((s, r) => s + r.count, 0);
       return { activity: a, recordCount: records.length, totalCount };
-    })
+    }),
   );
 
   for (const { activity: a, recordCount, totalCount } of summaries) {

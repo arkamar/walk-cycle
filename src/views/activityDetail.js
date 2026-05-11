@@ -15,7 +15,7 @@ export async function renderActivityDetail(target, { id }) {
       el('div', { class: 'card' }, [
         el('h2', {}, 'Activity not found'),
         el('a', { class: 'btn', href: '#/activities' }, '← Back to activities'),
-      ])
+      ]),
     );
     return;
   }
@@ -181,7 +181,7 @@ export async function renderActivityDetail(target, { id }) {
 
   if (!records.length) {
     recordsCard.appendChild(
-      el('p', { class: 'muted' }, 'No records yet.')
+      el('p', { class: 'muted' }, 'No records yet.'),
     );
   } else {
     const list = el('div', { class: 'list' });
@@ -404,7 +404,7 @@ export async function renderActivityDetail(target, { id }) {
     statsCard,
     ...(chartCard ? [chartCard] : []),
     formCard,
-    recordsCard
+    recordsCard,
   ]));
 }
 
@@ -413,6 +413,8 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
   const startOfYear = new Date(currentYear, 0, 1);
   const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
   const todayDayIndex = Math.floor((Date.now() - startOfYear.getTime()) / 86400000);
+  const df = new Intl.DateTimeFormat(navigator.language, { day: 'numeric', month: 'short' });
+  const mf = new Intl.DateTimeFormat(navigator.language, { month: 'short' });
 
   let data;
   let totalUnits;
@@ -567,8 +569,8 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
           const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
           if (dayOfMonth < visibleStart || dayOfMonth > visibleEnd) continue;
           ctx.fillText(
-            new Date(currentYear, m, 1).toLocaleDateString('en', { month: 'short' }),
-            x(dayOfMonth), pad.top + plotH + 4
+            mf.format(new Date(currentYear, m, 1)),
+            x(dayOfMonth), pad.top + plotH + 4,
           );
         }
       } else {
@@ -576,8 +578,8 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
         for (let day = Math.ceil(visibleStart / step) * step; day <= visibleEnd; day += step) {
           const d = new Date(currentYear, 0, day + 1);
           ctx.fillText(
-            d.toLocaleDateString('en', { day: 'numeric', month: 'short' }),
-            x(day), pad.top + plotH + 4
+            df.format(d),
+            x(day), pad.top + plotH + 4,
           );
         }
       }
@@ -588,16 +590,16 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
           const idx = Math.floor(dayOfMonth / 7);
           if (idx < visibleStart || idx > visibleEnd) continue;
           ctx.fillText(
-            new Date(currentYear, m, 1).toLocaleDateString('en', { month: 'short' }),
-            x(idx), pad.top + plotH + 4
+            mf.format(new Date(currentYear, m, 1)),
+            x(idx), pad.top + plotH + 4,
           );
         }
       } else {
         for (let w = visibleStart; w <= visibleEnd; w++) {
           const d = new Date(currentYear, 0, w * 7 + 1);
           ctx.fillText(
-            d.toLocaleDateString('en', { day: 'numeric', month: 'short' }),
-            x(w), pad.top + plotH + 4
+            df.format(d),
+            x(w), pad.top + plotH + 4,
           );
         }
       }
