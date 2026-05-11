@@ -23,6 +23,15 @@ import {
 } from '../analytics.js';
 import { renderLogEntries } from '../sessionLog.js';
 
+function getGoalDeadlineInfo(endTime) {
+  const now = new Date();
+  const [h, m] = endTime.split(':').map(Number);
+  const target = new Date(now);
+  target.setHours(h, m, 0, 0);
+  if (target < now) target.setDate(target.getDate() + 1);
+  return { target, diffMs: target - now };
+}
+
 const BUTTONS = [
   { kind: EVENTS.UP, label: 'Up', icon: '▲' },
   { kind: EVENTS.PAUSE, label: 'Pause', icon: '❚❚' },
@@ -129,8 +138,8 @@ export async function renderTracker(target) {
     render();
     renderLog();
 
+    renderGoalProgress();
     if (!session.isStopped) {
-      renderGoalProgress();
       startTimer();
     }
   }
@@ -197,6 +206,7 @@ export async function renderTracker(target) {
         toast('Session stopped');
         render();
         renderLog();
+        renderGoalProgress();
       }
     } finally {
       isProcessing = false;
@@ -270,24 +280,19 @@ export async function renderTracker(target) {
       let parts = [];
       let status = '';
 
+      const deadlineDiffMs = goal.endTime ? getGoalDeadlineInfo(goal.endTime).diffMs : null;
+
       if (goal.ups) {
         const completedUps = countCompletedUps();
         const remaining = goal.ups - completedUps;
         if (remaining > 0) {
           parts.push(`${remaining} up${remaining === 1 ? '' : 's'}`);
 
-          if (goal.endTime && completedUps >= 2 && session && !session.isStopped) {
-            const now = new Date();
-            const [h, m] = goal.endTime.split(':').map(Number);
-            const target = new Date(now);
-            target.setHours(h, m, 0, 0);
-            if (target < now) target.setDate(target.getDate() + 1);
-            const timeLeftMs = target - now;
-
+          if (deadlineDiffMs != null && completedUps >= 2 && !session.isStopped) {
             const { avg, trend } = calcCycleTrend();
-            if (avg > 0 && timeLeftMs > 0) {
+            if (avg > 0 && deadlineDiffMs > 0) {
               const projected = avg + trend * (remaining - 1) * 0.5;
-              const requiredPerUp = timeLeftMs / remaining;
+              const requiredPerUp = deadlineDiffMs / remaining;
               const diff = projected - requiredPerUp;
               if (diff >= -requiredPerUp * 0.05) {
                 const ahead = requiredPerUp - projected;
@@ -302,15 +307,9 @@ export async function renderTracker(target) {
         }
       }
 
-      if (goal.endTime) {
-        const now = new Date();
-        const [h, m] = goal.endTime.split(':').map(Number);
-        const target = new Date(now);
-        target.setHours(h, m, 0, 0);
-        if (target < now) target.setDate(target.getDate() + 1);
-        const diffMs = target - now;
-        if (diffMs > 0) {
-          parts.push(formatLive(diffMs));
+      if (deadlineDiffMs != null) {
+        if (deadlineDiffMs > 0) {
+          parts.push(formatLive(deadlineDiffMs));
         } else {
           parts.push('time up');
         }
