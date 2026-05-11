@@ -13,7 +13,7 @@ vi.mock('../analytics.js', () => ({
       top_rest: { count: 0, totalMs: 0, avgMs: 0, minMs: 0, maxMs: 0 },
       down_duration: { count: 0, totalMs: 0, avgMs: 0, minMs: 0, maxMs: 0 },
       bottom_rest: { count: 0, totalMs: 0, avgMs: 0, minMs: 0, maxMs: 0 },
-    }
+    },
   }),
   formatDuration: vi.fn((ms) => `${ms}ms`),
   SEGMENT_KINDS: { UP: 'up_duration', TOP_REST: 'top_rest', DOWN: 'down_duration', BOTTOM_REST: 'bottom_rest' },
@@ -179,8 +179,8 @@ describe('stats.js', () => {
     const { cyclesFromSegments, segmentsFromEvents } = await import('../analytics.js');
 
     const now = Date.now();
-    const oldSession = { id: 1, createdAt: now - 10 * 24 * 60 * 60 *1000 }; // 10 days ago
-    const recentSession = { id: 2, createdAt: now - 2 * 24 * 60 * 60 *1000 }; // 2 days ago
+    const oldSession = { id: 1, createdAt: now - 10 * 24 * 60 * 60 * 1000 }; // 10 days ago
+    const recentSession = { id: 2, createdAt: now - 2 * 24 * 60 * 60 * 1000 }; // 2 days ago
 
     listSessions.mockResolvedValue([oldSession, recentSession]);
     listEventsBySession.mockResolvedValue([]);

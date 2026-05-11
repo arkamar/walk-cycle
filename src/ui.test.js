@@ -15,7 +15,7 @@ describe('el()', () => {
     expect(el('div', { class: 'foo bar' }).className).toBe('foo bar');
   });
 
-    it('applies class via className attribute', () => {
+  it('applies class via className attribute', () => {
     expect(el('div', { className: 'baz' }).className).toBe('baz');
   });
 

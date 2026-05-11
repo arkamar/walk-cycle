@@ -36,7 +36,7 @@ vi.mock('../analytics.js', () => ({
       top_rest: { count: 0, totalMs: 0, avgMs: 0, minMs: 0, maxMs: 0 },
       down_duration: { count: 0, totalMs: 0, avgMs: 0, minMs: 0, maxMs: 0 },
       bottom_rest: { count: 0, totalMs: 0, avgMs: 0, minMs: 0, maxMs: 0 },
-    }
+    },
   }),
   formatDuration: vi.fn((ms) => `${ms}ms`),
   formatLive: vi.fn((ms) => `${ms}ms`),

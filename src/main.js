@@ -56,7 +56,7 @@ document.addEventListener('route:changed', (e) => {
   // Detail routes still highlight their parent tab.
   const tabPath = path.startsWith('/sessions') ? '/sessions'
     : path.startsWith('/activities') ? '/activities'
-    : path;
+      : path;
   for (const a of tabBar.querySelectorAll('.tab')) {
     if (a.dataset.path === tabPath) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
@@ -126,7 +126,7 @@ const router = createRouter(
       }
       return renderTracker(target, ctx);
     },
-  }
+  },
 );
 
 router.start();

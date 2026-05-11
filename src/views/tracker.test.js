@@ -176,7 +176,7 @@ describe('tracker.js', () => {
 
       expect(addEventListenerSpy).toHaveBeenCalledWith(
         'current-session-changed',
-        expect.any(Function)
+        expect.any(Function),
       );
       addEventListenerSpy.mockRestore();
     });
@@ -344,7 +344,6 @@ describe('tracker.js', () => {
       expect(toast).toHaveBeenCalledWith('Session resumed');
     });
 
-
   });
 
   describe('onUndo', () => {
@@ -488,7 +487,7 @@ describe('tracker.js', () => {
 
       expect(removeEventListenerSpy).toHaveBeenCalledWith(
         'current-session-changed',
-        expect.any(Function)
+        expect.any(Function),
       );
       removeEventListenerSpy.mockRestore();
       cleanup = null;

@@ -15,7 +15,7 @@ export async function renderActivityDetail(target, { id }) {
       el('div', { class: 'card' }, [
         el('h2', {}, 'Activity not found'),
         el('a', { class: 'btn', href: '#/activities' }, '← Back to activities'),
-      ])
+      ]),
     );
     return;
   }
@@ -181,7 +181,7 @@ export async function renderActivityDetail(target, { id }) {
 
   if (!records.length) {
     recordsCard.appendChild(
-      el('p', { class: 'muted' }, 'No records yet.')
+      el('p', { class: 'muted' }, 'No records yet.'),
     );
   } else {
     const list = el('div', { class: 'list' });
@@ -404,7 +404,7 @@ export async function renderActivityDetail(target, { id }) {
     statsCard,
     ...(chartCard ? [chartCard] : []),
     formCard,
-    recordsCard
+    recordsCard,
   ]));
 }
 
@@ -570,7 +570,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
           if (dayOfMonth < visibleStart || dayOfMonth > visibleEnd) continue;
           ctx.fillText(
             mf.format(new Date(currentYear, m, 1)),
-            x(dayOfMonth), pad.top + plotH + 4
+            x(dayOfMonth), pad.top + plotH + 4,
           );
         }
       } else {
@@ -579,7 +579,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
           const d = new Date(currentYear, 0, day + 1);
           ctx.fillText(
             df.format(d),
-            x(day), pad.top + plotH + 4
+            x(day), pad.top + plotH + 4,
           );
         }
       }
@@ -591,7 +591,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
           if (idx < visibleStart || idx > visibleEnd) continue;
           ctx.fillText(
             mf.format(new Date(currentYear, m, 1)),
-            x(idx), pad.top + plotH + 4
+            x(idx), pad.top + plotH + 4,
           );
         }
       } else {
@@ -599,7 +599,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
           const d = new Date(currentYear, 0, w * 7 + 1);
           ctx.fillText(
             df.format(d),
-            x(w), pad.top + plotH + 4
+            x(w), pad.top + plotH + 4,
           );
         }
       }

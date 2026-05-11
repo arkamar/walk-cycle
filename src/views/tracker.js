@@ -79,7 +79,7 @@ export async function renderTracker(target) {
       [
         el('span', { class: 'action-icon' }, b.icon),
         el('span', {}, b.label),
-      ]
+      ],
     );
     buttonNodes[b.kind] = btn;
     actionGrid.appendChild(btn);
@@ -108,7 +108,7 @@ export async function renderTracker(target) {
       actionGrid,
       hintEl,
       logCard,
-    ])
+    ]),
   );
 
   async function loadActiveSession() {
@@ -408,7 +408,7 @@ export async function renderTracker(target) {
     const recent = upEvents.slice(-5);
     const cycles = [];
     for (let i = 1; i < recent.length; i++) {
-      cycles.push(recent[i].ts - recent[i-1].ts);
+      cycles.push(recent[i].ts - recent[i - 1].ts);
     }
     if (cycles.length < 2) return { avg: 0, trend: 0, trendDir: 'flat' };
 

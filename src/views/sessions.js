@@ -39,7 +39,7 @@ export async function renderSessions(target) {
       el('div', { class: 'empty' }, [
         el('p', {}, 'No sessions yet.'),
         el('p', { class: 'muted' }, 'Start tracking to see your sessions here.'),
-      ])
+      ]),
     );
     return;
   }
@@ -59,7 +59,7 @@ export async function renderSessions(target) {
       const lastTs = cycleEvents.length ? cycleEvents[cycleEvents.length - 1].ts : s.createdAt;
       const durationMs = lastTs - s.createdAt;
       return { session: s, cycleCount: cycles.length, durationMs };
-    })
+    }),
   );
 
   for (const { session: s, cycleCount, durationMs } of summaries) {
@@ -69,8 +69,8 @@ export async function renderSessions(target) {
     const rowClass = `list-item${isCurrent ? ' list-item--current' : ''}`;
     const statusIcon =
       status === 'active' ? ' ▶'
-      : status === 'stopped' ? ' ■'
-      : '';
+        : status === 'stopped' ? ' ■'
+          : '';
 
     const baseMeta = `${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'}${statusIcon} · ${formatDuration(durationMs)}`;
     const metaText = s.name
@@ -110,7 +110,7 @@ export async function renderSessions(target) {
         toast('Session deleted');
         target.innerHTML = '';
         renderSessions(target);
-      }
+      },
     }, '🗑'));
 
     list.appendChild(el('div', { class: rowClass }, children));

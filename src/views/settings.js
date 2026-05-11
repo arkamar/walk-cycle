@@ -93,7 +93,7 @@ export async function renderSettings(target) {
       type: 'button',
       onClick: doExport,
     },
-    'Export JSON backup'
+    'Export JSON backup',
   );
 
   const importInput = el('input', {
@@ -110,7 +110,7 @@ export async function renderSettings(target) {
       type: 'button',
       onClick: () => importInput.click(),
     },
-    'Import JSON…'
+    'Import JSON…',
   );
 
   const mergeChk = el('input', { type: 'checkbox', id: 'merge-chk' });
@@ -124,7 +124,7 @@ export async function renderSettings(target) {
     el(
       'p',
       { class: 'muted' },
-      'All data is stored locally on this device (IndexedDB). Export regularly so you don\'t lose your sessions.'
+      'All data is stored locally on this device (IndexedDB). Export regularly so you don\'t lose your sessions.',
     ),
     el('div', { class: 'row wrap', style: { gap: '0.5rem' } }, [
       exportBtn,
@@ -142,7 +142,7 @@ export async function renderSettings(target) {
       type: 'button',
       onClick: doClear,
     },
-    'Delete all data'
+    'Delete all data',
   );
 
   const dangerCard = el('div', { class: 'card' }, [
@@ -150,7 +150,7 @@ export async function renderSettings(target) {
     el(
       'p',
       { class: 'muted' },
-      'This will permanently delete every session and event from this device.'
+      'This will permanently delete every session and event from this device.',
     ),
     clearBtn,
   ]);
@@ -166,7 +166,7 @@ export async function renderSettings(target) {
     el(
       'p',
       { class: 'muted' },
-      'Press Up to start climbing, Pause when you reach the top, Down to head back, Pause again at the start. Repeat.'
+      'Press Up to start climbing, Pause when you reach the top, Down to head back, Pause again at the start. Repeat.',
     ),
   ]);
 
@@ -177,11 +177,11 @@ export async function renderSettings(target) {
       backupCard,
       dangerCard,
       aboutCard,
-    ])
+    ]),
   );
 
   // ---------- Handlers ----------
-  
+
   async function doExport() {
     try {
       const data = await exportAll();
@@ -201,7 +201,7 @@ export async function renderSettings(target) {
       toast(
         `Exported ${data.sessions.length} session${
           data.sessions.length === 1 ? '' : 's'
-        } and ${data.events.length} event${data.events.length === 1 ? '' : 's'}`
+        } and ${data.events.length} event${data.events.length === 1 ? '' : 's'}`,
       );
     } catch (err) {
       console.error(err);
@@ -239,7 +239,7 @@ export async function renderSettings(target) {
   async function doClear() {
     const phrase = 'DELETE';
     const answer = prompt(
-      `This will erase ALL sessions and events.\nType "${phrase}" to confirm.`
+      `This will erase ALL sessions and events.\nType "${phrase}" to confirm.`,
     );
     if (answer !== phrase) {
       toast('Cancelled');

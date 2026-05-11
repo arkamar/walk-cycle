@@ -189,10 +189,10 @@ describe('segmentsFromEvents', () => {
   it('should skip invalid pairs in mixed sequence', () => {
     const events = [
       { type: 'up', ts: 1000, sessionId: 's1' },
-      { type: 'down', ts: 2000, sessionId: 's1' },       // up->down invalid
-      { type: 'pause', ts: 3000, sessionId: 's1' },      // down->pause valid = DOWN
-      { type: 'down', ts: 4000, sessionId: 's1' },        // pause->down valid = TOP_REST
-      { type: 'pause', ts: 5000, sessionId: 's1' },      // down->pause valid = DOWN
+      { type: 'down', ts: 2000, sessionId: 's1' }, // up->down invalid
+      { type: 'pause', ts: 3000, sessionId: 's1' }, // down->pause valid = DOWN
+      { type: 'down', ts: 4000, sessionId: 's1' }, // pause->down valid = TOP_REST
+      { type: 'pause', ts: 5000, sessionId: 's1' }, // down->pause valid = DOWN
     ];
     const segments = segmentsFromEvents(events);
     expect(segments).toHaveLength(3);
@@ -586,7 +586,7 @@ describe('findPrevSameType', () => {
 
   it('should skip events without nextTs when searching', () => {
     const eventsWithGaps = [
-      { type: 'up', ts: 1000 },          // no nextTs, should be skipped
+      { type: 'up', ts: 1000 }, // no nextTs, should be skipped
       { type: 'pause', ts: 2000, nextTs: 3000 },
       { type: 'up', ts: 4000, nextTs: 5000 },
     ];

@@ -172,7 +172,7 @@ describe('renderActivityDetail', () => {
     await renderActivityDetail(target, { id: 1 });
 
     const chartCard = Array.from(target.querySelectorAll('.card')).find(
-      c => c.querySelector('h3')?.textContent === 'Motivation'
+      c => c.querySelector('h3')?.textContent === 'Motivation',
     );
     const buttons = chartCard.querySelectorAll('button');
     expect(buttons.length).toBe(3);
@@ -507,7 +507,7 @@ describe('renderActivityDetail', () => {
     await renderActivityDetail(target, { id: 1 });
 
     const chartCard = Array.from(target.querySelectorAll('.card')).find(
-      c => c.querySelector('h3')?.textContent === 'Motivation'
+      c => c.querySelector('h3')?.textContent === 'Motivation',
     );
     const buttons = chartCard.querySelectorAll('button');
     const dayBtn = buttons[0];
@@ -530,7 +530,7 @@ describe('renderActivityDetail', () => {
     await renderActivityDetail(target, { id: 1 });
 
     const chartCard = Array.from(target.querySelectorAll('.card')).find(
-      c => c.querySelector('h3')?.textContent === 'Motivation'
+      c => c.querySelector('h3')?.textContent === 'Motivation',
     );
     const buttons = chartCard.querySelectorAll('button');
     const dayBtn = buttons[0];
@@ -551,7 +551,7 @@ describe('renderActivityDetail', () => {
     await renderActivityDetail(target, { id: 1 });
 
     const chartCard = Array.from(target.querySelectorAll('.card')).find(
-      c => c.querySelector('h3')?.textContent === 'Motivation'
+      c => c.querySelector('h3')?.textContent === 'Motivation',
     );
     const buttons = chartCard.querySelectorAll('button');
     const resetBtn = buttons[2];
