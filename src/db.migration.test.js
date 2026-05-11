@@ -4,6 +4,8 @@ import { openDB } from 'idb';
 const DB_NAME = 'walk-cycle';
 const STORE_SESSIONS = 'sessions';
 const STORE_EVENTS = 'events';
+const STORE_ACTIVITIES = 'activities';
+const STORE_RECORDS = 'records';
 
 async function deleteDB() {
   await new Promise((resolve) => {
@@ -296,5 +298,77 @@ describe('v2 → v3 migration', () => {
     // v2→v3 migration deletes stoppedAt, but isStopped should be false
     expect(s.isStopped).toBe(false);
     expect(Object.prototype.hasOwnProperty.call(s, 'stoppedAt')).toBe(false);
+  });
+});
+
+describe('migration v4→v5 (written field)', () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    await deleteDB();
+  });
+
+  afterEach(async () => {
+    await deleteDB();
+  });
+
+  it('adds written:false to records missing the field', async () => {
+    const db4 = await openDB(DB_NAME, 4, {
+      upgrade(db) {
+        db.createObjectStore(STORE_SESSIONS, { keyPath: 'id', autoIncrement: true });
+        db.createObjectStore(STORE_EVENTS, { keyPath: 'id', autoIncrement: true });
+        const a = db.createObjectStore(STORE_ACTIVITIES, { keyPath: 'id', autoIncrement: true });
+        a.createIndex('createdAt', 'createdAt');
+        const r = db.createObjectStore(STORE_RECORDS, { keyPath: 'id', autoIncrement: true });
+        r.createIndex('activityId', 'activityId');
+        r.createIndex('date', 'date');
+      },
+    });
+    const tx = db4.transaction([STORE_RECORDS], 'readwrite');
+    await tx.objectStore(STORE_RECORDS).add({ activityId: 0, date: '2026-01-01', count: 3 });
+    await tx.done;
+    db4.close();
+
+    const dbModule = await import('./db.js');
+    const records = await dbModule.listRecordsByActivity(0);
+    expect(records).toHaveLength(1);
+    expect(records[0].written).toBe(false);
+    const db = await dbModule.getDB();
+    db.close();
+  });
+});
+
+describe('migration v5→v6 (note field)', () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    await deleteDB();
+  });
+
+  afterEach(async () => {
+    await deleteDB();
+  });
+
+  it('adds note:"" to records missing the field', async () => {
+    const db5 = await openDB(DB_NAME, 5, {
+      upgrade(db) {
+        db.createObjectStore(STORE_SESSIONS, { keyPath: 'id', autoIncrement: true });
+        db.createObjectStore(STORE_EVENTS, { keyPath: 'id', autoIncrement: true });
+        const a = db.createObjectStore(STORE_ACTIVITIES, { keyPath: 'id', autoIncrement: true });
+        a.createIndex('createdAt', 'createdAt');
+        const r = db.createObjectStore(STORE_RECORDS, { keyPath: 'id', autoIncrement: true });
+        r.createIndex('activityId', 'activityId');
+        r.createIndex('date', 'date');
+      },
+    });
+    const tx = db5.transaction([STORE_RECORDS], 'readwrite');
+    await tx.objectStore(STORE_RECORDS).add({ activityId: 0, date: '2026-01-01', count: 3, written: false });
+    await tx.done;
+    db5.close();
+
+    const dbModule = await import('./db.js');
+    const records = await dbModule.listRecordsByActivity(0);
+    expect(records).toHaveLength(1);
+    expect(records[0].note).toBe('');
+    const db = await dbModule.getDB();
+    db.close();
   });
 });

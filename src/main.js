@@ -5,7 +5,7 @@ import { createRouter } from './router.js';
 registerSW({ immediate: true });
 
 // Lazy-load views so the initial bundle stays small (Chart.js, etc.).
-const lazy = (loader, name) => async (target, ctx) => {
+export const lazy = (loader, name) => async (target, ctx) => {
   try {
     const mod = await loader();
     const render = mod[name];

@@ -138,6 +138,30 @@ describe('sessionLog.js', () => {
     expect(durations[0].textContent).toBe('00:04:000');
   });
 
+  it('does not show diff when thisDuration is zero', () => {
+    const events = [
+      { id: 1, type: 'up', ts: 1000, nextTs: 3000 },
+      { id: 2, type: 'up', ts: 3000, nextTs: 3000 },
+    ];
+    findPrevSameType.mockReturnValue({ nextTs: 3000, ts: 1000 });
+    renderLogEntries(container, events);
+    const nonEmpty = Array.from(container.querySelectorAll('.log-entry-diff'))
+      .filter(el => el.textContent !== '');
+    expect(nonEmpty.length).toBe(0);
+  });
+
+  it('does not show diff when thisDuration equals prevDuration', () => {
+    const events = [
+      { id: 1, type: 'up', ts: 1000, nextTs: 3000 },
+      { id: 2, type: 'up', ts: 3000, nextTs: 5000 },
+    ];
+    findPrevSameType.mockReturnValue({ nextTs: 3000, ts: 1000 });
+    renderLogEntries(container, events);
+    const nonEmpty = Array.from(container.querySelectorAll('.log-entry-diff'))
+      .filter(el => el.textContent !== '');
+    expect(nonEmpty.length).toBe(0);
+  });
+
   it('shows 00:00 for last event when isRunning', () => {
     const events = [
       { id: 1, type: 'up', ts: 1000 },

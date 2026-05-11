@@ -61,6 +61,12 @@ describe('createRouter', () => {
       const router = createRouter({}, { mount: container });
       expect(router.current()).toBe('/sessions');
     });
+
+    it('falls back to / when path is empty after stripping query', () => {
+      window.location.hash = '#?';
+      const router = createRouter({}, { mount: container });
+      expect(router.current()).toBe('/');
+    });
   });
 
   describe('render', () => {

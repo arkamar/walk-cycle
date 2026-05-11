@@ -186,6 +186,15 @@ describe('segmentsFromEvents', () => {
     expect(segments[0].sessionId).toBe('s1');
   });
 
+  it('should fallback to cur.sessionId when prev lacks sessionId', () => {
+    const events = [
+      { type: 'up', ts: 1000 },
+      { type: 'pause', ts: 5000, sessionId: 's1' },
+    ];
+    const segments = segmentsFromEvents(events);
+    expect(segments[0].sessionId).toBe('s1');
+  });
+
   it('should skip invalid pairs in mixed sequence', () => {
     const events = [
       { type: 'up', ts: 1000, sessionId: 's1' },

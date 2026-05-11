@@ -12,6 +12,10 @@ const CURRENT_SESSION_KEY = 'walk-cycle-current-session-id';
 
 let dbPromise;
 
+export function resetDB() {
+  dbPromise = undefined;
+}
+
 export function getDB() {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {

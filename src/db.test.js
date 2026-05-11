@@ -27,6 +27,8 @@ import {
   listRecordsByActivity,
   updateRecord,
   deleteRecord,
+  getDB,
+  STORE_RECORDS,
 } from './db.js';
 
 const CURRENT_SESSION_KEY = 'walk-cycle-current-session-id';
@@ -866,6 +868,16 @@ describe('records', () => {
       await addRecord({ activityId: id, date: '2026-05-05', count: 3 });
       const records = await listRecordsByActivity(id);
       expect(records.map(r => r.date)).toEqual(['2026-05-10', '2026-05-05', '2026-05-01']);
+    });
+
+    it('handles records with the same date (sort comparator return 0)', async () => {
+      const id = await createActivity('Hills');
+      const db = await getDB();
+      await db.add(STORE_RECORDS, { activityId: id, date: '2026-05-10', count: 1, written: false, note: '' });
+      await db.add(STORE_RECORDS, { activityId: id, date: '2026-05-10', count: 2, written: false, note: '' });
+      const records = await listRecordsByActivity(id);
+      expect(records).toHaveLength(2);
+      expect(records.every(r => r.date === '2026-05-10')).toBe(true);
     });
 
     it('returns only records for that activity', async () => {
