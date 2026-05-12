@@ -540,7 +540,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
       ctx.strokeStyle = border;
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 4]);
-      for (let w = Math.max(0, visibleStart); w <= visibleEnd; w++) {
+      for (let w = Math.max(0, visibleStart); w <= visibleEnd + 1; w++) {
         const xx = x(w);
         ctx.beginPath();
         ctx.moveTo(xx, pad.top);
@@ -561,6 +561,10 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
         ctx.stroke();
       }
       ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(pad.left + plotW, pad.top);
+      ctx.lineTo(pad.left + plotW, pad.top + plotH);
+      ctx.stroke();
     }
 
     ctx.textAlign = 'center';
@@ -623,7 +627,11 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
         ctx.lineTo(xx, yy);
       }
     });
-    ctx.lineTo(x(visibleEnd), y(0));
+    if (visibleData.length) {
+      const lastY = y(visibleData[visibleData.length - 1].maxPossible);
+      ctx.lineTo(pad.left + plotW, lastY);
+    }
+    ctx.lineTo(pad.left + plotW, y(0));
     ctx.lineTo(x(visibleStart), y(0));
     ctx.closePath();
     ctx.fillStyle = (belowGoal ? danger : success) + '18';
@@ -643,6 +651,9 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
         ctx.lineTo(xx, yy);
       }
     });
+    if (visibleData.length) {
+      ctx.lineTo(pad.left + plotW, y(visibleData[visibleData.length - 1].maxPossible));
+    }
     ctx.stroke();
 
     ctx.beginPath();
