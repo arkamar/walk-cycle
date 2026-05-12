@@ -28,6 +28,7 @@ npm run lint:fix   # Run ESLint with auto-fix
 - Chart.js loaded on-demand in Stats view; motivation chart in activity detail uses raw `<canvas>`
 - Custom hash router in `src/router.js` — 5 tabs: Track, Sessions, Activities, Stats, Settings
 - 5-state FSM in `src/stateMachine.js`: idle → going_up → at_top → going_down → at_bottom → ...
+- Shared rendering helpers in `src/sessionLog.js` (log entry rendering, `enrichNextTs`) and `src/chart.js` (Chart.js trend chart factory).
 - Tracker button rules live in `buttonStatesFor()` in `src/stateMachine.js` (pure, unit-tested).
 - Activity detail view with stats grid (3 equal columns), per-record inline editing (date, count, note), written checkbox, cumulative sums, motivation chart with day/week toggle and drag-to-zoom.
 
@@ -37,9 +38,9 @@ Three distinct concepts to keep separate:
 
 - **`pause` event** — the FSM event that records the rest between `up` and `down` (going_up + pause → at_top, going_down + pause → at_bottom). Part of every cycle.
 - **Stop / Resume** — session-level. `session.stoppedAt` (DB field) marks a session as stopped; `resumeSession()` clears it. The 4th tracker button is labeled "Stop" while running and "Resume" while stopped (Resume is essentially an undo, for misclicks). Pressing **Up** while stopped starts a *new* session.
-- **Current session** — the single session that has neither `stoppedAt` nor `endedAt` set. `getActiveSession()` returns it; the tracker view renders it. The DB invariant (enforced by `setCurrentSession()`) is that at most one such session exists at any time.
+- **Current session** — the single session that has neither `stoppedAt` nor `endedAt` set. `getActiveSession()` returns it; the tracker view renders it. The DB invariant is that at most one such session exists at any time.
 
-`setCurrentSession(id)` is the atomic primitive used by the Sessions list/detail "Resume" / "Set as current" buttons: in a single transaction it stops any other active session and clears `stoppedAt`/`endedAt` on the target.
+`setCurrentSession(id)` marks a session as the current one (shown in the tracker). It writes the ID to localStorage and dispatches a `current-session-changed` event. The Sessions list/detail "Set as current" buttons call this directly — they do NOT stop other active sessions; multiple active sessions may exist.
 
 ## State recovery
 

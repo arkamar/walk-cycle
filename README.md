@@ -34,10 +34,12 @@ src/
 ├── db.js               # IndexedDB wrapper (sessions, events, activities, records)
 ├── stateMachine.js     # Strict 5-state walk-cycle FSM
 ├── analytics.js        # segmentsFromEvents, cyclesFromSegments, formatters
+├── sessionLog.js       # Render log entries, enrichNextTs helper
+├── chart.js            # Chart.js trend chart factory
 └── views/
     ├── tracker.js
-    ├── history.js
-    ├── historyDetail.js
+    ├── sessions.js
+    ├── sessionDetail.js
     ├── activities.js
     ├── activityDetail.js
     ├── stats.js

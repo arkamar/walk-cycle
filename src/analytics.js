@@ -107,7 +107,7 @@ export function cyclesFromSegments(segments, includeIncomplete = true) {
 
   if (includeIncomplete && current) {
     const lastSeg = Object.values(current.segments).pop();
-    current.endTs = lastSeg?.endTs || current.startTs;
+    current.endTs = lastSeg.endTs;
     current.totalMs = current.endTs - current.startTs;
     cycles.push(current);
   }
@@ -162,7 +162,7 @@ export function formatDuration(ms) {
   if (ms < 1000) return `${ms} ms`;
   const totalSec = Math.round(ms / 1000);
   if (totalSec < 60) {
-    return ms < 60000 ? `${(ms / 1000).toFixed(1)}s` : `${totalSec}s`;
+    return `${(ms / 1000).toFixed(1)}s`;
   }
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);

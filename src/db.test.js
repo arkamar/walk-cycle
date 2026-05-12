@@ -27,6 +27,8 @@ import {
   listRecordsByActivity,
   updateRecord,
   deleteRecord,
+  getDB,
+  STORE_RECORDS,
 } from './db.js';
 
 const CURRENT_SESSION_KEY = 'walk-cycle-current-session-id';
@@ -507,11 +509,15 @@ describe('exportAll', () => {
     expect(typeof data.exportedAt).toBe('number');
     expect(Array.isArray(data.sessions)).toBe(true);
     expect(Array.isArray(data.events)).toBe(true);
+    expect(Array.isArray(data.activities)).toBe(true);
+    expect(Array.isArray(data.records)).toBe(true);
   });
 
   it('includes all rows with their ids', async () => {
     const id = await createSession(1000, 'test');
     const e = await addEvent({ sessionId: id, type: 'pause', ts: 2000 });
+    const activityId = await createActivity('hills');
+    const rec = await addRecord({ activityId, date: '2026-01-01', count: 3 });
     const data = await exportAll();
     const session = data.sessions.find((s) => s.id === id);
     expect(session).toBeDefined();
@@ -520,6 +526,13 @@ describe('exportAll', () => {
     const event = data.events.find((ev) => ev.id === e.id);
     expect(event).toBeDefined();
     expect(event.type).toBe('pause');
+    const activity = data.activities.find((a) => a.id === activityId);
+    expect(activity).toBeDefined();
+    expect(activity.name).toBe('hills');
+    const record = data.records.find((r) => r.id === rec.id);
+    expect(record).toBeDefined();
+    expect(record.count).toBe(3);
+    expect(record.activityId).toBe(activityId);
   });
 });
 
@@ -552,12 +565,15 @@ describe('importAll', () => {
     ).rejects.toThrow('Invalid import data');
   });
 
-  it('replace mode clears existing data first', async () => {
+  it('replace mode clears all stores first', async () => {
     const id = await createSession();
     await addEvent({ sessionId: id, type: 'up' });
-    await importAll({ sessions: [], events: [] });
+    const aid = await createActivity('test');
+    await addRecord({ activityId: aid, date: '2026-05-11' });
+    await importAll({ sessions: [], events: [], activities: [], records: [] });
     expect((await listSessions()).length).toBe(0);
     expect((await listAllEvents()).length).toBe(0);
+    expect((await listActivities()).length).toBe(0);
   });
 
   it('merge mode preserves existing data', async () => {
@@ -593,6 +609,8 @@ describe('importAll', () => {
   it('round-trips export → clear → import', async () => {
     const id = await createSession(777, 'rt');
     await addEvent({ sessionId: id, type: 'up', ts: 888 });
+    const aid = await createActivity('hills');
+    await addRecord({ activityId: aid, date: '2026-05-11', count: 3, note: 'fast' });
     const exported = await exportAll();
     await clearAll();
     await importAll(exported);
@@ -604,6 +622,36 @@ describe('importAll', () => {
     expect(events).toHaveLength(1);
     expect(events[0].type).toBe('up');
     expect(events[0].ts).toBe(888);
+    const activities = await listActivities();
+    expect(activities).toHaveLength(1);
+    expect(activities[0].name).toBe('hills');
+    const records = await listRecordsByActivity(activities[0].id);
+    expect(records).toHaveLength(1);
+    expect(records[0].count).toBe(3);
+    expect(records[0].note).toBe('fast');
+  });
+
+  it('re-maps activity ids in records', async () => {
+    const data = {
+      sessions: [],
+      events: [],
+      activities: [{ id: 50, name: 'hills', createdAt: 1000, goal: null }],
+      records: [{ id: 1, activityId: 50, date: '2026-01-01', count: 5, written: false, note: '' }],
+    };
+    await importAll(data);
+    const activities = await listActivities();
+    expect(activities).toHaveLength(1);
+    expect(activities[0].name).toBe('hills');
+    const records = await listRecordsByActivity(activities[0].id);
+    expect(records).toHaveLength(1);
+    expect(records[0].count).toBe(5);
+    expect(records[0].activityId).toBe(activities[0].id);
+  });
+
+  it('imports data without activities/records arrays (backward compat)', async () => {
+    await importAll({ sessions: [], events: [] });
+    expect((await listActivities()).length).toBe(0);
+    expect((await listRecordsByActivity(0)).length).toBe(0);
   });
 
   it('keeps session ids that are not in the import map (fallback)', async () => {
@@ -820,6 +868,16 @@ describe('records', () => {
       await addRecord({ activityId: id, date: '2026-05-05', count: 3 });
       const records = await listRecordsByActivity(id);
       expect(records.map(r => r.date)).toEqual(['2026-05-10', '2026-05-05', '2026-05-01']);
+    });
+
+    it('handles records with the same date (sort comparator return 0)', async () => {
+      const id = await createActivity('Hills');
+      const db = await getDB();
+      await db.add(STORE_RECORDS, { activityId: id, date: '2026-05-10', count: 1, written: false, note: '' });
+      await db.add(STORE_RECORDS, { activityId: id, date: '2026-05-10', count: 2, written: false, note: '' });
+      const records = await listRecordsByActivity(id);
+      expect(records).toHaveLength(2);
+      expect(records.every(r => r.date === '2026-05-10')).toBe(true);
     });
 
     it('returns only records for that activity', async () => {

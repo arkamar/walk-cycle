@@ -18,8 +18,41 @@ vi.mock('./analytics.js', () => ({
   findPrevSameType: vi.fn(() => null),
 }));
 
-import { renderLogEntries } from './sessionLog.js';
+import { enrichNextTs, renderLogEntries } from './sessionLog.js';
 import { findPrevSameType } from './analytics.js';
+
+describe('enrichNextTs', () => {
+  it('does nothing for empty events', () => {
+    const events = [];
+    enrichNextTs(events);
+    expect(events).toEqual([]);
+  });
+
+  it('sets nextTs on a single event using provided value', () => {
+    const events = [{ id: 1, ts: 1000 }];
+    enrichNextTs(events, 5000);
+    expect(events[0].nextTs).toBe(5000);
+  });
+
+  it('sets intermediate events to next event ts and last to provided value', () => {
+    const events = [
+      { id: 1, ts: 1000 },
+      { id: 2, ts: 3000 },
+      { id: 3, ts: 6000 },
+    ];
+    enrichNextTs(events, 9999);
+    expect(events[0].nextTs).toBe(3000);
+    expect(events[1].nextTs).toBe(6000);
+    expect(events[2].nextTs).toBe(9999);
+  });
+
+  it('defaults lastNextTs to Date.now()', () => {
+    const now = Date.now();
+    const events = [{ id: 1, ts: 1000 }];
+    enrichNextTs(events);
+    expect(events[0].nextTs).toBeGreaterThanOrEqual(now);
+  });
+});
 
 describe('sessionLog.js', () => {
   let container;
@@ -103,6 +136,30 @@ describe('sessionLog.js', () => {
     renderLogEntries(container, events);
     const durations = container.querySelectorAll('.log-entry-duration');
     expect(durations[0].textContent).toBe('00:04:000');
+  });
+
+  it('does not show diff when thisDuration is zero', () => {
+    const events = [
+      { id: 1, type: 'up', ts: 1000, nextTs: 3000 },
+      { id: 2, type: 'up', ts: 3000, nextTs: 3000 },
+    ];
+    findPrevSameType.mockReturnValue({ nextTs: 3000, ts: 1000 });
+    renderLogEntries(container, events);
+    const nonEmpty = Array.from(container.querySelectorAll('.log-entry-diff'))
+      .filter(el => el.textContent !== '');
+    expect(nonEmpty.length).toBe(0);
+  });
+
+  it('does not show diff when thisDuration equals prevDuration', () => {
+    const events = [
+      { id: 1, type: 'up', ts: 1000, nextTs: 3000 },
+      { id: 2, type: 'up', ts: 3000, nextTs: 5000 },
+    ];
+    findPrevSameType.mockReturnValue({ nextTs: 3000, ts: 1000 });
+    renderLogEntries(container, events);
+    const nonEmpty = Array.from(container.querySelectorAll('.log-entry-diff'))
+      .filter(el => el.textContent !== '');
+    expect(nonEmpty.length).toBe(0);
   });
 
   it('shows 00:00 for last event when isRunning', () => {

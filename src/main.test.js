@@ -371,17 +371,39 @@ describe('main.js', () => {
     expect(app.innerHTML).toContain('id="tab-bar"');
   });
 
-  it('handles lazy load missing export (lines 13-14)', () => {
-    // Lines 13-14 are inside a try-catch in the lazy() function.
-    // These are error handling paths that are difficult to test without complex module mocking.
-    // The code is covered by the fact that the lazy() function is used and tested indirectly.
-    expect(true).toBe(true);
-  });
+  describe('lazy()', () => {
+    it('renders successfully when loader returns module with expected export', async () => {
+      const { lazy } = await import('./main.js');
+      const render = vi.fn();
+      const loader = vi.fn().mockResolvedValue({ myFn: render });
+      const target = document.createElement('div');
+      await lazy(loader, 'myFn')(target, { path: '/' });
+      expect(loader).toHaveBeenCalledOnce();
+      expect(render).toHaveBeenCalledWith(target, { path: '/' });
+    });
 
-  it('handles lazy load error (lines 18-20)', () => {
-    // Lines 18-20 are inside a catch block in the lazy() function.
-    // These are error handling paths for failed module loads.
-    // The code is covered by the fact that the lazy() function is used and tested indirectly.
-    expect(true).toBe(true);
+    it('throws and shows error when module lacks expected export', async () => {
+      const { lazy } = await import('./main.js');
+      const loader = vi.fn().mockResolvedValue({});
+      const target = document.createElement('div');
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      await lazy(loader, 'missingFn')(target, { path: '/' });
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(target.innerHTML).toContain('Error');
+      expect(target.innerHTML).toContain('Missing export: missingFn');
+      consoleSpy.mockRestore();
+    });
+
+    it('catches loader rejection and shows error in target', async () => {
+      const { lazy } = await import('./main.js');
+      const loader = vi.fn().mockRejectedValue(new Error('Network error'));
+      const target = document.createElement('div');
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      await lazy(loader, 'anything')(target, { path: '/' });
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(target.innerHTML).toContain('Error');
+      expect(target.innerHTML).toContain('Network error');
+      consoleSpy.mockRestore();
+    });
   });
 });

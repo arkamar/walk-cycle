@@ -12,6 +12,10 @@ const CURRENT_SESSION_KEY = 'walk-cycle-current-session-id';
 
 let dbPromise;
 
+export function resetDB() {
+  dbPromise = undefined;
+}
+
 export function getDB() {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
@@ -386,18 +390,27 @@ export async function exportAll() {
   const db = await getDB();
   const sessions = await db.getAll(STORE_SESSIONS);
   const events = await db.getAll(STORE_EVENTS);
-  return { version: DB_VERSION, exportedAt: Date.now(), sessions, events };
+  const activities = await db.getAll(STORE_ACTIVITIES);
+  const records = await db.getAll(STORE_RECORDS);
+  return { version: DB_VERSION, exportedAt: Date.now(), sessions, events, activities, records };
 }
 
 export async function importAll(data, { merge = false } = {}) {
   if (!data || !Array.isArray(data.sessions) || !Array.isArray(data.events)) {
     throw new Error('Invalid import data');
   }
+  const activities = Array.isArray(data.activities) ? data.activities : [];
+  const records = Array.isArray(data.records) ? data.records : [];
   const db = await getDB();
-  const tx = db.transaction([STORE_SESSIONS, STORE_EVENTS], 'readwrite');
+  const tx = db.transaction(
+    [STORE_SESSIONS, STORE_EVENTS, STORE_ACTIVITIES, STORE_RECORDS],
+    'readwrite',
+  );
   if (!merge) {
     await tx.objectStore(STORE_SESSIONS).clear();
     await tx.objectStore(STORE_EVENTS).clear();
+    await tx.objectStore(STORE_ACTIVITIES).clear();
+    await tx.objectStore(STORE_RECORDS).clear();
   }
   const sessionIdMap = new Map();
   for (const s of data.sessions) {
@@ -409,6 +422,17 @@ export async function importAll(data, { merge = false } = {}) {
     const { sessionId, ...rest } = e;
     const newSessionId = sessionIdMap.get(sessionId) ?? sessionId;
     await tx.objectStore(STORE_EVENTS).add({ sessionId: newSessionId, ...rest });
+  }
+  const activityIdMap = new Map();
+  for (const a of activities) {
+    const { id: oldId, ...rest } = a;
+    const newId = await tx.objectStore(STORE_ACTIVITIES).add(rest);
+    activityIdMap.set(oldId, newId);
+  }
+  for (const r of records) {
+    const { activityId, ...rest } = r;
+    const newActivityId = activityIdMap.get(activityId) ?? activityId;
+    await tx.objectStore(STORE_RECORDS).add({ activityId: newActivityId, ...rest });
   }
   await tx.done;
 }
