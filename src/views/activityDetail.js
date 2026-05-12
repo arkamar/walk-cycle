@@ -370,7 +370,7 @@ export async function renderActivityDetail(target, { id }) {
       onClick: () => {
         resetBtn.style.display = 'none';
         canvasWrap.innerHTML = '';
-        renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, chartMode, null, onZoomChange);
+        renderMotivationChart(canvasWrap, yearRecords, activity.goal, chartMode, null, onZoomChange);
       },
     }, '← Reset zoom');
 
@@ -381,7 +381,7 @@ export async function renderActivityDetail(target, { id }) {
 
     const canvasWrap = el('div', { style: { marginTop: '0.5rem' } });
     chartCard.appendChild(canvasWrap);
-    renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, 'week', null, onZoomChange);
+    renderMotivationChart(canvasWrap, yearRecords, activity.goal, 'week', null, onZoomChange);
 
     function onZoomChange(bounds) {
       resetBtn.style.display = bounds ? '' : 'none';
@@ -394,7 +394,7 @@ export async function renderActivityDetail(target, { id }) {
       Object.assign(dayBtn.style, mode === 'day' ? activeBtn : inactiveBtn);
       Object.assign(weekBtn.style, mode === 'week' ? activeBtn : inactiveBtn);
       canvasWrap.innerHTML = '';
-      renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, mode, null, onZoomChange);
+      renderMotivationChart(canvasWrap, yearRecords, activity.goal, mode, null, onZoomChange);
     }
   }
 
@@ -411,7 +411,7 @@ export async function renderActivityDetail(target, { id }) {
 const _mouseUpHandlers = new Map();
 const _resizeObservers = new Map();
 
-function renderMotivationChart(container, yearRecords, goal, yearCount, mode, initialZoom, onZoomChange) {
+function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, onZoomChange) {
   const currentYear = new Date().getFullYear();
   const startOfYear = new Date(currentYear, 0, 1);
   const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
