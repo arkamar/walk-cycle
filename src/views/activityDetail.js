@@ -563,6 +563,23 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
         ctx.stroke();
       }
       ctx.setLineDash([]);
+
+      ctx.strokeStyle = muted + '60';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      for (let m = 1; m < 12; m++) {
+        const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
+        const idx = dayOfMonth < firstWeekStart
+          ? dayOfMonth / (firstWeekStart || 1)
+          : (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
+        if (idx < visibleStart || idx > visibleEnd) continue;
+        const xx = x(idx);
+        ctx.beginPath();
+        ctx.moveTo(xx, pad.top);
+        ctx.lineTo(xx, pad.top + plotH);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
     } else {
       const dayStep = visibleUnits < 14 ? 1 : 7;
       ctx.strokeStyle = border;
@@ -609,7 +626,9 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       if (visibleUnits > 16) {
         for (let m = 0; m < 12; m++) {
           const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
-          const idx = dayOfMonth < firstWeekStart ? 0 : 1 + Math.floor((dayOfMonth - firstWeekStart) / 7);
+          const idx = dayOfMonth < firstWeekStart
+            ? dayOfMonth / (firstWeekStart || 1)
+            : (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
           if (idx < visibleStart || idx > visibleEnd) continue;
           ctx.fillText(
             mf.format(new Date(currentYear, m, 1)),
