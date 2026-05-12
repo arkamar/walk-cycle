@@ -425,7 +425,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
 
   if (mode === 'week') {
     totalUnits = 52;
-    todayIndex = Math.min(Math.floor(todayDayIndex / 7), totalUnits - 1);
+    todayIndex = Math.min(todayDayIndex / 7, totalUnits - 1);
     const weekCounts = new Map();
     for (const r of yearRecords) {
       const w = Math.floor((new Date(r.date + 'T00:00:00') - startOfYear) / 86400000 / 7);
@@ -608,7 +608,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
       }
     }
 
-    const currentPossible = data[todayIndex]?.maxPossible ?? 0;
+    const currentPossible = data[Math.min(Math.floor(todayIndex), totalUnits - 1)]?.maxPossible ?? 0;
     const belowGoal = currentPossible < goal;
 
     ctx.beginPath();
