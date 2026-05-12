@@ -597,6 +597,20 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       ctx.moveTo(pad.left + plotW, pad.top);
       ctx.lineTo(pad.left + plotW, pad.top + plotH);
       ctx.stroke();
+
+      ctx.strokeStyle = muted + '60';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      for (let m = 1; m < 12; m++) {
+        const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
+        if (dayOfMonth < visibleStart || dayOfMonth > visibleEnd) continue;
+        const xx = x(dayOfMonth);
+        ctx.beginPath();
+        ctx.moveTo(xx, pad.top);
+        ctx.lineTo(xx, pad.top + plotH);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
     }
 
     ctx.textAlign = 'center';
