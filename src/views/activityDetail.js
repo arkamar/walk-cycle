@@ -422,13 +422,28 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
   let data;
   let totalUnits;
   let todayIndex;
+  let firstWeekStart = 0;
 
   if (mode === 'week') {
-    totalUnits = 52;
-    todayIndex = Math.min(todayDayIndex / 7, totalUnits - 1);
+    const locale = new Intl.Locale(navigator.language);
+    const localeFirstDay = locale.weekInfo?.firstDay ?? 1;
+    const firstDayOfWeek = localeFirstDay % 7;
+    const jan1DayOfWeek = startOfYear.getDay();
+    firstWeekStart = (firstDayOfWeek - jan1DayOfWeek + 7) % 7;
+
+    totalUnits = firstWeekStart === 0
+      ? Math.ceil(daysInYear / 7)
+      : 1 + Math.ceil((daysInYear - firstWeekStart) / 7);
+
+    todayIndex = todayDayIndex < firstWeekStart
+      ? todayDayIndex / firstWeekStart
+      : (firstWeekStart > 0 ? 1 : 0) + (todayDayIndex - firstWeekStart) / 7;
+    todayIndex = Math.min(todayIndex, totalUnits - 1);
+
     const weekCounts = new Map();
     for (const r of yearRecords) {
-      const w = Math.floor((new Date(r.date + 'T00:00:00') - startOfYear) / 86400000 / 7);
+      const dayIndex = Math.floor((new Date(r.date + 'T00:00:00') - startOfYear) / 86400000);
+      const w = dayIndex < firstWeekStart ? 0 : 1 + Math.floor((dayIndex - firstWeekStart) / 7);
       weekCounts.set(w, (weekCounts.get(w) || 0) + r.count);
     }
     let runningRecords = 0;
@@ -594,7 +609,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       if (visibleUnits > 16) {
         for (let m = 0; m < 12; m++) {
           const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
-          const idx = Math.floor(dayOfMonth / 7);
+          const idx = dayOfMonth < firstWeekStart ? 0 : 1 + Math.floor((dayOfMonth - firstWeekStart) / 7);
           if (idx < visibleStart || idx > visibleEnd) continue;
           ctx.fillText(
             mf.format(new Date(currentYear, m, 1)),
@@ -603,7 +618,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
         }
       } else {
         for (let w = visibleStart; w <= visibleEnd; w++) {
-          const d = new Date(currentYear, 0, w * 7 + 1);
+          const d = w === 0 ? new Date(currentYear, 0, 1) : new Date(currentYear, 0, firstWeekStart + (w - 1) * 7 + 1);
           ctx.fillText(
             df.format(d),
             x(w), pad.top + plotH + 4,
