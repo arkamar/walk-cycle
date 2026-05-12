@@ -615,22 +615,25 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     const currentPossible = data[Math.min(Math.floor(todayIndex), totalUnits - 1)]?.maxPossible ?? 0;
     const belowGoal = currentPossible < goal;
 
-    ctx.beginPath();
-    visibleData.forEach((d, i) => {
-      const xx = x(d.index);
-      const yy = y(d.maxPossible);
-      if (i === 0) {
-        ctx.moveTo(xx, yy);
-      } else {
-        const prev = visibleData[i - 1];
-        ctx.lineTo(xx, y(prev.maxPossible));
-        ctx.lineTo(xx, yy);
+    const drawStepPath = () => {
+      visibleData.forEach((d, i) => {
+        const xx = x(d.index);
+        const yy = y(d.maxPossible);
+        if (i === 0) {
+          ctx.moveTo(xx, yy);
+        } else {
+          const prev = visibleData[i - 1];
+          ctx.lineTo(xx, y(prev.maxPossible));
+          ctx.lineTo(xx, yy);
+        }
+      });
+      if (visibleData.length) {
+        ctx.lineTo(pad.left + plotW, y(visibleData[visibleData.length - 1].maxPossible));
       }
-    });
-    if (visibleData.length) {
-      const lastY = y(visibleData[visibleData.length - 1].maxPossible);
-      ctx.lineTo(pad.left + plotW, lastY);
-    }
+    };
+
+    ctx.beginPath();
+    drawStepPath();
     ctx.lineTo(pad.left + plotW, y(0));
     ctx.lineTo(x(visibleStart), y(0));
     ctx.closePath();
@@ -640,20 +643,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     ctx.beginPath();
     ctx.strokeStyle = belowGoal ? danger : success;
     ctx.lineWidth = 2;
-    visibleData.forEach((d, i) => {
-      const xx = x(d.index);
-      const yy = y(d.maxPossible);
-      if (i === 0) {
-        ctx.moveTo(xx, yy);
-      } else {
-        const prev = visibleData[i - 1];
-        ctx.lineTo(xx, y(prev.maxPossible));
-        ctx.lineTo(xx, yy);
-      }
-    });
-    if (visibleData.length) {
-      ctx.lineTo(pad.left + plotW, y(visibleData[visibleData.length - 1].maxPossible));
-    }
+    drawStepPath();
     ctx.stroke();
 
     ctx.beginPath();
