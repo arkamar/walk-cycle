@@ -415,7 +415,8 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
   const currentYear = new Date().getFullYear();
   const startOfYear = new Date(currentYear, 0, 1);
   const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
-  const todayDayIndex = Math.floor((Date.now() - startOfYear.getTime()) / 86400000);
+  const now = new Date();
+  const todayDayIndex = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(currentYear, 0, 1)) / 86400000);
   const df = new Intl.DateTimeFormat(navigator.language, { day: 'numeric', month: 'short' });
   const mf = new Intl.DateTimeFormat(navigator.language, { month: 'short' });
 
@@ -442,7 +443,8 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
 
     const weekCounts = new Map();
     for (const r of yearRecords) {
-      const dayIndex = Math.floor((new Date(r.date + 'T00:00:00') - startOfYear) / 86400000);
+      const [yr, mo, da] = r.date.split('-').map(Number);
+      const dayIndex = Math.floor((Date.UTC(yr, mo - 1, da) - Date.UTC(currentYear, 0, 1)) / 86400000);
       const w = dayIndex < firstWeekStart ? 0 : 1 + Math.floor((dayIndex - firstWeekStart) / 7);
       weekCounts.set(w, (weekCounts.get(w) || 0) + r.count);
     }
@@ -624,7 +626,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 4]);
     for (let m = 1; m < 12; m++) {
-      const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
+      const dayOfMonth = Math.floor((Date.UTC(currentYear, m, 1) - Date.UTC(currentYear, 0, 1)) / 86400000);
       const idx = monthIdx(dayOfMonth);
       if (idx < visibleStart || idx > visibleEnd) continue;
       const xx = x(idx);
@@ -641,7 +643,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     if (mode === 'day') {
       if (visibleUnits > 60) {
         for (let m = 0; m < 12; m++) {
-          const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
+          const dayOfMonth = Math.floor((Date.UTC(currentYear, m, 1) - Date.UTC(currentYear, 0, 1)) / 86400000);
           const idx = monthIdx(dayOfMonth);
           if (idx < visibleStart || idx > visibleEnd) continue;
           ctx.fillText(
@@ -662,7 +664,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     } else {
       if (visibleUnits > 16) {
         for (let m = 0; m < 12; m++) {
-          const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
+          const dayOfMonth = Math.floor((Date.UTC(currentYear, m, 1) - Date.UTC(currentYear, 0, 1)) / 86400000);
           const idx = monthIdx(dayOfMonth);
           if (idx < visibleStart || idx > visibleEnd) continue;
           ctx.fillText(
