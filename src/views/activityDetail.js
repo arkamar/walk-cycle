@@ -669,7 +669,16 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       }
     } else {
       drawMonthLabels(16);
-      if (visibleUnits <= 16) {
+      if (visibleUnits <= 3) {
+        const dayCount = cumDays[visibleEnd + 1] - cumDays[visibleStart];
+        const step = Math.max(1, Math.floor(dayCount / 8));
+        for (let d = Math.ceil(cumDays[visibleStart] / step) * step; d < cumDays[visibleEnd + 1]; d += step) {
+          ctx.fillText(
+            df.format(new Date(currentYear, 0, d + 1)),
+            x(monthIdx(d)), pad.top + plotH + 4,
+          );
+        }
+      } else if (visibleUnits <= 16) {
         for (let w = visibleStart; w <= visibleEnd; w++) {
           const d = w === 0 ? new Date(currentYear, 0, 1) : new Date(currentYear, 0, firstWeekStart + (w - 1) * 7 + 1);
           ctx.fillText(
