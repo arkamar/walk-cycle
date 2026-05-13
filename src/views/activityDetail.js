@@ -622,12 +622,15 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       ctx.stroke();
     }
 
+    const monthStartDay = Array.from({ length: 12 }, (_, m) =>
+      Math.floor((Date.UTC(currentYear, m, 1) - Date.UTC(currentYear, 0, 1)) / 86400000),
+    );
+
     ctx.strokeStyle = muted + '60';
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 4]);
     for (let m = 1; m < 12; m++) {
-      const dayOfMonth = Math.floor((Date.UTC(currentYear, m, 1) - Date.UTC(currentYear, 0, 1)) / 86400000);
-      const idx = monthIdx(dayOfMonth);
+      const idx = monthIdx(monthStartDay[m]);
       if (idx < visibleStart || idx > visibleEnd) continue;
       const xx = x(idx);
       ctx.beginPath();
@@ -637,21 +640,24 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     }
     ctx.setLineDash([]);
 
+    const drawMonthLabels = (threshold) => {
+      if (visibleUnits <= threshold) return;
+      for (let m = 0; m < 12; m++) {
+        const idx = monthIdx(monthStartDay[m]);
+        if (idx < visibleStart || idx > visibleEnd) continue;
+        ctx.fillText(
+          mf.format(new Date(currentYear, m, 1)),
+          x(idx), pad.top + plotH + 4,
+        );
+      }
+    };
+
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
     if (mode === 'day') {
-      if (visibleUnits > 60) {
-        for (let m = 0; m < 12; m++) {
-          const dayOfMonth = Math.floor((Date.UTC(currentYear, m, 1) - Date.UTC(currentYear, 0, 1)) / 86400000);
-          const idx = monthIdx(dayOfMonth);
-          if (idx < visibleStart || idx > visibleEnd) continue;
-          ctx.fillText(
-            mf.format(new Date(currentYear, m, 1)),
-            x(idx), pad.top + plotH + 4,
-          );
-        }
-      } else {
+      drawMonthLabels(60);
+      if (visibleUnits <= 60) {
         const step = visibleUnits > 20 ? 7 : Math.max(1, Math.floor(visibleUnits / 8));
         for (let day = Math.ceil(visibleStart / step) * step; day <= visibleEnd; day += step) {
           const d = new Date(currentYear, 0, day + 1);
@@ -662,17 +668,8 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
         }
       }
     } else {
-      if (visibleUnits > 16) {
-        for (let m = 0; m < 12; m++) {
-          const dayOfMonth = Math.floor((Date.UTC(currentYear, m, 1) - Date.UTC(currentYear, 0, 1)) / 86400000);
-          const idx = monthIdx(dayOfMonth);
-          if (idx < visibleStart || idx > visibleEnd) continue;
-          ctx.fillText(
-            mf.format(new Date(currentYear, m, 1)),
-            x(idx), pad.top + plotH + 4,
-          );
-        }
-      } else {
+      drawMonthLabels(16);
+      if (visibleUnits <= 16) {
         for (let w = visibleStart; w <= visibleEnd; w++) {
           const d = w === 0 ? new Date(currentYear, 0, 1) : new Date(currentYear, 0, firstWeekStart + (w - 1) * 7 + 1);
           ctx.fillText(
