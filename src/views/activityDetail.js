@@ -468,6 +468,26 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     }
   }
 
+  const cumDays = [0];
+  if (mode === 'week') {
+    for (let w = 0; w < totalUnits; w++) {
+      const prev = cumDays[w];
+      const span = w === 0
+        ? (firstWeekStart > 0 ? firstWeekStart : 7)
+        : (w === totalUnits - 1 ? daysInYear - prev : 7);
+      cumDays.push(prev + span);
+    }
+  } else {
+    for (let i = 1; i <= totalUnits; i++) cumDays.push(i);
+  }
+
+  const cumDaysAt = (idx) => {
+    const i = Math.floor(idx);
+    const frac = idx - i;
+    if (i >= cumDays.length - 1) return cumDays.at(-1);
+    return cumDays[i] + frac * (cumDays[i + 1] - cumDays[i]);
+  };
+
   let zoom = initialZoom;
 
   const canvas = el('canvas', {
@@ -494,9 +514,18 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     const plotW = getPlotW();
     if (plotW <= 0) return 0;
     const vs = zoom ? zoom.start : 0;
-    const vu = zoom ? (zoom.end - zoom.start + 1) : totalUnits;
-    const raw = vs + ((px - pad.left) / plotW) * vu;
-    return Math.round(Math.max(0, Math.min(totalUnits - 1, raw)));
+    const ve = zoom ? zoom.end : totalUnits - 1;
+    const startDays = cumDaysAt(vs);
+    const endDays = cumDaysAt(ve + 1);
+    const targetDays = startDays + ((px - pad.left) / plotW) * (endDays - startDays);
+    let lo = 0, hi = cumDays.length - 1;
+    while (lo < hi - 1) {
+      const mid = (lo + hi) >> 1;
+      if (cumDays[mid] <= targetDays) lo = mid;
+      else hi = mid;
+    }
+    const frac = (targetDays - cumDays[lo]) / (cumDays[hi] - cumDays[lo] || 1);
+    return Math.round(Math.max(0, Math.min(totalUnits - 1, lo + frac)));
   }
 
   const draw = () => {
@@ -528,7 +557,11 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
 
     const maxVal = Math.max(goal, ...visibleData.map(d => d.maxPossible), 1);
 
-    const x = (idx) => pad.left + ((idx - visibleStart) / visibleUnits) * plotW;
+    const x = (idx) => {
+      const startDays = cumDaysAt(visibleStart);
+      const endDays = cumDaysAt(visibleEnd + 1);
+      return pad.left + ((cumDaysAt(idx) - startDays) / (endDays - startDays)) * plotW;
+    };
     const y = (val) => pad.top + plotH - (val / maxVal) * plotH;
     const monthIdx = (dayOfMonth) => mode === 'day'
       ? dayOfMonth
