@@ -530,6 +530,11 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
 
     const x = (idx) => pad.left + ((idx - visibleStart) / visibleUnits) * plotW;
     const y = (val) => pad.top + plotH - (val / maxVal) * plotH;
+    const monthIdx = (dayOfMonth) => mode === 'day'
+      ? dayOfMonth
+      : dayOfMonth < firstWeekStart
+        ? dayOfMonth / (firstWeekStart || 1)
+        : (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
 
     ctx.clearRect(0, 0, w, h);
 
@@ -563,23 +568,6 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
         ctx.stroke();
       }
       ctx.setLineDash([]);
-
-      ctx.strokeStyle = muted + '60';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 4]);
-      for (let m = 1; m < 12; m++) {
-        const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
-        const idx = dayOfMonth < firstWeekStart
-          ? dayOfMonth / (firstWeekStart || 1)
-          : (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
-        if (idx < visibleStart || idx > visibleEnd) continue;
-        const xx = x(idx);
-        ctx.beginPath();
-        ctx.moveTo(xx, pad.top);
-        ctx.lineTo(xx, pad.top + plotH);
-        ctx.stroke();
-      }
-      ctx.setLineDash([]);
     } else {
       const dayStep = visibleUnits < 14 ? 1 : 7;
       ctx.strokeStyle = border;
@@ -597,21 +585,22 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       ctx.moveTo(pad.left + plotW, pad.top);
       ctx.lineTo(pad.left + plotW, pad.top + plotH);
       ctx.stroke();
-
-      ctx.strokeStyle = muted + '60';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 4]);
-      for (let m = 1; m < 12; m++) {
-        const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
-        if (dayOfMonth < visibleStart || dayOfMonth > visibleEnd) continue;
-        const xx = x(dayOfMonth);
-        ctx.beginPath();
-        ctx.moveTo(xx, pad.top);
-        ctx.lineTo(xx, pad.top + plotH);
-        ctx.stroke();
-      }
-      ctx.setLineDash([]);
     }
+
+    ctx.strokeStyle = muted + '60';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
+    for (let m = 1; m < 12; m++) {
+      const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
+      const idx = monthIdx(dayOfMonth);
+      if (idx < visibleStart || idx > visibleEnd) continue;
+      const xx = x(idx);
+      ctx.beginPath();
+      ctx.moveTo(xx, pad.top);
+      ctx.lineTo(xx, pad.top + plotH);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
@@ -620,10 +609,11 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       if (visibleUnits > 60) {
         for (let m = 0; m < 12; m++) {
           const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
-          if (dayOfMonth < visibleStart || dayOfMonth > visibleEnd) continue;
+          const idx = monthIdx(dayOfMonth);
+          if (idx < visibleStart || idx > visibleEnd) continue;
           ctx.fillText(
             mf.format(new Date(currentYear, m, 1)),
-            x(dayOfMonth), pad.top + plotH + 4,
+            x(idx), pad.top + plotH + 4,
           );
         }
       } else {
@@ -640,9 +630,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       if (visibleUnits > 16) {
         for (let m = 0; m < 12; m++) {
           const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
-          const idx = dayOfMonth < firstWeekStart
-            ? dayOfMonth / (firstWeekStart || 1)
-            : (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
+          const idx = monthIdx(dayOfMonth);
           if (idx < visibleStart || idx > visibleEnd) continue;
           ctx.fillText(
             mf.format(new Date(currentYear, m, 1)),
