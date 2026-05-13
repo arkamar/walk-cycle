@@ -370,7 +370,7 @@ export async function renderActivityDetail(target, { id }) {
       onClick: () => {
         resetBtn.style.display = 'none';
         canvasWrap.innerHTML = '';
-        renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, chartMode, null, onZoomChange);
+        renderMotivationChart(canvasWrap, yearRecords, activity.goal, chartMode, null, onZoomChange);
       },
     }, '← Reset zoom');
 
@@ -381,7 +381,7 @@ export async function renderActivityDetail(target, { id }) {
 
     const canvasWrap = el('div', { style: { marginTop: '0.5rem' } });
     chartCard.appendChild(canvasWrap);
-    renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, 'week', null, onZoomChange);
+    renderMotivationChart(canvasWrap, yearRecords, activity.goal, 'week', null, onZoomChange);
 
     function onZoomChange(bounds) {
       resetBtn.style.display = bounds ? '' : 'none';
@@ -394,7 +394,7 @@ export async function renderActivityDetail(target, { id }) {
       Object.assign(dayBtn.style, mode === 'day' ? activeBtn : inactiveBtn);
       Object.assign(weekBtn.style, mode === 'week' ? activeBtn : inactiveBtn);
       canvasWrap.innerHTML = '';
-      renderMotivationChart(canvasWrap, yearRecords, activity.goal, yearCount, mode, null, onZoomChange);
+      renderMotivationChart(canvasWrap, yearRecords, activity.goal, mode, null, onZoomChange);
     }
   }
 
@@ -411,7 +411,7 @@ export async function renderActivityDetail(target, { id }) {
 const _mouseUpHandlers = new Map();
 const _resizeObservers = new Map();
 
-function renderMotivationChart(container, yearRecords, goal, yearCount, mode, initialZoom, onZoomChange) {
+function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, onZoomChange) {
   const currentYear = new Date().getFullYear();
   const startOfYear = new Date(currentYear, 0, 1);
   const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
@@ -422,13 +422,28 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
   let data;
   let totalUnits;
   let todayIndex;
+  let firstWeekStart = 0;
 
   if (mode === 'week') {
-    totalUnits = 52;
-    todayIndex = Math.min(Math.floor(todayDayIndex / 7), totalUnits - 1);
+    const locale = new Intl.Locale(navigator.language);
+    const localeFirstDay = locale.weekInfo?.firstDay ?? 1;
+    const firstDayOfWeek = localeFirstDay % 7;
+    const jan1DayOfWeek = startOfYear.getDay();
+    firstWeekStart = (firstDayOfWeek - jan1DayOfWeek + 7) % 7;
+
+    totalUnits = firstWeekStart === 0
+      ? Math.ceil(daysInYear / 7)
+      : 1 + Math.ceil((daysInYear - firstWeekStart) / 7);
+
+    todayIndex = todayDayIndex < firstWeekStart
+      ? todayDayIndex / firstWeekStart
+      : (firstWeekStart > 0 ? 1 : 0) + (todayDayIndex - firstWeekStart) / 7;
+    todayIndex = Math.min(todayIndex, totalUnits - 1);
+
     const weekCounts = new Map();
     for (const r of yearRecords) {
-      const w = Math.floor((new Date(r.date + 'T00:00:00') - startOfYear) / 86400000 / 7);
+      const dayIndex = Math.floor((new Date(r.date + 'T00:00:00') - startOfYear) / 86400000);
+      const w = dayIndex < firstWeekStart ? 0 : 1 + Math.floor((dayIndex - firstWeekStart) / 7);
       weekCounts.set(w, (weekCounts.get(w) || 0) + r.count);
     }
     let runningRecords = 0;
@@ -540,8 +555,25 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
       ctx.strokeStyle = border;
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 4]);
-      for (let w = Math.max(0, visibleStart); w <= visibleEnd; w++) {
+      for (let w = Math.max(0, visibleStart); w <= visibleEnd + 1; w++) {
         const xx = x(w);
+        ctx.beginPath();
+        ctx.moveTo(xx, pad.top);
+        ctx.lineTo(xx, pad.top + plotH);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      ctx.strokeStyle = muted + '60';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      for (let m = 1; m < 12; m++) {
+        const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
+        const idx = dayOfMonth < firstWeekStart
+          ? dayOfMonth / (firstWeekStart || 1)
+          : (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
+        if (idx < visibleStart || idx > visibleEnd) continue;
+        const xx = x(idx);
         ctx.beginPath();
         ctx.moveTo(xx, pad.top);
         ctx.lineTo(xx, pad.top + plotH);
@@ -561,6 +593,10 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
         ctx.stroke();
       }
       ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(pad.left + plotW, pad.top);
+      ctx.lineTo(pad.left + plotW, pad.top + plotH);
+      ctx.stroke();
     }
 
     ctx.textAlign = 'center';
@@ -590,7 +626,9 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
       if (visibleUnits > 16) {
         for (let m = 0; m < 12; m++) {
           const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
-          const idx = Math.floor(dayOfMonth / 7);
+          const idx = dayOfMonth < firstWeekStart
+            ? dayOfMonth / (firstWeekStart || 1)
+            : (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
           if (idx < visibleStart || idx > visibleEnd) continue;
           ctx.fillText(
             mf.format(new Date(currentYear, m, 1)),
@@ -599,7 +637,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
         }
       } else {
         for (let w = visibleStart; w <= visibleEnd; w++) {
-          const d = new Date(currentYear, 0, w * 7 + 1);
+          const d = w === 0 ? new Date(currentYear, 0, 1) : new Date(currentYear, 0, firstWeekStart + (w - 1) * 7 + 1);
           ctx.fillText(
             df.format(d),
             x(w), pad.top + plotH + 4,
@@ -608,22 +646,29 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
       }
     }
 
-    const currentPossible = data[todayIndex]?.maxPossible ?? 0;
+    const currentPossible = data[Math.min(Math.floor(todayIndex), totalUnits - 1)]?.maxPossible ?? 0;
     const belowGoal = currentPossible < goal;
 
-    ctx.beginPath();
-    visibleData.forEach((d, i) => {
-      const xx = x(d.index);
-      const yy = y(d.maxPossible);
-      if (i === 0) {
-        ctx.moveTo(xx, yy);
-      } else {
-        const prev = visibleData[i - 1];
-        ctx.lineTo(xx, y(prev.maxPossible));
-        ctx.lineTo(xx, yy);
+    const drawStepPath = () => {
+      visibleData.forEach((d, i) => {
+        const xx = x(d.index);
+        const yy = y(d.maxPossible);
+        if (i === 0) {
+          ctx.moveTo(xx, yy);
+        } else {
+          const prev = visibleData[i - 1];
+          ctx.lineTo(xx, y(prev.maxPossible));
+          ctx.lineTo(xx, yy);
+        }
+      });
+      if (visibleData.length) {
+        ctx.lineTo(pad.left + plotW, y(visibleData[visibleData.length - 1].maxPossible));
       }
-    });
-    ctx.lineTo(x(visibleEnd), y(0));
+    };
+
+    ctx.beginPath();
+    drawStepPath();
+    ctx.lineTo(pad.left + plotW, y(0));
     ctx.lineTo(x(visibleStart), y(0));
     ctx.closePath();
     ctx.fillStyle = (belowGoal ? danger : success) + '18';
@@ -632,17 +677,7 @@ function renderMotivationChart(container, yearRecords, goal, yearCount, mode, in
     ctx.beginPath();
     ctx.strokeStyle = belowGoal ? danger : success;
     ctx.lineWidth = 2;
-    visibleData.forEach((d, i) => {
-      const xx = x(d.index);
-      const yy = y(d.maxPossible);
-      if (i === 0) {
-        ctx.moveTo(xx, yy);
-      } else {
-        const prev = visibleData[i - 1];
-        ctx.lineTo(xx, y(prev.maxPossible));
-        ctx.lineTo(xx, yy);
-      }
-    });
+    drawStepPath();
     ctx.stroke();
 
     ctx.beginPath();
