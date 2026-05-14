@@ -30,7 +30,6 @@ vi.mock('chart.js', () => ({
   CategoryScale: {},
   Tooltip: {},
   Legend: {},
-  Filler: {},
 }));
 
 // Import after mocking

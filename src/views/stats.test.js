@@ -55,7 +55,6 @@ vi.mock('chart.js', () => {
     Tooltip: vi.fn(),
     Legend: vi.fn(),
     Title: vi.fn(),
-    Filler: vi.fn(),
   };
 });
 

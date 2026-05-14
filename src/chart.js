@@ -7,7 +7,6 @@ import {
   CategoryScale,
   Tooltip,
   Legend,
-  Filler,
 } from 'chart.js';
 import { formatDuration, SEGMENT_KINDS, SEGMENT_LABELS, SEGMENT_COLORS } from './analytics.js';
 
@@ -19,7 +18,6 @@ Chart.register(
   CategoryScale,
   Tooltip,
   Legend,
-  Filler,
 );
 
 export function buildCycleDatasets(cycles) {
