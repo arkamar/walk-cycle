@@ -56,7 +56,6 @@ vi.mock('chart.js', () => {
     CategoryScale: vi.fn(),
     Tooltip: vi.fn(),
     Legend: vi.fn(),
-    Title: vi.fn(),
   };
 });
 
