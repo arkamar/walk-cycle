@@ -345,6 +345,8 @@ export async function renderActivityDetail(target, { id }) {
   }
 
   let chartCard;
+  let canvasWrap;
+
   if (activity.goal) {
     chartCard = el('div', { class: 'card' }, [
       el('h3', {}, 'Motivation'),
@@ -379,7 +381,7 @@ export async function renderActivityDetail(target, { id }) {
       resetBtn,
     ]));
 
-    const canvasWrap = el('div', { style: { marginTop: '0.5rem' } });
+    canvasWrap = el('div', { style: { marginTop: '0.5rem' } });
     chartCard.appendChild(canvasWrap);
     renderMotivationChart(canvasWrap, yearRecords, activity.goal, 'week', null, onZoomChange);
 
@@ -406,6 +408,16 @@ export async function renderActivityDetail(target, { id }) {
     formCard,
     recordsCard,
   ]));
+
+  return () => {
+    if (!canvasWrap) return;
+    const handler = _mouseUpHandlers.get(canvasWrap);
+    if (handler) window.removeEventListener('mouseup', handler);
+    _mouseUpHandlers.delete(canvasWrap);
+    const ro = _resizeObservers.get(canvasWrap);
+    if (ro) ro.disconnect();
+    _resizeObservers.delete(canvasWrap);
+  };
 }
 
 const _mouseUpHandlers = new Map();
