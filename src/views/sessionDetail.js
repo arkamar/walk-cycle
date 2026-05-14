@@ -1,5 +1,5 @@
 import { el, formatDateTime, toast } from '../ui.js';
-import { createTrendChart, buildCycleDatasets } from '../chart.js';
+import { createTrendChart, buildCycleDatasets, createChartEmptyEl } from '../chart.js';
 import {
   getSession,
   listEventsBySession,
@@ -200,16 +200,7 @@ export async function renderSessionDetail(target, { id }) {
     el('div', { class: 'chart-wrap' }, [
       cycleChartCanvas,
       cycles.length === 0
-        ? el('div', {
-          class: 'chart-empty muted',
-          style: {
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-        }, 'No cycles yet.')
+        ? createChartEmptyEl('No cycles yet.')
         : null,
     ]),
   ]);

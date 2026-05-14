@@ -9,7 +9,7 @@ import {
   SEGMENT_LABELS,
   SEGMENT_COLORS,
 } from '../analytics.js';
-import { createTrendChart, buildCycleDatasets } from '../chart.js';
+import { createTrendChart, buildCycleDatasets, createChartEmptyEl } from '../chart.js';
 
 const RANGES = [
   { value: 'all', label: 'All time' },
@@ -194,23 +194,8 @@ export async function renderStats(target) {
       ctx2d.clearRect(0, 0, ctx.width, ctx.height);
       // Show empty placeholder text
       const wrap = ctx.parentElement;
-      let placeholder = wrap.querySelector('.chart-empty');
-      if (!placeholder) {
-        placeholder = el(
-          'div',
-          {
-            class: 'chart-empty muted',
-            style: {
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            },
-          },
-          'No data yet — track some cycles first.',
-        );
-        wrap.appendChild(placeholder);
+      if (!wrap.querySelector('.chart-empty')) {
+        wrap.appendChild(createChartEmptyEl('No data yet — track some cycles first.'));
       }
       return;
     }

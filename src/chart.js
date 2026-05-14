@@ -8,6 +8,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { el } from './ui.js';
 import { formatDuration, SEGMENT_KINDS, SEGMENT_LABELS, SEGMENT_COLORS } from './analytics.js';
 
 Chart.register(
@@ -19,6 +20,19 @@ Chart.register(
   Tooltip,
   Legend,
 );
+
+export function createChartEmptyEl(text) {
+  return el('div', {
+    class: 'chart-empty muted',
+    style: {
+      position: 'absolute',
+      inset: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  }, text);
+}
 
 export function buildCycleDatasets(cycles) {
   const labels = cycles.map((_, i) => `#${i + 1}`);
