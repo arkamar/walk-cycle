@@ -199,6 +199,18 @@ export async function renderSessionDetail(target, { id }) {
     el('h3', {}, 'Trend'),
     el('div', { class: 'chart-wrap' }, [
       cycleChartCanvas,
+      cycles.length === 0
+        ? el('div', {
+          class: 'chart-empty muted',
+          style: {
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+        }, 'No cycles yet.')
+        : null,
     ]),
   ]);
 
