@@ -14,6 +14,7 @@ vi.mock('../ui.js', async () => {
 vi.mock('../chart.js', () => ({
   createTrendChart: vi.fn(),
   buildCycleDatasets: vi.fn().mockReturnValue({ labels: [], datasets: [] }),
+  createChartEmptyEl: vi.fn(() => document.createElement('div')),
 }));
 
 vi.mock('../db.js', () => ({

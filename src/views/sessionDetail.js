@@ -1,5 +1,5 @@
 import { el, formatDateTime, toast } from '../ui.js';
-import { createTrendChart, buildCycleDatasets } from '../chart.js';
+import { createTrendChart, buildCycleDatasets, createChartEmptyEl } from '../chart.js';
 import {
   getSession,
   listEventsBySession,
@@ -23,6 +23,9 @@ import { sessionStatus } from '../stateMachine.js';
 import { enrichNextTs, renderLogEntries } from '../sessionLog.js';
 
 export async function renderSessionDetail(target, { id }) {
+  let cycleChart = null;
+  let chartLabels = null;
+  let chartDatasets = null;
   const session = await getSession(id);
   if (!session) {
     target.appendChild(
@@ -196,12 +199,17 @@ export async function renderSessionDetail(target, { id }) {
     el('h3', {}, 'Trend'),
     el('div', { class: 'chart-wrap' }, [
       cycleChartCanvas,
+      cycles.length === 0
+        ? createChartEmptyEl()
+        : null,
     ]),
   ]);
 
   if (cycles.length > 0) {
-    const { labels, datasets } = buildCycleDatasets(cycles);
-    createTrendChart(cycleChartCanvas, labels, datasets);
+    const result = buildCycleDatasets(cycles);
+    chartLabels = result.labels;
+    chartDatasets = result.datasets;
+    cycleChart = createTrendChart(cycleChartCanvas, chartLabels, chartDatasets);
   }
 
   // Per-cycle table
@@ -267,4 +275,18 @@ export async function renderSessionDetail(target, { id }) {
   }
 
   target.appendChild(el('div', {}, [headerRow, headerCard, logCard, statsCard, trendsCard, cyclesCard]));
+
+  const CSS_DARK = matchMedia('(prefers-color-scheme: dark)');
+  const themeListener = () => {
+    if (chartLabels && chartDatasets) {
+      if (cycleChart) cycleChart.destroy();
+      cycleChart = createTrendChart(cycleChartCanvas, chartLabels, chartDatasets);
+    }
+  };
+  CSS_DARK.addEventListener('change', themeListener);
+
+  return () => {
+    CSS_DARK.removeEventListener('change', themeListener);
+    if (cycleChart) cycleChart.destroy();
+  };
 }

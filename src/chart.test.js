@@ -30,11 +30,10 @@ vi.mock('chart.js', () => ({
   CategoryScale: {},
   Tooltip: {},
   Legend: {},
-  Filler: {},
 }));
 
 // Import after mocking
-const { buildCycleDatasets, createTrendChart } = await import('./chart.js');
+const { buildCycleDatasets, createTrendChart, createChartEmptyEl } = await import('./chart.js');
 
 describe('chart.js', () => {
   let mockCanvas;
@@ -61,6 +60,16 @@ describe('chart.js', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe('createChartEmptyEl', () => {
+    it('should return a div with chart-empty class and "No data yet" text', () => {
+      const el = createChartEmptyEl();
+      expect(el.tagName).toBe('DIV');
+      expect(el.classList.contains('chart-empty')).toBe(true);
+      expect(el.classList.contains('muted')).toBe(true);
+      expect(el.textContent).toBe('No data yet');
+    });
   });
 
   describe('buildCycleDatasets', () => {
