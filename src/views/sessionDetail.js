@@ -23,6 +23,7 @@ import { sessionStatus } from '../stateMachine.js';
 import { enrichNextTs, renderLogEntries } from '../sessionLog.js';
 
 export async function renderSessionDetail(target, { id }) {
+  let cycleChart = null;
   const session = await getSession(id);
   if (!session) {
     target.appendChild(
@@ -201,7 +202,7 @@ export async function renderSessionDetail(target, { id }) {
 
   if (cycles.length > 0) {
     const { labels, datasets } = buildCycleDatasets(cycles);
-    createTrendChart(cycleChartCanvas, labels, datasets);
+    cycleChart = createTrendChart(cycleChartCanvas, labels, datasets);
   }
 
   // Per-cycle table
@@ -267,4 +268,8 @@ export async function renderSessionDetail(target, { id }) {
   }
 
   target.appendChild(el('div', {}, [headerRow, headerCard, logCard, statsCard, trendsCard, cyclesCard]));
+
+  return () => {
+    if (cycleChart) cycleChart.destroy();
+  };
 }
