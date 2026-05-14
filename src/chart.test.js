@@ -33,7 +33,7 @@ vi.mock('chart.js', () => ({
 }));
 
 // Import after mocking
-const { buildCycleDatasets, createTrendChart, createChartEmptyEl } = await import('./chart.js');
+const { buildCycleDatasets, createTrendChart, createChartEmptyEl, segmentDataset } = await import('./chart.js');
 
 describe('chart.js', () => {
   let mockCanvas;
@@ -69,6 +69,18 @@ describe('chart.js', () => {
       expect(el.classList.contains('chart-empty')).toBe(true);
       expect(el.classList.contains('muted')).toBe(true);
       expect(el.textContent).toBe('No data yet');
+    });
+  });
+
+  describe('segmentDataset', () => {
+    it('should create a dataset from segment kind and data', () => {
+      const ds = segmentDataset('up_duration', [1, 2, 3]);
+      expect(ds.label).toBe('Up');
+      expect(ds.data).toEqual([1, 2, 3]);
+      expect(ds.borderColor).toBe('#4ade80');
+      expect(ds.tension).toBe(0.25);
+      expect(ds.spanGaps).toBe(true);
+      expect(ds.pointRadius).toBe(2);
     });
   });
 
