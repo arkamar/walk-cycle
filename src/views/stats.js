@@ -9,7 +9,7 @@ import {
   SEGMENT_LABELS,
   SEGMENT_COLORS,
 } from '../analytics.js';
-import { createTrendChart, buildCycleDatasets, createChartEmptyEl } from '../chart.js';
+import { createTrendChart, buildCycleDatasets, createChartEmptyEl, segmentDataset } from '../chart.js';
 
 const RANGES = [
   { value: 'all', label: 'All time' },
@@ -236,18 +236,11 @@ export async function renderStats(target) {
         new Date(t).toLocaleDateString(undefined, { month: 'short', day: '2-digit' }),
       );
       for (const k of Object.values(SEGMENT_KINDS)) {
-        datasets.push({
-          label: SEGMENT_LABELS[k],
-          data: sortedDays.map((t) => {
-            const b = byDay.get(t)[k];
-            return b.count ? b.sum / b.count / 1000 : null;
-          }),
-          borderColor: SEGMENT_COLORS[k],
-          backgroundColor: SEGMENT_COLORS[k],
-          tension: 0.25,
-          spanGaps: true,
-          pointRadius: 3,
+        const data = sortedDays.map((t) => {
+          const b = byDay.get(t)[k];
+          return b.count ? b.sum / b.count / 1000 : null;
         });
+        datasets.push(segmentDataset(k, data));
       }
     }
 

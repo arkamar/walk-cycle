@@ -34,6 +34,18 @@ export function createChartEmptyEl() {
   }, 'No data yet');
 }
 
+export function segmentDataset(k, data) {
+  return {
+    label: SEGMENT_LABELS[k],
+    data,
+    borderColor: SEGMENT_COLORS[k],
+    backgroundColor: SEGMENT_COLORS[k],
+    tension: 0.25,
+    spanGaps: true,
+    pointRadius: 2,
+  };
+}
+
 export function buildCycleDatasets(cycles) {
   const labels = cycles.map((_, i) => `#${i + 1}`);
   const datasets = [];
@@ -44,15 +56,7 @@ export function buildCycleDatasets(cycles) {
       return ms == null ? null : ms / 1000;
     });
     if (data.some(d => d !== null)) {
-      datasets.push({
-        label: SEGMENT_LABELS[k],
-        data,
-        borderColor: SEGMENT_COLORS[k],
-        backgroundColor: SEGMENT_COLORS[k],
-        tension: 0.25,
-        spanGaps: true,
-        pointRadius: 2,
-      });
+      datasets.push(segmentDataset(k, data));
     }
   }
 
@@ -80,8 +84,8 @@ export function createTrendChart(canvas, labels, datasets) {
         },
         tooltip: {
           callbacks: {
-            label: (ctx) =>
-              ` ${ctx.dataset.label}: ${formatDuration(ctx.parsed.y * 1000)}`,
+            label: (c) =>
+              ` ${c.dataset.label}: ${formatDuration(c.parsed.y * 1000)}`,
           },
         },
       },
