@@ -195,7 +195,7 @@ export async function renderStats(target) {
       // Show empty placeholder text
       const wrap = ctx.parentElement;
       if (!wrap.querySelector('.chart-empty')) {
-        wrap.appendChild(createChartEmptyEl('No data yet — track some cycles first.'));
+        wrap.appendChild(createChartEmptyEl());
       }
       return;
     }

@@ -21,7 +21,7 @@ Chart.register(
   Legend,
 );
 
-export function createChartEmptyEl(text) {
+export function createChartEmptyEl() {
   return el('div', {
     class: 'chart-empty muted',
     style: {
@@ -31,7 +31,7 @@ export function createChartEmptyEl(text) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-  }, text);
+  }, 'No data yet');
 }
 
 export function buildCycleDatasets(cycles) {

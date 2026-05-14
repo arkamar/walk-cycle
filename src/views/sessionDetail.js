@@ -200,7 +200,7 @@ export async function renderSessionDetail(target, { id }) {
     el('div', { class: 'chart-wrap' }, [
       cycleChartCanvas,
       cycles.length === 0
-        ? createChartEmptyEl('No cycles yet.')
+        ? createChartEmptyEl()
         : null,
     ]),
   ]);
