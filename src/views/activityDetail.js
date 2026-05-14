@@ -415,7 +415,8 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
   const currentYear = new Date().getFullYear();
   const startOfYear = new Date(currentYear, 0, 1);
   const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
-  const todayDayIndex = Math.floor((Date.now() - startOfYear.getTime()) / 86400000);
+  const now = new Date();
+  const todayDayIndex = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(currentYear, 0, 1)) / 86400000);
   const df = new Intl.DateTimeFormat(navigator.language, { day: 'numeric', month: 'short' });
   const mf = new Intl.DateTimeFormat(navigator.language, { month: 'short' });
 
@@ -442,7 +443,8 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
 
     const weekCounts = new Map();
     for (const r of yearRecords) {
-      const dayIndex = Math.floor((new Date(r.date + 'T00:00:00') - startOfYear) / 86400000);
+      const [yr, mo, da] = r.date.split('-').map(Number);
+      const dayIndex = Math.floor((Date.UTC(yr, mo - 1, da) - Date.UTC(currentYear, 0, 1)) / 86400000);
       const w = dayIndex < firstWeekStart ? 0 : 1 + Math.floor((dayIndex - firstWeekStart) / 7);
       weekCounts.set(w, (weekCounts.get(w) || 0) + r.count);
     }
@@ -467,6 +469,26 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       data.push({ index: day, records: runningRecords, maxPossible: runningRecords + (totalUnits - day - 1) });
     }
   }
+
+  const cumDays = [0];
+  if (mode === 'week') {
+    for (let w = 0; w < totalUnits; w++) {
+      const prev = cumDays[w];
+      const span = w === 0
+        ? (firstWeekStart > 0 ? firstWeekStart : 7)
+        : (w === totalUnits - 1 ? daysInYear - prev : 7);
+      cumDays.push(prev + span);
+    }
+  } else {
+    for (let i = 1; i <= totalUnits; i++) cumDays.push(i);
+  }
+
+  const cumDaysAt = (idx) => {
+    const i = Math.floor(idx);
+    const frac = idx - i;
+    if (i >= cumDays.length - 1) return cumDays.at(-1);
+    return cumDays[i] + frac * (cumDays[i + 1] - cumDays[i]);
+  };
 
   let zoom = initialZoom;
 
@@ -494,9 +516,18 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     const plotW = getPlotW();
     if (plotW <= 0) return 0;
     const vs = zoom ? zoom.start : 0;
-    const vu = zoom ? (zoom.end - zoom.start + 1) : totalUnits;
-    const raw = vs + ((px - pad.left) / plotW) * vu;
-    return Math.round(Math.max(0, Math.min(totalUnits - 1, raw)));
+    const ve = zoom ? zoom.end : totalUnits - 1;
+    const startDays = cumDaysAt(vs);
+    const endDays = cumDaysAt(ve + 1);
+    const targetDays = startDays + ((px - pad.left) / plotW) * (endDays - startDays);
+    let lo = 0, hi = cumDays.length - 1;
+    while (lo < hi - 1) {
+      const mid = (lo + hi) >> 1;
+      if (cumDays[mid] <= targetDays) lo = mid;
+      else hi = mid;
+    }
+    const frac = (targetDays - cumDays[lo]) / (cumDays[hi] - cumDays[lo] || 1);
+    return Math.round(Math.max(0, Math.min(totalUnits - 1, lo + frac)));
   }
 
   const draw = () => {
@@ -528,8 +559,17 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
 
     const maxVal = Math.max(goal, ...visibleData.map(d => d.maxPossible), 1);
 
-    const x = (idx) => pad.left + ((idx - visibleStart) / visibleUnits) * plotW;
+    const x = (idx) => {
+      const startDays = cumDaysAt(visibleStart);
+      const endDays = cumDaysAt(visibleEnd + 1);
+      return pad.left + ((cumDaysAt(idx) - startDays) / (endDays - startDays)) * plotW;
+    };
     const y = (val) => pad.top + plotH - (val / maxVal) * plotH;
+    const monthIdx = (dayOfMonth) => mode === 'day'
+      ? dayOfMonth
+      : dayOfMonth < firstWeekStart
+        ? dayOfMonth / (firstWeekStart || 1)
+        : (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
 
     ctx.clearRect(0, 0, w, h);
 
@@ -563,23 +603,6 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
         ctx.stroke();
       }
       ctx.setLineDash([]);
-
-      ctx.strokeStyle = muted + '60';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 4]);
-      for (let m = 1; m < 12; m++) {
-        const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
-        const idx = dayOfMonth < firstWeekStart
-          ? dayOfMonth / (firstWeekStart || 1)
-          : (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
-        if (idx < visibleStart || idx > visibleEnd) continue;
-        const xx = x(idx);
-        ctx.beginPath();
-        ctx.moveTo(xx, pad.top);
-        ctx.lineTo(xx, pad.top + plotH);
-        ctx.stroke();
-      }
-      ctx.setLineDash([]);
     } else {
       const dayStep = visibleUnits < 14 ? 1 : 7;
       ctx.strokeStyle = border;
@@ -599,20 +622,42 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       ctx.stroke();
     }
 
+    const monthStartDay = Array.from({ length: 12 }, (_, m) =>
+      Math.floor((Date.UTC(currentYear, m, 1) - Date.UTC(currentYear, 0, 1)) / 86400000),
+    );
+
+    ctx.strokeStyle = muted + '60';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
+    for (let m = 1; m < 12; m++) {
+      const idx = monthIdx(monthStartDay[m]);
+      if (idx < visibleStart || idx > visibleEnd) continue;
+      const xx = x(idx);
+      ctx.beginPath();
+      ctx.moveTo(xx, pad.top);
+      ctx.lineTo(xx, pad.top + plotH);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    const drawMonthLabels = (threshold) => {
+      if (visibleUnits <= threshold) return;
+      for (let m = 0; m < 12; m++) {
+        const idx = monthIdx(monthStartDay[m]);
+        if (idx < visibleStart || idx > visibleEnd) continue;
+        ctx.fillText(
+          mf.format(new Date(currentYear, m, 1)),
+          x(idx), pad.top + plotH + 4,
+        );
+      }
+    };
+
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
     if (mode === 'day') {
-      if (visibleUnits > 60) {
-        for (let m = 0; m < 12; m++) {
-          const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
-          if (dayOfMonth < visibleStart || dayOfMonth > visibleEnd) continue;
-          ctx.fillText(
-            mf.format(new Date(currentYear, m, 1)),
-            x(dayOfMonth), pad.top + plotH + 4,
-          );
-        }
-      } else {
+      drawMonthLabels(60);
+      if (visibleUnits <= 60) {
         const step = visibleUnits > 20 ? 7 : Math.max(1, Math.floor(visibleUnits / 8));
         for (let day = Math.ceil(visibleStart / step) * step; day <= visibleEnd; day += step) {
           const d = new Date(currentYear, 0, day + 1);
@@ -623,19 +668,17 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
         }
       }
     } else {
-      if (visibleUnits > 16) {
-        for (let m = 0; m < 12; m++) {
-          const dayOfMonth = Math.floor((new Date(currentYear, m, 1) - startOfYear) / 86400000);
-          const idx = dayOfMonth < firstWeekStart
-            ? dayOfMonth / (firstWeekStart || 1)
-            : (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
-          if (idx < visibleStart || idx > visibleEnd) continue;
+      drawMonthLabels(16);
+      if (visibleUnits <= 3) {
+        const dayCount = cumDays[visibleEnd + 1] - cumDays[visibleStart];
+        const step = Math.max(1, Math.floor(dayCount / 8));
+        for (let d = Math.ceil(cumDays[visibleStart] / step) * step; d < cumDays[visibleEnd + 1]; d += step) {
           ctx.fillText(
-            mf.format(new Date(currentYear, m, 1)),
-            x(idx), pad.top + plotH + 4,
+            df.format(new Date(currentYear, 0, d + 1)),
+            x(monthIdx(d)), pad.top + plotH + 4,
           );
         }
-      } else {
+      } else if (visibleUnits <= 16) {
         for (let w = visibleStart; w <= visibleEnd; w++) {
           const d = w === 0 ? new Date(currentYear, 0, 1) : new Date(currentYear, 0, firstWeekStart + (w - 1) * 7 + 1);
           ctx.fillText(
