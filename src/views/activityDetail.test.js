@@ -175,10 +175,11 @@ describe('renderActivityDetail', () => {
       c => c.querySelector('h3')?.textContent === 'Motivation',
     );
     const buttons = chartCard.querySelectorAll('button');
-    expect(buttons.length).toBe(3);
+    expect(buttons.length).toBe(4);
     expect(buttons[0].textContent).toBe('Day');
     expect(buttons[1].textContent).toBe('Week');
-    expect(buttons[2].textContent).toContain('Reset');
+    expect(buttons[2].textContent).toBe('Pace');
+    expect(buttons[3].textContent).toContain('Reset');
   });
 
   it('shows remaining count when year count is below goal', async () => {
@@ -554,7 +555,7 @@ describe('renderActivityDetail', () => {
       c => c.querySelector('h3')?.textContent === 'Motivation',
     );
     const buttons = chartCard.querySelectorAll('button');
-    const resetBtn = buttons[2];
+    const resetBtn = buttons[3];
 
     expect(resetBtn.style.display).toBe('none');
 
