@@ -84,8 +84,8 @@ export function createTrendChart(canvas, labels, datasets) {
         },
         tooltip: {
           callbacks: {
-            label: (ctx) =>
-              ` ${ctx.dataset.label}: ${formatDuration(ctx.parsed.y * 1000)}`,
+            label: (c) =>
+              ` ${c.dataset.label}: ${formatDuration(c.parsed.y * 1000)}`,
           },
         },
       },
