@@ -352,7 +352,14 @@ export async function renderActivityDetail(target, { id }) {
       el('h3', {}, 'Motivation'),
     ]);
 
-    let chartMode = 'week';
+    const CHART_MODE_KEY = 'walk-cycle-chart-mode';
+    let chartMode = JSON.parse(localStorage.getItem(CHART_MODE_KEY) || '{}')[id] || 'week';
+
+    function persistChartMode(mode) {
+      const prefs = JSON.parse(localStorage.getItem(CHART_MODE_KEY) || '{}');
+      prefs[id] = mode;
+      localStorage.setItem(CHART_MODE_KEY, JSON.stringify(prefs));
+    }
 
     const activeBtn = { background: 'var(--fg)', color: 'var(--bg)', border: '1px solid var(--fg)' };
     const inactiveBtn = { background: 'transparent', color: 'var(--fg)', border: '1px solid var(--border)' };
@@ -405,6 +412,7 @@ export async function renderActivityDetail(target, { id }) {
     function switchMode(mode) {
       if (mode === chartMode) return;
       chartMode = mode;
+      persistChartMode(mode);
       resetBtn.style.display = 'none';
       Object.assign(dayBtn.style, mode === 'day' ? activeBtn : inactiveBtn);
       Object.assign(weekBtn.style, mode === 'week' ? activeBtn : inactiveBtn);
