@@ -352,20 +352,40 @@ export async function renderActivityDetail(target, { id }) {
       el('h3', {}, 'Motivation'),
     ]);
 
-    let chartMode = 'week';
+    const CHART_MODE_KEY = 'walk-cycle-chart-mode';
+    let chartMode = JSON.parse(localStorage.getItem(CHART_MODE_KEY) || '{}')[id] || 'week';
+
+    function persistChartMode(mode) {
+      const prefs = JSON.parse(localStorage.getItem(CHART_MODE_KEY) || '{}');
+      prefs[id] = mode;
+      localStorage.setItem(CHART_MODE_KEY, JSON.stringify(prefs));
+    }
 
     const activeBtn = { background: 'var(--fg)', color: 'var(--bg)', border: '1px solid var(--fg)' };
     const inactiveBtn = { background: 'transparent', color: 'var(--fg)', border: '1px solid var(--border)' };
 
+    const activeModes = { day: false, week: false, pace: false };
+    activeModes[chartMode] = true;
+
+    const btnStyle = (active) => ({
+      ...(active ? activeBtn : inactiveBtn),
+      padding: '0.2rem 0.5rem', fontSize: '0.75rem', cursor: 'pointer',
+    });
+
     const dayBtn = el('button', {
-      style: { ...inactiveBtn, padding: '0.2rem 0.5rem', fontSize: '0.75rem', borderRadius: '4px 0 0 4px', cursor: 'pointer' },
+      style: { ...btnStyle(activeModes.day), borderRadius: '4px 0 0 4px' },
       onClick: () => switchMode('day'),
     }, 'Day');
 
     const weekBtn = el('button', {
-      style: { ...activeBtn, padding: '0.2rem 0.5rem', fontSize: '0.75rem', borderRadius: '0 4px 4px 0', cursor: 'pointer' },
+      style: { ...btnStyle(activeModes.week), borderRadius: 0 },
       onClick: () => switchMode('week'),
     }, 'Week');
+
+    const paceBtn = el('button', {
+      style: { ...btnStyle(activeModes.pace), borderRadius: '0 4px 4px 0' },
+      onClick: () => switchMode('pace'),
+    }, 'Pace');
 
     const resetBtn = el('button', {
       style: { display: 'none', padding: '0.15rem 0.4rem', fontSize: '0.7rem', cursor: 'pointer', border: '1px solid var(--border)', borderRadius: '3px', background: 'transparent', color: 'var(--fg)' },
@@ -377,13 +397,13 @@ export async function renderActivityDetail(target, { id }) {
     }, '← Reset zoom');
 
     chartCard.appendChild(el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' } }, [
-      el('div', { style: { display: 'flex', gap: 0 } }, [dayBtn, weekBtn]),
+      el('div', { style: { display: 'flex', gap: 0 } }, [dayBtn, weekBtn, paceBtn]),
       resetBtn,
     ]));
 
     canvasWrap = el('div', { style: { marginTop: '0.5rem' } });
     chartCard.appendChild(canvasWrap);
-    renderMotivationChart(canvasWrap, yearRecords, activity.goal, 'week', null, onZoomChange);
+    renderMotivationChart(canvasWrap, yearRecords, activity.goal, chartMode, null, onZoomChange);
 
     function onZoomChange(bounds) {
       resetBtn.style.display = bounds ? '' : 'none';
@@ -392,9 +412,11 @@ export async function renderActivityDetail(target, { id }) {
     function switchMode(mode) {
       if (mode === chartMode) return;
       chartMode = mode;
+      persistChartMode(mode);
       resetBtn.style.display = 'none';
       Object.assign(dayBtn.style, mode === 'day' ? activeBtn : inactiveBtn);
       Object.assign(weekBtn.style, mode === 'week' ? activeBtn : inactiveBtn);
+      Object.assign(paceBtn.style, mode === 'pace' ? activeBtn : inactiveBtn);
       canvasWrap.innerHTML = '';
       renderMotivationChart(canvasWrap, yearRecords, activity.goal, mode, null, onZoomChange);
     }
@@ -436,6 +458,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
   let totalUnits;
   let todayIndex;
   let firstWeekStart = 0;
+  let stepWidth;
 
   if (mode === 'week') {
     const locale = new Intl.Locale(navigator.language);
@@ -466,6 +489,24 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       runningRecords += weekCounts.get(w) || 0;
       data.push({ index: w, records: runningRecords, maxPossible: runningRecords + (totalUnits - w - 1) });
     }
+  } else if (mode === 'pace') {
+    stepWidth = daysInYear / goal;
+    totalUnits = goal;
+    todayIndex = todayDayIndex / stepWidth;
+
+    const paceCounts = new Map();
+    for (const r of yearRecords) {
+      const [yr, mo, da] = r.date.split('-').map(Number);
+      const dayIndex = Math.floor((Date.UTC(yr, mo - 1, da) - Date.UTC(currentYear, 0, 1)) / 86400000);
+      const p = Math.min(Math.floor(dayIndex / stepWidth), totalUnits - 1);
+      paceCounts.set(p, (paceCounts.get(p) || 0) + r.count);
+    }
+    let running = 0;
+    data = [];
+    for (let i = 0; i < totalUnits; i++) {
+      running += paceCounts.get(i) || 0;
+      data.push({ index: i, records: running, maxPossible: running + (totalUnits - i - 1) });
+    }
   } else {
     totalUnits = daysInYear;
     todayIndex = todayDayIndex;
@@ -491,6 +532,8 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
         : (w === totalUnits - 1 ? daysInYear - prev : 7);
       cumDays.push(prev + span);
     }
+  } else if (mode === 'pace') {
+    for (let i = 1; i <= totalUnits; i++) cumDays.push(i * stepWidth);
   } else {
     for (let i = 1; i <= totalUnits; i++) cumDays.push(i);
   }
@@ -577,11 +620,13 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       return pad.left + ((cumDaysAt(idx) - startDays) / (endDays - startDays)) * plotW;
     };
     const y = (val) => pad.top + plotH - (val / maxVal) * plotH;
-    const monthIdx = (dayOfMonth) => mode === 'day'
-      ? dayOfMonth
-      : dayOfMonth < firstWeekStart
+    const monthIdx = (dayOfMonth) => {
+      if (mode === 'day') return dayOfMonth;
+      if (mode === 'pace') return dayOfMonth / stepWidth;
+      return dayOfMonth < firstWeekStart
         ? dayOfMonth / (firstWeekStart || 1)
         : (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
+    };
 
     ctx.clearRect(0, 0, w, h);
 
@@ -603,12 +648,13 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       ctx.fillText(String(val), pad.left - 4, yy);
     }
 
-    if (mode === 'week') {
+    if (mode === 'week' || mode === 'pace') {
       ctx.strokeStyle = border;
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 4]);
-      for (let w = Math.max(0, visibleStart); w <= visibleEnd + 1; w++) {
-        const xx = x(w);
+      const step = mode === 'pace' && visibleUnits > 20 ? Math.ceil(visibleUnits / 20) : 1;
+      for (let i = Math.max(0, visibleStart); i <= visibleEnd + 1; i += step) {
+        const xx = x(i);
         ctx.beginPath();
         ctx.moveTo(xx, pad.top);
         ctx.lineTo(xx, pad.top + plotH);
@@ -676,6 +722,18 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
           ctx.fillText(
             df.format(d),
             x(day), pad.top + plotH + 4,
+          );
+        }
+      }
+    } else if (mode === 'pace') {
+      drawMonthLabels(14);
+      if (visibleUnits <= 14) {
+        const step = visibleUnits > 14 ? 2 : 1;
+        for (let i = visibleStart; i <= visibleEnd; i += step) {
+          const day = Math.min(cumDays[i], daysInYear - 1);
+          ctx.fillText(
+            df.format(new Date(currentYear, 0, Math.floor(day) + 1)),
+            x(i), pad.top + plotH + 4,
           );
         }
       }
