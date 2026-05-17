@@ -422,6 +422,32 @@ export async function renderActivityDetail(target, { id }) {
     }
   }
 
+  let placesCard = null;
+
+  if (records.length > 0) {
+    placesCard = el('div', { class: 'card' }, [
+      el('h3', {}, 'By Note'),
+    ]);
+
+    const byNote = new Map();
+    for (const r of records) {
+      const label = r.note || '';
+      byNote.set(label, (byNote.get(label) || 0) + r.count);
+    }
+    const sorted = [...byNote.entries()].sort((a, b) => b[1] - a[1]);
+
+    const list = el('div', { class: 'list' });
+    for (const [note, sum] of sorted) {
+      const pct = totalCount > 0 ? sum / totalCount * 100 : 0;
+      list.appendChild(el('div', { class: 'list-item' }, [
+        el('span', { style: { flex: 1 } }, note),
+        el('span', { style: { color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', width: '3rem', textAlign: 'right' } }, String(sum)),
+        el('span', { style: { color: 'var(--muted)', fontSize: '0.85rem', width: '3.5rem', textAlign: 'right' } }, `${pct.toFixed(1)}%`),
+      ]));
+    }
+    placesCard.appendChild(list);
+  }
+
   target.appendChild(el('div', {}, [
     headerRow,
     headerCard,
@@ -429,6 +455,7 @@ export async function renderActivityDetail(target, { id }) {
     ...(chartCard ? [chartCard] : []),
     formCard,
     recordsCard,
+    ...(placesCard ? [placesCard] : []),
   ]));
 
   return () => {

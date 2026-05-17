@@ -141,7 +141,7 @@ describe('renderActivityDetail', () => {
     await renderActivityDetail(target, { id: 1 });
 
     const items = target.querySelectorAll('.list-item');
-    expect(items.length).toBe(2);
+    expect(items.length).toBe(3);
     expect(items[0].textContent).toContain('2026');
     expect(items[0].textContent).toContain('3');
     expect(items[1].textContent).toContain('2026');
