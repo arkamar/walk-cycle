@@ -141,7 +141,7 @@ describe('renderActivityDetail', () => {
     await renderActivityDetail(target, { id: 1 });
 
     const items = target.querySelectorAll('.list-item');
-    expect(items.length).toBe(2);
+    expect(items.length).toBe(3);
     expect(items[0].textContent).toContain('2026');
     expect(items[0].textContent).toContain('3');
     expect(items[1].textContent).toContain('2026');
@@ -644,4 +644,97 @@ describe('renderActivityDetail', () => {
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { note: 'Lake view' });
   });
 
+  describe('By Note summary table', () => {
+    function findNoteCard() {
+      return Array.from(target.querySelectorAll('.card')).find(
+        c => c.querySelector('h3')?.textContent === 'By Note',
+      );
+    }
+
+    it('groups records by note with sum and percentage', async () => {
+      mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+      mockDb.listRecordsByActivity.mockResolvedValue([
+        { id: 10, date: '2026-05-10', count: 5, note: 'Park' },
+        { id: 11, date: '2026-05-09', count: 3, note: 'Park' },
+        { id: 12, date: '2026-05-08', count: 2, note: 'Office' },
+      ]);
+
+      const { renderActivityDetail } = await import('./activityDetail.js');
+      await renderActivityDetail(target, { id: 1 });
+
+      const card = findNoteCard();
+      expect(card).toBeTruthy();
+
+      const items = card.querySelectorAll('.list-item');
+      expect(items.length).toBe(2);
+
+      expect(items[0].textContent).toContain('Park');
+      expect(items[0].textContent).toContain('8');
+      expect(items[0].textContent).toContain('80.0%');
+
+      expect(items[1].textContent).toContain('Office');
+      expect(items[1].textContent).toContain('2');
+      expect(items[1].textContent).toContain('20.0%');
+    });
+
+    it('sorts groups by sum descending', async () => {
+      mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+      mockDb.listRecordsByActivity.mockResolvedValue([
+        { id: 10, date: '2026-05-10', count: 1, note: 'A' },
+        { id: 11, date: '2026-05-09', count: 10, note: 'B' },
+        { id: 12, date: '2026-05-08', count: 5, note: 'C' },
+      ]);
+
+      const { renderActivityDetail } = await import('./activityDetail.js');
+      await renderActivityDetail(target, { id: 1 });
+
+      const items = findNoteCard().querySelectorAll('.list-item');
+      expect(items.length).toBe(3);
+      expect(items[0].textContent).toContain('B');
+      expect(items[1].textContent).toContain('C');
+      expect(items[2].textContent).toContain('A');
+    });
+
+    it('groups empty notes together', async () => {
+      mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+      mockDb.listRecordsByActivity.mockResolvedValue([
+        { id: 10, date: '2026-05-10', count: 3, note: '' },
+        { id: 11, date: '2026-05-09', count: 7, note: '' },
+        { id: 12, date: '2026-05-08', count: 5, note: 'Park' },
+      ]);
+
+      const { renderActivityDetail } = await import('./activityDetail.js');
+      await renderActivityDetail(target, { id: 1 });
+
+      const items = findNoteCard().querySelectorAll('.list-item');
+      expect(items.length).toBe(2);
+      expect(items[0].textContent).toContain('10');
+      expect(items[1].textContent).toContain('Park');
+      expect(items[1].textContent).toContain('5');
+    });
+
+    it('is not shown when there are no records', async () => {
+      mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+      mockDb.listRecordsByActivity.mockResolvedValue([]);
+
+      const { renderActivityDetail } = await import('./activityDetail.js');
+      await renderActivityDetail(target, { id: 1 });
+
+      expect(findNoteCard()).toBeUndefined();
+    });
+
+    it('shows 0.0% when all record counts are zero', async () => {
+      mockDb.getActivity.mockResolvedValue({ id: 1, name: 'Hills', createdAt: 3000 });
+      mockDb.listRecordsByActivity.mockResolvedValue([
+        { id: 10, date: '2026-05-10', count: 0, note: 'Park' },
+      ]);
+
+      const { renderActivityDetail } = await import('./activityDetail.js');
+      await renderActivityDetail(target, { id: 1 });
+
+      const items = findNoteCard().querySelectorAll('.list-item');
+      expect(items.length).toBe(1);
+      expect(items[0].textContent).toContain('0.0%');
+    });
+  });
 });
