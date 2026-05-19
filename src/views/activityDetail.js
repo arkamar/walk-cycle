@@ -303,10 +303,11 @@ export async function renderActivityDetail(target, { id }) {
         const val = noteInput.value.trim();
         if (val !== (r.note || '')) {
           await updateRecord(r.id, { note: val });
-          r.note = val;
           toast('Note updated');
+          target.innerHTML = '';
+          renderActivityDetail(target, { id });
+          return;
         }
-        noteSpan.textContent = val;
         noteSpan.style.display = '';
         noteInput.style.display = 'none';
       }
