@@ -624,16 +624,19 @@ describe('formatLive', () => {
 
 describe('findPrevSameType', () => {
   const events = [
-    { type: 'up', ts: 1000, nextTs: 5000 },
-    { type: 'pause', ts: 5000, nextTs: 8000 },
-    { type: 'down', ts: 8000, nextTs: 12000 },
-    { type: 'pause', ts: 12000, nextTs: 15000 },
-    { type: 'up', ts: 15000, nextTs: 20000 },
+    { type: 'up', ts: 1000, nextTs: 3000 },
+    { type: 'pause', ts: 3000, nextTs: 5000 },
+    { type: 'down', ts: 5000, nextTs: 7000 },
+    { type: 'pause', ts: 7000, nextTs: 9000 },
+    { type: 'up', ts: 9000, nextTs: 11000 },
+    { type: 'pause', ts: 11000, nextTs: 13000 },
+    { type: 'down', ts: 13000, nextTs: 15000 },
+    { type: 'pause', ts: 15000, nextTs: 17000 },
   ];
 
   it('should find previous event of same type with nextTs', () => {
     const result = findPrevSameType(4, 'up', events);
-    expect(result).toEqual({ type: 'up', ts: 1000, nextTs: 5000 });
+    expect(result).toEqual({ type: 'up', ts: 1000, nextTs: 3000 });
   });
 
   it('should return null if no previous event of same type', () => {
@@ -683,7 +686,24 @@ describe('findPrevSameType', () => {
   });
 
   it('should find previous pause event with nextTs', () => {
-    const result = findPrevSameType(3, 'pause', events);
-    expect(result).toEqual({ type: 'pause', ts: 5000, nextTs: 8000 });
+    const result = findPrevSameType(5, 'pause', events);
+    expect(result).toEqual({ type: 'pause', ts: 3000, nextTs: 5000 });
+  });
+
+  it('should find previous bottom pause when context type matches', () => {
+    const result = findPrevSameType(7, 'pause', events);
+    expect(result).toEqual({ type: 'pause', ts: 7000, nextTs: 9000 });
+  });
+
+  it('should skip top pause when searching for bottom pause context', () => {
+    // At idx=7 (bottom pause), should skip idx=5 (top pause) and find idx=3 (bottom pause)
+    const result = findPrevSameType(7, 'pause', events);
+    expect(result).not.toEqual({ type: 'pause', ts: 11000, nextTs: 13000 });
+  });
+
+  it('should skip bottom pause when searching for top pause context', () => {
+    // At idx=5 (top pause), should skip idx=3 (bottom pause) and find idx=1 (top pause)
+    const result = findPrevSameType(5, 'pause', events);
+    expect(result).not.toEqual({ type: 'pause', ts: 7000, nextTs: 9000 });
   });
 });
