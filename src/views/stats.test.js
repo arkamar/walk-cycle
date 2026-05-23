@@ -152,6 +152,28 @@ describe('stats.js', () => {
     if (cleanup) cleanup();
   });
 
+  it('attaches excludeOpts from session flags to cycles (lines 145-149)', async () => {
+    const { listSessions, listEventsBySession } = await import('../db.js');
+    const { cyclesFromSegments, segmentsFromEvents, cycleTotalMs } = await import('../analytics.js');
+
+    const mockSession = { id: 1, createdAt: Date.now(), includeTopRest: false };
+    listSessions.mockResolvedValue([mockSession]);
+    listEventsBySession.mockResolvedValue([]);
+    segmentsFromEvents.mockReturnValue([]);
+    cyclesFromSegments.mockReturnValue([{
+      index: 0,
+      segments: { up_duration: { durationMs: 5000 } },
+      totalMs: 5000,
+      startTs: Date.now(),
+    }]);
+
+    const cleanup = await renderStats(target);
+    expect(cycleTotalMs).toHaveBeenCalled();
+    const call = cycleTotalMs.mock.calls[0];
+    expect(call[1]).toEqual({ excludeTopRest: true, excludeBottomRest: false });
+    if (cleanup) cleanup();
+  });
+
   it('loads cycles for current session when range is session (lines 128-135)', async () => {
     const { getCurrentSession, listEventsBySession } = await import('../db.js');
     const { cyclesFromSegments, segmentsFromEvents } = await import('../analytics.js');

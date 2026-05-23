@@ -257,6 +257,31 @@ describe('chart.js', () => {
       expect(dataset.spanGaps).toBe(true);
       expect(dataset.pointRadius).toBe(2);
     });
+
+    it('should exclude segment kinds passed in excludeKinds', () => {
+      const cycles = [
+        {
+          segments: {
+            [SEGMENT_KINDS.UP]: { durationMs: 5000 },
+            [SEGMENT_KINDS.TOP_REST]: { durationMs: 2000 },
+            [SEGMENT_KINDS.DOWN]: { durationMs: 4000 },
+            [SEGMENT_KINDS.BOTTOM_REST]: { durationMs: 3000 },
+          },
+        },
+      ];
+
+      const all = buildCycleDatasets(cycles);
+      expect(all.datasets.length).toBe(4);
+
+      const noTop = buildCycleDatasets(cycles, new Set([SEGMENT_KINDS.TOP_REST]));
+      expect(noTop.datasets.length).toBe(3);
+      expect(noTop.datasets.find(d => d.label === SEGMENT_LABELS[SEGMENT_KINDS.TOP_REST])).toBeUndefined();
+
+      const noTopBot = buildCycleDatasets(cycles, new Set([SEGMENT_KINDS.TOP_REST, SEGMENT_KINDS.BOTTOM_REST]));
+      expect(noTopBot.datasets.length).toBe(2);
+      expect(noTopBot.datasets.find(d => d.label === SEGMENT_LABELS[SEGMENT_KINDS.TOP_REST])).toBeUndefined();
+      expect(noTopBot.datasets.find(d => d.label === SEGMENT_LABELS[SEGMENT_KINDS.BOTTOM_REST])).toBeUndefined();
+    });
   });
 
   describe('createTrendChart', () => {

@@ -283,6 +283,64 @@ describe('sessionDetail.js', () => {
     expect(target.textContent).toContain('top');
   });
 
+  it('hides excluded segment labels in cycle table when includeTopRest is false', async () => {
+    db.getSession.mockResolvedValue({
+      ...mockSession,
+      includeTopRest: false,
+    });
+    const { cyclesFromSegments } = await import('../analytics.js');
+    cyclesFromSegments.mockReturnValue([
+      {
+        index: 0,
+        segments: {
+          up_duration: { durationMs: 1500 },
+          top_rest: { durationMs: 500 },
+          down_duration: { durationMs: 2000 },
+          bottom_rest: { durationMs: 300 },
+        },
+        totalMs: 4300,
+        startTs: Date.now(),
+      },
+    ]);
+
+    await renderSessionDetail(target, { id: 1 });
+    const listItems = target.querySelectorAll('.list-item');
+    expect(listItems.length).toBeGreaterThan(0);
+    const cycleItem = listItems[0];
+    expect(cycleItem.textContent).toContain('up');
+    expect(cycleItem.textContent).not.toContain('top');
+    expect(cycleItem.textContent).toContain('down');
+    expect(cycleItem.textContent).toContain('bot');
+  });
+
+  it('hides excluded segment labels in cycle table when includeBottomRest is false', async () => {
+    db.getSession.mockResolvedValue({
+      ...mockSession,
+      includeBottomRest: false,
+    });
+    const { cyclesFromSegments } = await import('../analytics.js');
+    cyclesFromSegments.mockReturnValue([
+      {
+        index: 0,
+        segments: {
+          up_duration: { durationMs: 1500 },
+          top_rest: { durationMs: 500 },
+          down_duration: { durationMs: 2000 },
+          bottom_rest: { durationMs: 300 },
+        },
+        totalMs: 4300,
+        startTs: Date.now(),
+      },
+    ]);
+
+    await renderSessionDetail(target, { id: 1 });
+    const listItems = target.querySelectorAll('.list-item');
+    expect(listItems.length).toBeGreaterThan(0);
+    const cycleItem = listItems[0];
+    expect(cycleItem.textContent).toContain('top');
+    expect(cycleItem.textContent).not.toContain('bot');
+  });
+
   it('renders partial cycle when up events exceed complete cycles (lines 286-313)', async () => {
     const now = Date.now();
     const mockEvents = [
