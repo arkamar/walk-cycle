@@ -14,6 +14,8 @@
 | `createdAt` | `number`      | no       | `Date.now()`    | Millis since epoch when the session started |
 | `isStopped` | `boolean`     | no       | `false`         | `true` if the user pressed "Stop" (reversible) |
 | `note`      | `string`      | no       | `''`            | User-provided label for the session |
+| `includeTopRest` | `boolean` | yes      | `true`          | Include top rest in cycle totals. Default `true` if absent. |
+| `includeBottomRest` | `boolean` | yes   | `true`          | Include bottom rest in cycle totals. Default `true` if absent. |
 
 **Indexes**:
 

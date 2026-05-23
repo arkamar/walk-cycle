@@ -152,6 +152,27 @@ export function segmentDurationFromCycle(cycles, cycleIndex, kind) {
 }
 
 /**
+ * Compute the effective cycle total, optionally excluding some segment kinds.
+ * @param {object} cycle - A cycle object with a segments map.
+ * @param {object} [opts]
+ * @param {boolean} [opts.excludeTopRest] - Exclude top_rest from total.
+ * @param {boolean} [opts.excludeBottomRest] - Exclude bottom_rest from total.
+ * @returns {number} Effective total in ms.
+ */
+export function cycleTotalMs(cycle, opts = {}) {
+  let total = cycle.totalMs;
+  if (opts.excludeTopRest) {
+    const seg = cycle.segments[SEGMENT_KINDS.TOP_REST];
+    if (seg) total -= seg.durationMs;
+  }
+  if (opts.excludeBottomRest) {
+    const seg = cycle.segments[SEGMENT_KINDS.BOTTOM_REST];
+    if (seg) total -= seg.durationMs;
+  }
+  return total;
+}
+
+/**
  * Format a duration in ms as a human-readable string.
  *   12345  -> "12.3s"
  *   72000  -> "1m 12s"

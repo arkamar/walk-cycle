@@ -7,6 +7,7 @@ import {
   cyclesFromSegments,
   aggregateBySegmentKind,
   segmentDurationFromCycle,
+  cycleTotalMs,
   formatDuration,
   formatLive,
   findPrevSameType,
@@ -448,6 +449,63 @@ describe('segmentDurationFromCycle', () => {
       },
     ];
     expect(segmentDurationFromCycle(cyclesWithUndefined, 0, SEGMENT_KINDS.UP)).toBeUndefined();
+  });
+});
+
+describe('cycleTotalMs', () => {
+  const makeCycle = (segments) => {
+    const totalMs = Object.values(segments).reduce((s, seg) => s + (seg.durationMs || 0), 0);
+    return { totalMs, segments };
+  };
+
+  it('should return totalMs when no exclusions', () => {
+    const cycle = makeCycle({
+      [SEGMENT_KINDS.UP]: { durationMs: 5000 },
+      [SEGMENT_KINDS.TOP_REST]: { durationMs: 2000 },
+      [SEGMENT_KINDS.DOWN]: { durationMs: 4000 },
+      [SEGMENT_KINDS.BOTTOM_REST]: { durationMs: 3000 },
+    });
+    expect(cycleTotalMs(cycle)).toBe(14000);
+    expect(cycleTotalMs(cycle, {})).toBe(14000);
+    expect(cycleTotalMs(cycle, { excludeTopRest: false, excludeBottomRest: false })).toBe(14000);
+  });
+
+  it('should exclude bottom_rest when excludeBottomRest is true', () => {
+    const cycle = makeCycle({
+      [SEGMENT_KINDS.UP]: { durationMs: 5000 },
+      [SEGMENT_KINDS.TOP_REST]: { durationMs: 2000 },
+      [SEGMENT_KINDS.DOWN]: { durationMs: 4000 },
+      [SEGMENT_KINDS.BOTTOM_REST]: { durationMs: 3000 },
+    });
+    expect(cycleTotalMs(cycle, { excludeBottomRest: true })).toBe(11000);
+  });
+
+  it('should exclude top_rest when excludeTopRest is true', () => {
+    const cycle = makeCycle({
+      [SEGMENT_KINDS.UP]: { durationMs: 5000 },
+      [SEGMENT_KINDS.TOP_REST]: { durationMs: 2000 },
+      [SEGMENT_KINDS.DOWN]: { durationMs: 4000 },
+      [SEGMENT_KINDS.BOTTOM_REST]: { durationMs: 3000 },
+    });
+    expect(cycleTotalMs(cycle, { excludeTopRest: true })).toBe(12000);
+  });
+
+  it('should exclude both rests when both flags are true', () => {
+    const cycle = makeCycle({
+      [SEGMENT_KINDS.UP]: { durationMs: 5000 },
+      [SEGMENT_KINDS.TOP_REST]: { durationMs: 2000 },
+      [SEGMENT_KINDS.DOWN]: { durationMs: 4000 },
+      [SEGMENT_KINDS.BOTTOM_REST]: { durationMs: 3000 },
+    });
+    expect(cycleTotalMs(cycle, { excludeTopRest: true, excludeBottomRest: true })).toBe(9000);
+  });
+
+  it('should return totalMs when excluded segment is missing', () => {
+    const cycle = makeCycle({
+      [SEGMENT_KINDS.UP]: { durationMs: 5000 },
+      [SEGMENT_KINDS.DOWN]: { durationMs: 4000 },
+    });
+    expect(cycleTotalMs(cycle, { excludeBottomRest: true })).toBe(9000);
   });
 });
 

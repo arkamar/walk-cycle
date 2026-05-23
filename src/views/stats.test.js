@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('../analytics.js', () => ({
   segmentsFromEvents: vi.fn().mockReturnValue([]),
   cyclesFromSegments: vi.fn().mockReturnValue([]),
+  cycleTotalMs: vi.fn((cycle) => cycle.totalMs),
   aggregateBySegmentKind: vi.fn().mockReturnValue({
     byKind: {
       up_duration: { count: 0, totalMs: 0, avgMs: 0, minMs: 0, maxMs: 0 },
@@ -29,7 +30,6 @@ vi.mock('../db.js', () => ({
 
 vi.mock('../chart.js', () => ({
   createTrendChart: vi.fn(),
-  buildCycleDatasets: vi.fn().mockReturnValue({ labels: [], datasets: [] }),
   createChartEmptyEl: vi.fn(() => document.createElement('div')),
   segmentDataset: vi.fn(() => ({})),
 }));

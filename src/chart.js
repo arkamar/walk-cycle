@@ -46,11 +46,12 @@ export function segmentDataset(k, data) {
   };
 }
 
-export function buildCycleDatasets(cycles) {
+export function buildCycleDatasets(cycles, excludeKinds) {
   const labels = cycles.map((_, i) => `#${i + 1}`);
   const datasets = [];
 
   for (const k of Object.values(SEGMENT_KINDS)) {
+    if (excludeKinds?.has(k)) continue;
     const data = cycles.map(c => {
       const ms = c.segments[k]?.durationMs ?? null;
       return ms == null ? null : ms / 1000;

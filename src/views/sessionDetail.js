@@ -14,6 +14,7 @@ import {
   segmentsFromEvents,
   cyclesFromSegments,
   aggregateBySegmentKind,
+  cycleTotalMs,
   formatDuration,
   SEGMENT_KINDS,
   SEGMENT_LABELS,
@@ -45,6 +46,13 @@ export async function renderSessionDetail(target, { id }) {
   const segments = segmentsFromEvents(events);
   const cycles = cyclesFromSegments(segments, true);
   const { byKind } = aggregateBySegmentKind(segments);
+
+  const includeTopRest = session.includeTopRest !== false;
+  const includeBottomRest = session.includeBottomRest !== false;
+  const excludedKinds = new Set();
+  if (!includeTopRest) excludedKinds.add(SEGMENT_KINDS.TOP_REST);
+  if (!includeBottomRest) excludedKinds.add(SEGMENT_KINDS.BOTTOM_REST);
+  const effectiveTotalMs = (c) => cycleTotalMs(c, { excludeTopRest: !includeTopRest, excludeBottomRest: !includeBottomRest });
 
   const EVENT_LABELS = {
     up: 'Up',
@@ -141,6 +149,30 @@ export async function renderSessionDetail(target, { id }) {
           session.name = e.target.value;
         },
       }),
+      el('label', { style: { display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', cursor: 'pointer' } }, [
+        el('input', {
+          type: 'checkbox',
+          checked: includeTopRest,
+          onChange: async (e) => {
+            await updateSession(id, { includeTopRest: e.target.checked });
+            target.innerHTML = '';
+            renderSessionDetail(target, { id });
+          },
+        }),
+        'Include top rest',
+      ]),
+      el('label', { style: { display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', cursor: 'pointer' } }, [
+        el('input', {
+          type: 'checkbox',
+          checked: includeBottomRest,
+          onChange: async (e) => {
+            await updateSession(id, { includeBottomRest: e.target.checked });
+            target.innerHTML = '';
+            renderSessionDetail(target, { id });
+          },
+        }),
+        'Include bottom rest',
+      ]),
     ]),
     el('h2', { style: { fontSize: '1rem', fontWeight: 'normal', color: 'var(--muted)' } }, formatDateTime(session.createdAt)),
     el('p', { class: 'muted' }, [
@@ -167,7 +199,7 @@ export async function renderSessionDetail(target, { id }) {
     el(
       'div',
       { class: 'stat-grid' },
-      Object.values(SEGMENT_KINDS).map((k) =>
+      Object.values(SEGMENT_KINDS).filter(k => !excludedKinds.has(k)).map((k) =>
         el(
           'div',
           { class: 'stat', style: { borderLeft: `4px solid ${SEGMENT_COLORS[k]}` } },
@@ -206,7 +238,7 @@ export async function renderSessionDetail(target, { id }) {
   ]);
 
   if (cycles.length > 0) {
-    const result = buildCycleDatasets(cycles);
+    const result = buildCycleDatasets(cycles, excludedKinds);
     chartLabels = result.labels;
     chartDatasets = result.datasets;
     cycleChart = createTrendChart(cycleChartCanvas, chartLabels, chartDatasets);
@@ -240,7 +272,7 @@ export async function renderSessionDetail(target, { id }) {
               ].join(' · '),
             ),
           ]),
-          el('div', { class: 'meta' }, formatDuration(c.totalMs)),
+          el('div', { class: 'meta' }, formatDuration(effectiveTotalMs(c))),
         ]),
       );
     }

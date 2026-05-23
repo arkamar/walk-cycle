@@ -3,13 +3,14 @@ import { listSessions, listEventsBySession, getCurrentSession } from '../db.js';
 import {
   segmentsFromEvents,
   cyclesFromSegments,
+  cycleTotalMs,
   aggregateBySegmentKind,
   formatDuration,
   SEGMENT_KINDS,
   SEGMENT_LABELS,
   SEGMENT_COLORS,
 } from '../analytics.js';
-import { createTrendChart, buildCycleDatasets, createChartEmptyEl, segmentDataset } from '../chart.js';
+import { createTrendChart, createChartEmptyEl, segmentDataset } from '../chart.js';
 
 const RANGES = [
   { value: 'all', label: 'All time' },
@@ -118,7 +119,14 @@ export async function renderStats(target) {
       const events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
       const segs = segmentsFromEvents(events);
       const cs = cyclesFromSegments(segs);
-      return cs.map(c => ({ ...c, sessionId: session.id }));
+      return cs.map(c => ({
+        ...c,
+        sessionId: session.id,
+        excludeOpts: {
+          excludeTopRest: session.includeTopRest === false,
+          excludeBottomRest: session.includeBottomRest === false,
+        },
+      }));
     }
 
     const sessions = await listSessions({ limit: 500 });
@@ -131,7 +139,14 @@ export async function renderStats(target) {
       const cs = cyclesFromSegments(segs);
       for (const c of cs) {
         if (cutoff && c.endTs < cutoff) continue;
-        cycles.push({ ...c, sessionId: s.id });
+        cycles.push({
+          ...c,
+          sessionId: s.id,
+          excludeOpts: {
+            excludeTopRest: s.includeTopRest === false,
+            excludeBottomRest: s.includeBottomRest === false,
+          },
+        });
       }
     }
     cycles.sort((a, b) => a.startTs - b.startTs);
@@ -148,11 +163,19 @@ export async function renderStats(target) {
     const grid = summaryCard.querySelector('#summary-grid');
     grid.innerHTML = '';
 
-    const allSegs = cycles.flatMap((c) => Object.values(c.segments));
+    const totalCycles = cycles.length;
+
+    const allSegs = cycles.flatMap((c) => {
+      const opts = c.excludeOpts || {};
+      return Object.values(c.segments).filter(s => {
+        if (opts.excludeTopRest && s.kind === SEGMENT_KINDS.TOP_REST) return false;
+        if (opts.excludeBottomRest && s.kind === SEGMENT_KINDS.BOTTOM_REST) return false;
+        return true;
+      });
+    });
     const { byKind } = aggregateBySegmentKind(allSegs);
 
-    const totalCycles = cycles.length;
-    const totalSeg = allSegs.reduce((acc, s) => acc + s.durationMs, 0);
+    const totalSeg = cycles.reduce((acc, c) => acc + cycleTotalMs(c, c.excludeOpts || {}), 0);
     const avgCycleMs = totalCycles ? totalSeg / totalCycles : 0;
 
     const cards = [
@@ -207,13 +230,24 @@ export async function renderStats(target) {
     let labels;
 
     if (view === 'cycles') {
-      const result = buildCycleDatasets(cycles);
-      labels = result.labels;
-      datasets = result.datasets;
+      labels = cycles.map((_, i) => `#${i + 1}`);
+      for (const k of Object.values(SEGMENT_KINDS)) {
+        const data = cycles.map(c => {
+          const opts = c.excludeOpts || {};
+          if (opts.excludeTopRest && k === SEGMENT_KINDS.TOP_REST) return null;
+          if (opts.excludeBottomRest && k === SEGMENT_KINDS.BOTTOM_REST) return null;
+          const ms = c.segments[k]?.durationMs ?? null;
+          return ms == null ? null : ms / 1000;
+        });
+        if (data.some(d => d !== null)) {
+          datasets.push(segmentDataset(k, data));
+        }
+      }
     } else {
       // Daily averages
       const byDay = new Map(); // dayKey -> { kind: { sum, count } }
       for (const c of cycles) {
+        const opts = c.excludeOpts || {};
         const day = new Date(c.startTs);
         day.setHours(0, 0, 0, 0);
         const key = day.getTime();
@@ -224,6 +258,8 @@ export async function renderStats(target) {
           byDay.set(key, bucket);
         }
         for (const k of Object.values(SEGMENT_KINDS)) {
+          if (opts.excludeTopRest && k === SEGMENT_KINDS.TOP_REST) continue;
+          if (opts.excludeBottomRest && k === SEGMENT_KINDS.BOTTOM_REST) continue;
           const seg = c.segments[k];
           if (seg) {
             bucket[k].sum += seg.durationMs;
