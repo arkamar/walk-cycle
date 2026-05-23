@@ -196,18 +196,22 @@ describe('stats.js', () => {
     if (cleanup) cleanup();
   });
 
-  it('filters sessions by cutoff date (lines 141-149)', async () => {
+  it('shows cycles from sessions created before cutoff when cycle endTs is within range (issue #10)', async () => {
     const { listSessions, listEventsBySession } = await import('../db.js');
     const { cyclesFromSegments, segmentsFromEvents } = await import('../analytics.js');
 
     const now = Date.now();
-    const oldSession = { id: 1, createdAt: now - 10 * 24 * 60 * 60 * 1000 }; // 10 days ago
-    const recentSession = { id: 2, createdAt: now - 2 * 24 * 60 * 60 * 1000 }; // 2 days ago
-
-    listSessions.mockResolvedValue([oldSession, recentSession]);
-    listEventsBySession.mockResolvedValue([]);
-    cyclesFromSegments.mockReturnValue([]);
-    segmentsFromEvents.mockReturnValue([]);
+    const oldSession = { id: 1, createdAt: now - 20 * 24 * 60 * 60 * 1000 }; // 20 days ago
+    listSessions.mockResolvedValue([oldSession]);
+    listEventsBySession.mockResolvedValue([{ id: 1, sessionId: 1, type: 'up', ts: now - 86400000 }]);
+    segmentsFromEvents.mockReturnValue([{ kind: 'up_duration', durationMs: 5000, cycleIndex: 0 }]);
+    cyclesFromSegments.mockReturnValue([{
+      index: 0,
+      segments: { up_duration: { durationMs: 5000 } },
+      totalMs: 5000,
+      startTs: now - 86400000,
+      endTs: now - 80000000,
+    }]);
 
     const cleanup = await renderStats(target);
 
@@ -217,7 +221,11 @@ describe('stats.js', () => {
     rangeSelect.value = '7d';
     rangeSelect.dispatchEvent(new Event('change'));
 
-    expect(listSessions).toHaveBeenCalled();
+    // Give the async render a tick to settle
+    await new Promise(r => setTimeout(r, 0));
+
+    const grid = target.querySelector('#summary-grid');
+    expect(grid.textContent).toContain('1'); // one cycle
     if (cleanup) cleanup();
   });
 

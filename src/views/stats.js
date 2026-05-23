@@ -133,7 +133,6 @@ export async function renderStats(target) {
     const cutoff = computeCutoff(range);
     const cycles = [];
     for (const s of sessions) {
-      if (cutoff && s.createdAt < cutoff) continue;
       const events = (await listEventsBySession(s.id)).filter(e => e.type !== 'session_stopped');
       const segs = segmentsFromEvents(events);
       const cs = cyclesFromSegments(segs);
