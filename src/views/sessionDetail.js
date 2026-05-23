@@ -149,32 +149,36 @@ export async function renderSessionDetail(target, { id }) {
           session.name = e.target.value;
         },
       }),
-      el('label', { style: { display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', cursor: 'pointer' } }, [
-        el('input', {
-          type: 'checkbox',
-          checked: includeTopRest,
-          onChange: async (e) => {
-            await updateSession(id, { includeTopRest: e.target.checked });
-            target.innerHTML = '';
-            renderSessionDetail(target, { id });
-          },
-        }),
-        'Include top rest',
-      ]),
-      el('label', { style: { display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', cursor: 'pointer' } }, [
-        el('input', {
-          type: 'checkbox',
-          checked: includeBottomRest,
-          onChange: async (e) => {
-            await updateSession(id, { includeBottomRest: e.target.checked });
-            target.innerHTML = '';
-            renderSessionDetail(target, { id });
-          },
-        }),
-        'Include bottom rest',
+    ]),
+    el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1rem', alignItems: 'center', fontSize: '0.85rem', marginBottom: '0.25rem' } }, [
+      el('span', { style: { color: 'var(--muted)' } }, formatDateTime(session.createdAt)),
+      el('span', { style: { marginLeft: 'auto', display: 'flex', gap: '1rem', alignItems: 'center' } }, [
+        el('label', { style: { display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' } }, [
+          el('input', {
+            type: 'checkbox',
+            checked: includeTopRest,
+            onChange: async (e) => {
+              await updateSession(id, { includeTopRest: e.target.checked });
+              target.innerHTML = '';
+              renderSessionDetail(target, { id });
+            },
+          }),
+          'Include top rest',
+        ]),
+        el('label', { style: { display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' } }, [
+          el('input', {
+            type: 'checkbox',
+            checked: includeBottomRest,
+            onChange: async (e) => {
+              await updateSession(id, { includeBottomRest: e.target.checked });
+              target.innerHTML = '';
+              renderSessionDetail(target, { id });
+            },
+          }),
+          'Include bottom rest',
+        ]),
       ]),
     ]),
-    el('h2', { style: { fontSize: '1rem', fontWeight: 'normal', color: 'var(--muted)' } }, formatDateTime(session.createdAt)),
     el('p', { class: 'muted' }, [
       sessionStatus(session) === 'stopped'
         ? `Stopped ${formatDateTime(events.length ? events[events.length - 1].nextTs : session.createdAt)} · `
