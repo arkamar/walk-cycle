@@ -32,6 +32,7 @@ vi.mock('../db.js', () => ({
 vi.mock('../analytics.js', () => ({
   segmentsFromEvents: vi.fn().mockReturnValue([]),
   cyclesFromSegments: vi.fn().mockReturnValue([]),
+  cycleTotalMs: vi.fn((cycle) => cycle.totalMs),
   aggregateBySegmentKind: vi.fn().mockReturnValue({
     byKind: {
       up_duration: { count: 0, totalMs: 0, avgMs: 0, minMs: 0, maxMs: 0 },
@@ -282,6 +283,64 @@ describe('sessionDetail.js', () => {
     expect(target.textContent).toContain('top');
   });
 
+  it('hides excluded segment labels in cycle table when includeTopRest is false', async () => {
+    db.getSession.mockResolvedValue({
+      ...mockSession,
+      includeTopRest: false,
+    });
+    const { cyclesFromSegments } = await import('../analytics.js');
+    cyclesFromSegments.mockReturnValue([
+      {
+        index: 0,
+        segments: {
+          up_duration: { durationMs: 1500 },
+          top_rest: { durationMs: 500 },
+          down_duration: { durationMs: 2000 },
+          bottom_rest: { durationMs: 300 },
+        },
+        totalMs: 4300,
+        startTs: Date.now(),
+      },
+    ]);
+
+    await renderSessionDetail(target, { id: 1 });
+    const listItems = target.querySelectorAll('.list-item');
+    expect(listItems.length).toBeGreaterThan(0);
+    const cycleItem = listItems[0];
+    expect(cycleItem.textContent).toContain('up');
+    expect(cycleItem.textContent).not.toContain('top');
+    expect(cycleItem.textContent).toContain('down');
+    expect(cycleItem.textContent).toContain('bot');
+  });
+
+  it('hides excluded segment labels in cycle table when includeBottomRest is false', async () => {
+    db.getSession.mockResolvedValue({
+      ...mockSession,
+      includeBottomRest: false,
+    });
+    const { cyclesFromSegments } = await import('../analytics.js');
+    cyclesFromSegments.mockReturnValue([
+      {
+        index: 0,
+        segments: {
+          up_duration: { durationMs: 1500 },
+          top_rest: { durationMs: 500 },
+          down_duration: { durationMs: 2000 },
+          bottom_rest: { durationMs: 300 },
+        },
+        totalMs: 4300,
+        startTs: Date.now(),
+      },
+    ]);
+
+    await renderSessionDetail(target, { id: 1 });
+    const listItems = target.querySelectorAll('.list-item');
+    expect(listItems.length).toBeGreaterThan(0);
+    const cycleItem = listItems[0];
+    expect(cycleItem.textContent).toContain('top');
+    expect(cycleItem.textContent).not.toContain('bot');
+  });
+
   it('renders partial cycle when up events exceed complete cycles (lines 286-313)', async () => {
     const now = Date.now();
     const mockEvents = [
@@ -330,5 +389,53 @@ describe('sessionDetail.js', () => {
 
     await renderSessionDetail(target, { id: 1 });
     expect(target.textContent).toContain('Stopped');
+  });
+
+  describe('cycle rest toggles', () => {
+    it('renders both checkboxes checked by default', async () => {
+      await renderSessionDetail(target, { id: 1 });
+      const checkboxes = target.querySelectorAll('input[type="checkbox"]');
+      expect(checkboxes.length).toBe(2);
+      expect(checkboxes[0].checked).toBe(true);
+      expect(checkboxes[1].checked).toBe(true);
+    });
+
+    it('renders both checkboxes unchecked when session has both set to false', async () => {
+      db.getSession.mockResolvedValue({
+        ...mockSession,
+        includeTopRest: false,
+        includeBottomRest: false,
+      });
+      await renderSessionDetail(target, { id: 1 });
+      const checkboxes = target.querySelectorAll('input[type="checkbox"]');
+      expect(checkboxes.length).toBe(2);
+      expect(checkboxes[0].checked).toBe(false);
+      expect(checkboxes[1].checked).toBe(false);
+    });
+
+    it('calls updateSession when toggling include top rest checkbox', async () => {
+      await renderSessionDetail(target, { id: 1 });
+      const checkboxes = target.querySelectorAll('input[type="checkbox"]');
+      checkboxes[0].checked = false;
+      checkboxes[0].dispatchEvent(new Event('change'));
+      expect(db.updateSession).toHaveBeenCalledWith(1, { includeTopRest: false });
+    });
+
+    it('calls updateSession when toggling include bottom rest checkbox', async () => {
+      await renderSessionDetail(target, { id: 1 });
+      const checkboxes = target.querySelectorAll('input[type="checkbox"]');
+      checkboxes[1].checked = false;
+      checkboxes[1].dispatchEvent(new Event('change'));
+      expect(db.updateSession).toHaveBeenCalledWith(1, { includeBottomRest: false });
+    });
+
+    it('labels checkboxes correctly', async () => {
+      await renderSessionDetail(target, { id: 1 });
+      const labels = target.querySelectorAll('label');
+      const checkboxLabels = Array.from(labels).filter(l => l.querySelector('input[type="checkbox"]'));
+      expect(checkboxLabels.length).toBe(2);
+      expect(checkboxLabels[0].textContent).toContain('Include top rest');
+      expect(checkboxLabels[1].textContent).toContain('Include bottom rest');
+    });
   });
 });
