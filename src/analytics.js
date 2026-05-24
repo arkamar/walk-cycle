@@ -213,6 +213,8 @@ export function formatLive(ms) {
 
 /**
  * Find the previous event of the same type in a list of events.
+ * For 'pause' events, also requires the preceding event type to match
+ * (top pause vs bottom pause).
  * @param {number} idx - Current index
  * @param {string} type - Event type to match
  * @param {Array} events - Array of events
@@ -220,9 +222,13 @@ export function formatLive(ms) {
  */
 export function findPrevSameType(idx, type, events) {
   if (!events || idx >= events.length) return null;
+  const contextType = type === 'pause' ? events[idx - 1]?.type : undefined;
   for (let i = idx - 1; i >= 0; i--) {
-    if (events[i].type === type && events[i].nextTs)
-      return events[i];
+    if (events[i].type === type && events[i].nextTs) {
+      if (contextType === undefined || events[i - 1]?.type === contextType) {
+        return events[i];
+      }
+    }
   }
   return null;
 }

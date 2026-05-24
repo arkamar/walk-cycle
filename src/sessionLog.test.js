@@ -10,10 +10,11 @@ vi.mock('./ui.js', async () => {
 
 vi.mock('./analytics.js', () => ({
   formatLive: vi.fn((ms) => {
-    const s = Math.floor(ms / 1000);
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}:000`;
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    const remainMs = ms % 1000;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}:${String(remainMs).padStart(3, '0')}`;
   }),
   findPrevSameType: vi.fn(() => null),
 }));
@@ -251,6 +252,92 @@ describe('sessionLog.js', () => {
     const nonEmpty = Array.from(container.querySelectorAll('.log-entry-diff'))
       .filter(el => el.textContent !== '');
     expect(nonEmpty.length).toBe(0);
+  });
+
+  it('diffs top pause against previous top pause, not intervening bottom pause', () => {
+    const events = [
+      { id: 1, type: 'up', ts: 1000 },
+      { id: 2, type: 'pause', ts: 3000 },
+      { id: 3, type: 'down', ts: 3500 },
+      { id: 4, type: 'pause', ts: 5000 },
+      { id: 5, type: 'up', ts: 10000 },
+      { id: 6, type: 'pause', ts: 13000 },
+      { id: 7, type: 'down', ts: 14000 },
+      { id: 8, type: 'pause', ts: 15000 },
+    ];
+    enrichNextTs(events, 16000);
+    findPrevSameType.mockImplementation((idx, type) => {
+      if (type === 'pause' && idx === 5) return events[1];
+      return null;
+    });
+    renderLogEntries(container, events);
+
+    // Events rendered in reverse: events[7] is first in DOM, events[0] is last.
+    // Second top pause at idx=5 is at DOM position 2 (events[7,6,5]).
+    // prevDuration = 3500-3000=500, thisDuration = 14000-13000=1000, diff = +500
+    const diffs = container.querySelectorAll('.log-entry-diff');
+    const topPauseDiff = diffs[2];
+    expect(topPauseDiff.textContent).toBe('+00:00:500');
+  });
+
+  it('diffs bottom pause against previous bottom pause, not intervening top pause', () => {
+    const events = [
+      { id: 1, type: 'up', ts: 1000 },
+      { id: 2, type: 'pause', ts: 2000 },
+      { id: 3, type: 'down', ts: 2500 },
+      { id: 4, type: 'pause', ts: 3000 },
+      { id: 5, type: 'up', ts: 10000 },
+      { id: 6, type: 'pause', ts: 11000 },
+      { id: 7, type: 'down', ts: 11500 },
+      { id: 8, type: 'pause', ts: 12000 },
+      { id: 9, type: 'up', ts: 20000 },
+      { id: 10, type: 'pause', ts: 21000 },
+      { id: 11, type: 'down', ts: 21500 },
+      { id: 12, type: 'pause', ts: 22000 },
+    ];
+    enrichNextTs(events, 30000);
+    findPrevSameType.mockImplementation((idx, type) => {
+      if (type === 'pause' && idx === 7) return events[3];
+      return null;
+    });
+    renderLogEntries(container, events);
+
+    // 12 events (idx 0-11), rendered in reverse DOM order (events[11] → DOM[0]).
+    // Second bottom pause at idx=7 → DOM[4].
+    // thisDuration = 20000-12000=8000, previous bottom pause at idx=3 has
+    // prevDuration = 10000-3000=7000, diff = +1000 (not the intervening top
+    // pause at idx=5 which would give prevDuration=500, diff=+7500).
+    const diffs = container.querySelectorAll('.log-entry-diff');
+    expect(diffs[4].textContent).toBe('+00:01:000');
+    expect(diffs[4].dataset.faster).toBe('false');
+  });
+
+  it('diffs bottom pause against previous bottom pause, not intervening top pause', () => {
+    const events = [
+      { id: 1, type: 'up', ts: 1000 },
+      { id: 2, type: 'pause', ts: 2000 },
+      { id: 3, type: 'down', ts: 2500 },
+      { id: 4, type: 'pause', ts: 3000 },
+      { id: 5, type: 'up', ts: 10000 },
+      { id: 6, type: 'pause', ts: 11000 },
+      { id: 7, type: 'down', ts: 11500 },
+      { id: 8, type: 'pause', ts: 12000 },
+      { id: 9, type: 'up', ts: 20000 },
+      { id: 10, type: 'pause', ts: 21000 },
+      { id: 11, type: 'down', ts: 21500 },
+      { id: 12, type: 'pause', ts: 22000 },
+    ];
+    enrichNextTs(events, 30000);
+    renderLogEntries(container, events);
+
+    // 12 events (idx 0-11), rendered in reverse DOM order (events[11] → DOM[0]).
+    // Second bottom pause at idx=7 → DOM[4].
+    // thisDuration = 20000-12000=8000, previous bottom pause at idx=3 has
+    // prevDuration = 10000-3000=7000, diff = +1000 (not the intervening top
+    // pause at idx=5 which would give prevDuration=500, diff=+7500).
+    const diffs = container.querySelectorAll('.log-entry-diff');
+    expect(diffs[4].textContent).toBe('+00:01:000');
+    expect(diffs[4].dataset.faster).toBe('false');
   });
 
   it('renders time element for each event', () => {
