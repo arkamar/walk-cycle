@@ -570,3 +570,24 @@ select.btn {
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
 }
+
+/* ---------- Event editor overlay ---------- */
+
+.event-editor-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
+}
+
+.event-editor-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  width: 320px;
+  max-width: 90vw;
+}
