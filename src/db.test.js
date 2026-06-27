@@ -12,6 +12,7 @@ import {
   listSessions,
   deleteSession,
   addEvent,
+  updateEvent,
   deleteEvent,
   listEventsBySession,
   listAllEvents,
@@ -427,6 +428,36 @@ describe('addEvent', () => {
   it('throws for empty string type', async () => {
     const id = await createSession();
     await expect(addEvent({ sessionId: id, type: '' })).rejects.toThrow();
+  });
+});
+
+describe('updateEvent', () => {
+  beforeEach(async () => {
+    await clearAll();
+  });
+
+  it('updates ts on an event', async () => {
+    const id = await createSession();
+    const ev = await addEvent({ sessionId: id, type: 'up', ts: 1000 });
+    await updateEvent(ev.id, { ts: 9999 });
+    const updated = await (await getDB()).get('events', ev.id);
+    expect(updated.ts).toBe(9999);
+    expect(updated.sessionId).toBe(id);
+  });
+
+  it('preserves other fields when updating ts', async () => {
+    const id = await createSession();
+    const ev = await addEvent({ sessionId: id, type: 'pause', ts: 1000 });
+    const returned = await updateEvent(ev.id, { ts: 5000 });
+    expect(returned.id).toBe(ev.id);
+    expect(returned.type).toBe('pause');
+    expect(returned.sessionId).toBe(id);
+    expect(returned.ts).toBe(5000);
+  });
+
+  it('returns null for unknown id', async () => {
+    const result = await updateEvent(9999, { ts: 1000 });
+    expect(result).toBeNull();
   });
 });
 

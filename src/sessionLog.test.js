@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('./ui.js', async () => {
   const actual = await vi.importActual('./ui.js');
@@ -19,7 +19,7 @@ vi.mock('./analytics.js', () => ({
   findPrevSameType: vi.fn(() => null),
 }));
 
-import { enrichNextTs, renderLogEntries } from './sessionLog.js';
+import { enrichNextTs, renderLogEntries, showEventEditor } from './sessionLog.js';
 import { findPrevSameType } from './analytics.js';
 
 describe('enrichNextTs', () => {
@@ -347,5 +347,199 @@ describe('sessionLog.js', () => {
     ];
     renderLogEntries(container, events);
     expect(container.querySelectorAll('.log-entry-time').length).toBe(2);
+  });
+});
+
+describe('onEdit long-press behavior', () => {
+  let editContainer;
+
+  beforeEach(() => {
+    editContainer = document.createElement('div');
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('triggers onEdit after 500ms pointerdown', () => {
+    const events = [{ id: 1, type: 'up', ts: 1000 }];
+    const onEdit = vi.fn();
+    renderLogEntries(editContainer, events, { onEdit });
+
+    editContainer.querySelector('.log-entry').dispatchEvent(new PointerEvent('pointerdown'));
+    expect(onEdit).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(500);
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit).toHaveBeenCalledWith(events[0]);
+  });
+
+  it('cancels long-press on pointerup before 500ms', () => {
+    const events = [{ id: 1, type: 'up', ts: 1000 }];
+    const onEdit = vi.fn();
+    renderLogEntries(editContainer, events, { onEdit });
+
+    const row = editContainer.querySelector('.log-entry');
+    row.dispatchEvent(new PointerEvent('pointerdown'));
+    row.dispatchEvent(new PointerEvent('pointerup'));
+    vi.advanceTimersByTime(500);
+
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it('cancels long-press on pointerleave before 500ms', () => {
+    const events = [{ id: 1, type: 'up', ts: 1000 }];
+    const onEdit = vi.fn();
+    renderLogEntries(editContainer, events, { onEdit });
+
+    const row = editContainer.querySelector('.log-entry');
+    row.dispatchEvent(new PointerEvent('pointerdown'));
+    row.dispatchEvent(new PointerEvent('pointerleave'));
+    vi.advanceTimersByTime(500);
+
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it('cancels long-press on pointercancel before 500ms', () => {
+    const events = [{ id: 1, type: 'up', ts: 1000 }];
+    const onEdit = vi.fn();
+    renderLogEntries(editContainer, events, { onEdit });
+
+    const row = editContainer.querySelector('.log-entry');
+    row.dispatchEvent(new PointerEvent('pointerdown'));
+    row.dispatchEvent(new PointerEvent('pointercancel'));
+    vi.advanceTimersByTime(500);
+
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it('does not attach pointer events when onEdit is omitted', () => {
+    const events = [{ id: 1, type: 'up', ts: 1000 }];
+    renderLogEntries(editContainer, events);
+    const row = editContainer.querySelector('.log-entry');
+
+    row.dispatchEvent(new PointerEvent('pointerdown'));
+    vi.advanceTimersByTime(500);
+  });
+
+  it('triggers onEdit with the correct event per row (reverse render order)', () => {
+    const events = [
+      { id: 1, type: 'up', ts: 1000 },
+      { id: 2, type: 'pause', ts: 2000 },
+    ];
+    const onEdit = vi.fn();
+    renderLogEntries(editContainer, events, { onEdit });
+
+    const rows = editContainer.querySelectorAll('.log-entry');
+    // rows[0] = newest event (pause, id 2), rows[1] = oldest event (up, id 1)
+    rows[0].dispatchEvent(new PointerEvent('pointerdown'));
+    vi.advanceTimersByTime(500);
+
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit).toHaveBeenCalledWith(events[1]);
+  });
+});
+
+describe('showEventEditor', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  function makeEvent(ts) {
+    return { id: 1, sessionId: 1, type: 'up', ts };
+  }
+
+  it('creates overlay with card containing input and buttons', () => {
+    showEventEditor(makeEvent(1700000000000), vi.fn());
+
+    const overlay = document.querySelector('.event-editor-overlay');
+    expect(overlay).not.toBeNull();
+    const card = overlay.querySelector('.event-editor-card');
+    expect(card).not.toBeNull();
+    const input = card.querySelector('input[type="datetime-local"]');
+    expect(input).not.toBeNull();
+    const buttons = card.querySelectorAll('button');
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0].textContent).toBe('Cancel');
+    expect(buttons[1].textContent).toBe('Save');
+  });
+
+  it('pre-fills input with event timestamp', () => {
+    showEventEditor(makeEvent(1700000000000), vi.fn());
+
+    const input = document.querySelector('input[type="datetime-local"]');
+    expect(input.value).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+  });
+
+  it('calls onSave with ts patch when Save is clicked', () => {
+    const onSave = vi.fn();
+    showEventEditor(makeEvent(1700000000000), onSave);
+
+    const input = document.querySelector('input[type="datetime-local"]');
+    const saveBtn = document.querySelector('.btn-primary');
+    input.value = '2023-11-15T10:30';
+    saveBtn.click();
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledWith({ ts: expect.any(Number) });
+  });
+
+  it('removes overlay on Cancel', () => {
+    showEventEditor(makeEvent(1700000000000), vi.fn());
+
+    document.querySelector('.btn-ghost').click();
+    expect(document.querySelector('.event-editor-overlay')).toBeNull();
+  });
+
+  it('ignores Save when input is empty', () => {
+    const onSave = vi.fn();
+    showEventEditor(makeEvent(1700000000000), onSave);
+
+    const input = document.querySelector('input[type="datetime-local"]');
+    input.value = '';
+    document.querySelector('.btn-primary').click();
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(document.querySelector('.event-editor-overlay')).not.toBeNull();
+  });
+
+  it('closes overlay on click outside card', () => {
+    showEventEditor(makeEvent(1700000000000), vi.fn());
+
+    const overlay = document.querySelector('.event-editor-overlay');
+    overlay.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+
+    expect(document.querySelector('.event-editor-overlay')).toBeNull();
+  });
+
+  it('does not close overlay on click inside card', () => {
+    showEventEditor(makeEvent(1700000000000), vi.fn());
+
+    const card = document.querySelector('.event-editor-card');
+    card.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+
+    expect(document.querySelector('.event-editor-overlay')).not.toBeNull();
+  });
+
+  it('saves on Enter key in input', () => {
+    const onSave = vi.fn();
+    showEventEditor(makeEvent(1700000000000), onSave);
+
+    const input = document.querySelector('input[type="datetime-local"]');
+    input.value = '2023-11-15T10:30';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledWith({ ts: expect.any(Number) });
+  });
+
+  it('cleans up overlay after save', () => {
+    const onSave = vi.fn();
+    showEventEditor(makeEvent(1700000000000), onSave);
+
+    document.querySelector('.btn-primary').click();
+
+    expect(document.querySelector('.event-editor-overlay')).toBeNull();
   });
 });

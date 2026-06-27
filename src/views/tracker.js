@@ -16,12 +16,13 @@ import {
   listEventsBySession,
   resumeSession,
   stopSession,
+  updateEvent,
 } from '../db.js';
 import {
   formatLive,
   formatDuration,
 } from '../analytics.js';
-import { enrichNextTs, renderLogEntries } from '../sessionLog.js';
+import { enrichNextTs, renderLogEntries, showEventEditor } from '../sessionLog.js';
 
 function getGoalDeadlineInfo(endTime) {
   const now = new Date();
@@ -352,6 +353,18 @@ export async function renderTracker(target) {
     renderLogEntries(logList, events, {
       isRunning: session && !session.isStopped,
       eventLabels: EVENT_LABELS,
+      onEdit: async (event) => {
+        showEventEditor(event, async (patch) => {
+          await updateEvent(event.id, patch);
+          events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
+          enrichNextTs(events);
+          state = stateFromEvents(events);
+          lastEventTs = events.length > 0 ? events[events.length - 1].ts : null;
+          render();
+          renderLog();
+          renderGoalProgress();
+        });
+      },
     });
   }
 

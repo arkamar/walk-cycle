@@ -16,10 +16,67 @@ export function enrichNextTs(events, lastNextTs = Date.now()) {
   }
 }
 
+function tsToDatetimeLocal(ts) {
+  const d = new Date(ts);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function showEventEditor(ev, onSave) {
+  const overlay = el('div', { class: 'event-editor-overlay' });
+
+  const timeInput = el('input', {
+    type: 'datetime-local',
+    value: tsToDatetimeLocal(ev.ts),
+    style: { width: '100%', boxSizing: 'border-box', fontSize: '1rem', padding: '0.4rem 0.5rem', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--bg)', color: 'var(--fg)' },
+  });
+
+  const card = el('div', { class: 'event-editor-card' }, [
+    el('p', { style: { margin: '0 0 0.75rem', fontWeight: 600, fontSize: '0.95rem' } }, 'Edit event time'),
+    timeInput,
+    el('div', { style: { display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.75rem' } }, [
+      el('button', {
+        class: 'btn btn-ghost',
+        type: 'button',
+        onClick: () => overlay.remove(),
+      }, 'Cancel'),
+      el('button', {
+        class: 'btn btn-primary',
+        type: 'button',
+        onClick: () => {
+          const val = timeInput.value;
+          if (!val) return;
+          const newTs = new Date(val).getTime();
+          if (isNaN(newTs)) return;
+          overlay.remove();
+          onSave({ ts: newTs });
+        },
+      }, 'Save'),
+    ]),
+  ]);
+
+  overlay.appendChild(card);
+  overlay.addEventListener('pointerdown', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  timeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      card.querySelector('.btn-primary').click();
+    }
+  });
+
+  document.body.appendChild(overlay);
+  timeInput.focus();
+  timeInput.select();
+}
+
 export function renderLogEntries(container, events, options = {}) {
   const {
     isRunning = false,
     eventLabels = DEFAULT_EVENT_LABELS,
+    onEdit,
   } = options;
 
   container.innerHTML = '';
@@ -76,6 +133,25 @@ export function renderLogEntries(container, events, options = {}) {
     }
 
     row.appendChild(el('div', { class: 'log-entry-duration' }, displayDuration));
+
+    if (onEdit) {
+      let timer = null;
+      row.addEventListener('pointerdown', () => {
+        timer = setTimeout(() => {
+          timer = null;
+          onEdit(ev);
+        }, 500);
+      });
+      row.addEventListener('pointerup', () => {
+        if (timer) { clearTimeout(timer); timer = null; }
+      });
+      row.addEventListener('pointerleave', () => {
+        if (timer) { clearTimeout(timer); timer = null; }
+      });
+      row.addEventListener('pointercancel', () => {
+        if (timer) { clearTimeout(timer); timer = null; }
+      });
+    }
 
     container.appendChild(row);
   }

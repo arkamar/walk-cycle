@@ -366,6 +366,15 @@ export async function addEvent({ sessionId, type, ts = Date.now() }) {
   return { id, sessionId, type, ts };
 }
 
+export async function updateEvent(id, patch) {
+  const db = await getDB();
+  const event = await db.get(STORE_EVENTS, id);
+  if (!event) return null;
+  Object.assign(event, patch);
+  await db.put(STORE_EVENTS, event);
+  return event;
+}
+
 export async function deleteEvent(id) {
   const db = await getDB();
   await db.delete(STORE_EVENTS, id);

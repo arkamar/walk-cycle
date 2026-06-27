@@ -9,6 +9,7 @@ import {
   stopSession,
   resumeSession,
   updateSession,
+  updateEvent,
 } from '../db.js';
 import {
   segmentsFromEvents,
@@ -21,7 +22,7 @@ import {
   SEGMENT_COLORS,
 } from '../analytics.js';
 import { sessionStatus } from '../stateMachine.js';
-import { enrichNextTs, renderLogEntries } from '../sessionLog.js';
+import { enrichNextTs, renderLogEntries, showEventEditor } from '../sessionLog.js';
 
 export async function renderSessionDetail(target, { id }) {
   let cycleChart = null;
@@ -195,7 +196,16 @@ export async function renderSessionDetail(target, { id }) {
     el('div', { class: 'log-list' }),
   ]);
   const logList = logCard.querySelector('.log-list');
-  renderLogEntries(logList, events, { eventLabels: EVENT_LABELS });
+  renderLogEntries(logList, events, {
+    eventLabels: EVENT_LABELS,
+    onEdit: async (event) => {
+      showEventEditor(event, async (patch) => {
+        await updateEvent(event.id, patch);
+        target.innerHTML = '';
+        renderSessionDetail(target, { id });
+      });
+    },
+  });
 
   // Per-segment averages
   const statsCard = el('div', { class: 'card' }, [
