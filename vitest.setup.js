@@ -10,14 +10,18 @@ globalThis.IDBTransaction = IDBTransaction;
 globalThis.IDBDatabase = IDBDatabase;
 
 const store = new Map();
-globalThis.localStorage = {
-  getItem(key) { return store.has(key) ? store.get(key) : null; },
-  setItem(key, value) { store.set(key, String(value)); },
-  removeItem(key) { store.delete(key); },
-  clear() { store.clear(); },
-  get length() { return store.size; },
-  key(n) { return [...store.keys()][n] ?? null; },
-};
+Object.defineProperty(globalThis, 'localStorage', {
+  value: {
+    getItem(key) { return store.has(key) ? store.get(key) : null; },
+    setItem(key, value) { store.set(key, String(value)); },
+    removeItem(key) { store.delete(key); },
+    clear() { store.clear(); },
+    get length() { return store.size; },
+    key(n) { return [...store.keys()][n] ?? null; },
+  },
+  writable: true,
+  configurable: true,
+});
 
 // Polyfill matchMedia for jsdom (needed by stats.js)
 globalThis.matchMedia = (query) => ({
