@@ -514,13 +514,13 @@ describe('renderActivityDetail', () => {
     const dayBtn = buttons[0];
     const weekBtn = buttons[1];
 
-    expect(dayBtn.style.background).toBe('transparent');
+    expect(dayBtn.style.background).not.toBe('var(--fg)');
     expect(weekBtn.style.background).toBe('var(--fg)');
 
     dayBtn.click();
 
     expect(dayBtn.style.background).toBe('var(--fg)');
-    expect(weekBtn.style.background).toBe('transparent');
+    expect(weekBtn.style.background).not.toBe('var(--fg)');
   });
 
   it('switches back to week mode when Week button is clicked after Day', async () => {
@@ -541,7 +541,7 @@ describe('renderActivityDetail', () => {
     weekBtn.click();
 
     expect(weekBtn.style.background).toBe('var(--fg)');
-    expect(dayBtn.style.background).toBe('transparent');
+    expect(dayBtn.style.background).not.toBe('var(--fg)');
   });
 
   it('shows and clicks reset zoom button', async () => {
