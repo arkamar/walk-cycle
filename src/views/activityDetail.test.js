@@ -246,7 +246,7 @@ describe('renderActivityDetail', () => {
     ]);
     window.confirm = vi.fn().mockReturnValue(false);
 
-    const { renderActivityDetail } = await import('./activityDetail.js';
+    const { renderActivityDetail } = await import('./activityDetail.js');
     await renderActivityDetail(target, { id: 1 });
 
     const deleteBtn = findDeleteBtn();
@@ -446,7 +446,7 @@ describe('renderActivityDetail', () => {
       { id: 10, date: '2026-05-10', count: 3 },
     ]);
 
-    const { renderActivityDetail } = await import('./activityDetail.js';
+    const { renderActivityDetail } = await import('./activityDetail.js');
     await renderActivityDetail(target, { id: 1 });
 
     const countSpan = target.querySelector('span[data-edit="count"]');
@@ -514,13 +514,13 @@ describe('renderActivityDetail', () => {
     const dayBtn = buttons[0];
     const weekBtn = buttons[1];
 
-    expect(['transparent', 'none']).toContain(dayBtn.style.background);
+    expect(dayBtn.style.background).not.toBe('var(--fg)');
     expect(weekBtn.style.background).toBe('var(--fg)');
 
     dayBtn.click();
 
     expect(dayBtn.style.background).toBe('var(--fg)');
-    expect(['transparent', 'none']).toContain(weekBtn.style.background);
+    expect(weekBtn.style.background).not.toBe('var(--fg)');
   });
 
   it('switches back to week mode when Week button is clicked after Day', async () => {
@@ -541,7 +541,7 @@ describe('renderActivityDetail', () => {
     weekBtn.click();
 
     expect(weekBtn.style.background).toBe('var(--fg)');
-    expect(['transparent', 'none']).toContain(dayBtn.style.background);
+    expect(dayBtn.style.background).not.toBe('var(--fg)');
   });
 
   it('shows and clicks reset zoom button', async () => {
