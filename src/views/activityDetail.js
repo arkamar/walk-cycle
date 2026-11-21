@@ -362,8 +362,8 @@ export async function renderActivityDetail(target, { id }) {
       localStorage.setItem(CHART_MODE_KEY, JSON.stringify(prefs));
     }
 
-    const activeBtn = { background: 'var(--fg)', color: 'var(--bg)', border: '1px solid var(--fg)' };
-    const inactiveBtn = { background: 'transparent', color: 'var(--fg)', border: '1px solid var(--border)' };
+    const activeBtn = { backgroundColor: 'var(--fg)', color: 'var(--bg)', border: '1px solid var(--fg)' };
+    const inactiveBtn = { backgroundColor: 'transparent', color: 'var(--fg)', border: '1px solid var(--border)' };
 
     const activeModes = { day: false, week: false, pace: false };
     activeModes[chartMode] = true;
