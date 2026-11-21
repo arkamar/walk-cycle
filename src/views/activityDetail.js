@@ -180,9 +180,7 @@ export async function renderActivityDetail(target, { id }) {
   ]);
 
   if (!records.length) {
-    recordsCard.appendChild(
-      el('p', { class: 'muted' }, 'No records yet.'),
-    );
+    recordsCard.appendChild(el('p', { class: 'muted' }, 'No records yet.'));
   } else {
     const list = el('div', { class: 'list' });
     recordsCard.appendChild(list);
@@ -209,6 +207,7 @@ export async function renderActivityDetail(target, { id }) {
         }
         prevYear = year;
       }
+
       const dateSpan = el('span', { dataset: { edit: 'date' }, style: { cursor: 'pointer' } }, new Date(r.date + 'T00:00:00').toLocaleDateString());
       const dateInput = el('input', {
         type: 'date',
@@ -218,6 +217,7 @@ export async function renderActivityDetail(target, { id }) {
         onBlur: async () => { await saveDate(); },
         onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); dateInput.blur(); } },
       });
+
       async function saveDate() {
         const newDate = dateInput.value;
         if (newDate === r.date) {
@@ -240,6 +240,7 @@ export async function renderActivityDetail(target, { id }) {
         dateInput.style.display = 'none';
         toast('Date updated');
       }
+
       dateSpan.onclick = () => {
         dateSpan.style.display = 'none';
         dateInput.style.display = '';
@@ -256,6 +257,7 @@ export async function renderActivityDetail(target, { id }) {
         onBlur: async () => { await saveCount(); },
         onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); countInput.blur(); } },
       });
+
       async function saveCount() {
         const val = Number(countInput.value);
         if (val !== r.count) {
@@ -268,6 +270,7 @@ export async function renderActivityDetail(target, { id }) {
         countSpan.style.display = '';
         countInput.style.display = 'none';
       }
+
       countSpan.onclick = () => {
         countSpan.style.display = 'none';
         countInput.style.display = '';
@@ -299,6 +302,7 @@ export async function renderActivityDetail(target, { id }) {
         onBlur: async () => { await saveNote(); },
         onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); noteInput.blur(); } },
       });
+
       async function saveNote() {
         const val = noteInput.value.trim();
         if (val !== (r.note || '')) {
@@ -311,6 +315,7 @@ export async function renderActivityDetail(target, { id }) {
         noteSpan.style.display = '';
         noteInput.style.display = 'none';
       }
+
       noteSpan.onclick = () => {
         noteSpan.style.display = 'none';
         noteInput.style.display = '';
@@ -349,9 +354,7 @@ export async function renderActivityDetail(target, { id }) {
   let canvasWrap;
 
   if (activity.goal) {
-    chartCard = el('div', { class: 'card' }, [
-      el('h3', {}, 'Motivation'),
-    ]);
+    chartCard = el('div', { class: 'card' }, [el('h3', {}, 'Motivation')]);
 
     const CHART_MODE_KEY = 'walk-cycle-chart-mode';
     let chartMode = JSON.parse(localStorage.getItem(CHART_MODE_KEY) || '{}')[id] || 'week';
@@ -374,16 +377,22 @@ export async function renderActivityDetail(target, { id }) {
     });
 
     const dayBtn = el('button', {
+      type: 'button',
+      'aria-pressed': activeModes.day,
       style: { ...btnStyle(activeModes.day), borderRadius: '4px 0 0 4px' },
       onClick: () => switchMode('day'),
     }, 'Day');
 
     const weekBtn = el('button', {
+      type: 'button',
+      'aria-pressed': activeModes.week,
       style: { ...btnStyle(activeModes.week), borderRadius: 0 },
       onClick: () => switchMode('week'),
     }, 'Week');
 
     const paceBtn = el('button', {
+      type: 'button',
+      'aria-pressed': activeModes.pace,
       style: { ...btnStyle(activeModes.pace), borderRadius: '0 4px 4px 0' },
       onClick: () => switchMode('pace'),
     }, 'Pace');
@@ -418,6 +427,9 @@ export async function renderActivityDetail(target, { id }) {
       Object.assign(dayBtn.style, mode === 'day' ? activeBtn : inactiveBtn);
       Object.assign(weekBtn.style, mode === 'week' ? activeBtn : inactiveBtn);
       Object.assign(paceBtn.style, mode === 'pace' ? activeBtn : inactiveBtn);
+      dayBtn.setAttribute('aria-pressed', String(mode === 'day'));
+      weekBtn.setAttribute('aria-pressed', String(mode === 'week'));
+      paceBtn.setAttribute('aria-pressed', String(mode === 'pace'));
       canvasWrap.innerHTML = '';
       renderMotivationChart(canvasWrap, yearRecords, activity.goal, mode, null, onZoomChange);
     }
@@ -426,9 +438,7 @@ export async function renderActivityDetail(target, { id }) {
   let placesCard = null;
 
   if (records.length > 0) {
-    placesCard = el('div', { class: 'card' }, [
-      el('h3', {}, 'By Note'),
-    ]);
+    placesCard = el('div', { class: 'card' }, [el('h3', {}, 'By Note')]);
 
     const byNote = new Map();
     for (const r of records) {
@@ -539,9 +549,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     totalUnits = daysInYear;
     todayIndex = todayDayIndex;
     const dayCounts = new Map();
-    for (const r of yearRecords) {
-      dayCounts.set(r.date, (dayCounts.get(r.date) || 0) + r.count);
-    }
+    for (const r of yearRecords) dayCounts.set(r.date, (dayCounts.get(r.date) || 0) + r.count);
     let runningRecords = 0;
     data = [];
     for (let day = 0; day < totalUnits; day++) {
@@ -575,9 +583,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
 
   let zoom = initialZoom;
 
-  const canvas = el('canvas', {
-    style: { width: '100%', height: '200px', display: 'block' },
-  });
+  const canvas = el('canvas', { style: { width: '100%', height: '200px', display: 'block' } });
   container.appendChild(canvas);
 
   let isDragging = false;
@@ -731,10 +737,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       for (let m = 0; m < 12; m++) {
         const idx = monthIdx(monthStartDay[m]);
         if (idx < visibleStart || idx > visibleEnd) continue;
-        ctx.fillText(
-          mf.format(new Date(currentYear, m, 1)),
-          x(idx), pad.top + plotH + 4,
-        );
+        ctx.fillText(mf.format(new Date(currentYear, m, 1)), x(idx), pad.top + plotH + 4);
       }
     };
 
@@ -746,11 +749,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       if (visibleUnits <= 60) {
         const step = visibleUnits > 20 ? 7 : Math.max(1, Math.floor(visibleUnits / 8));
         for (let day = Math.ceil(visibleStart / step) * step; day <= visibleEnd; day += step) {
-          const d = new Date(currentYear, 0, day + 1);
-          ctx.fillText(
-            df.format(d),
-            x(day), pad.top + plotH + 4,
-          );
+          ctx.fillText(df.format(new Date(currentYear, 0, day + 1)), x(day), pad.top + plotH + 4);
         }
       }
     } else if (mode === 'pace') {
@@ -759,10 +758,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
         const step = visibleUnits > 14 ? 2 : 1;
         for (let i = visibleStart; i <= visibleEnd; i += step) {
           const day = Math.min(cumDays[i], daysInYear - 1);
-          ctx.fillText(
-            df.format(new Date(currentYear, 0, Math.floor(day) + 1)),
-            x(i), pad.top + plotH + 4,
-          );
+          ctx.fillText(df.format(new Date(currentYear, 0, Math.floor(day) + 1)), x(i), pad.top + plotH + 4);
         }
       }
     } else {
@@ -771,18 +767,12 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
         const dayCount = cumDays[visibleEnd + 1] - cumDays[visibleStart];
         const step = Math.max(1, Math.floor(dayCount / 8));
         for (let d = Math.ceil(cumDays[visibleStart] / step) * step; d < cumDays[visibleEnd + 1]; d += step) {
-          ctx.fillText(
-            df.format(new Date(currentYear, 0, d + 1)),
-            x(monthIdx(d)), pad.top + plotH + 4,
-          );
+          ctx.fillText(df.format(new Date(currentYear, 0, d + 1)), x(monthIdx(d)), pad.top + plotH + 4);
         }
       } else if (visibleUnits <= 16) {
         for (let w = visibleStart; w <= visibleEnd; w++) {
           const d = w === 0 ? new Date(currentYear, 0, 1) : new Date(currentYear, 0, firstWeekStart + (w - 1) * 7 + 1);
-          ctx.fillText(
-            df.format(d),
-            x(w), pad.top + plotH + 4,
-          );
+          ctx.fillText(df.format(d), x(w), pad.top + plotH + 4);
         }
       }
     }
@@ -794,17 +784,14 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       visibleData.forEach((d, i) => {
         const xx = x(d.index);
         const yy = y(d.maxPossible);
-        if (i === 0) {
-          ctx.moveTo(xx, yy);
-        } else {
+        if (i === 0) ctx.moveTo(xx, yy);
+        else {
           const prev = visibleData[i - 1];
           ctx.lineTo(xx, y(prev.maxPossible));
           ctx.lineTo(xx, yy);
         }
       });
-      if (visibleData.length) {
-        ctx.lineTo(pad.left + plotW, y(visibleData[visibleData.length - 1].maxPossible));
-      }
+      if (visibleData.length) ctx.lineTo(pad.left + plotW, y(visibleData[visibleData.length - 1].maxPossible));
     };
 
     ctx.beginPath();
@@ -892,21 +879,14 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     const dist = maxX - minX;
 
     const plotW = getPlotW();
-    if (plotW <= 0 || dist < 5) {
-      draw();
-      return;
-    }
+    if (plotW <= 0 || dist < 5) return draw();
 
     const start = pixelToIndex(minX);
     const end = pixelToIndex(maxX);
-    if (start >= end) {
-      draw();
-      return;
-    }
+    if (start >= end) return draw();
 
     zoom = { start, end };
     draw();
-
     if (onZoomChange) onZoomChange(zoom);
   };
 
@@ -951,7 +931,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       const curStart = zoom ? zoom.start : 0;
       const curEnd = zoom ? zoom.end : totalUnits - 1;
       const curW = curEnd - curStart + 1;
-      let newW = Math.max(2, Math.min(totalUnits, Math.round(curW * scale)));
+      const newW = Math.max(2, Math.min(totalUnits, Math.round(curW * scale)));
       let newStart = Math.round(pinchFocalIndex - (pinchFocalIndex - curStart) * (newW / curW));
       let newEnd = newStart + newW - 1;
       if (newStart < 0) { newStart = 0; newEnd = newW - 1; }
