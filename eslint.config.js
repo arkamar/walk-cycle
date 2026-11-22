@@ -37,9 +37,6 @@ export default [
       '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: true }],
       '@stylistic/no-trailing-spaces': ['error', { skipBlankLines: false }],
       '@stylistic/space-before-function-paren': ['error', { anonymous: 'never', named: 'never', asyncArrow: 'always' }],
-
-      // Rules disabled to match existing code style
-      '@stylistic/operator-linebreak': 'off',
     },
   },
   {
