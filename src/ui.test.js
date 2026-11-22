@@ -77,18 +77,18 @@ describe('el()', () => {
     it('handles array of children', () => {
       const [c1, c2] = [el('span'), el('p')];
       const node = el('div', {}, [c1, c2]);
-      expect(node.childNodes.length).toBe(2);
+      expect(node.childNodes).toHaveLength(2);
     });
 
     it('handles nested arrays', () => {
       const [c1, c2] = [el('span'), el('p')];
       const node = el('div', {}, [[c1, c2]]);
-      expect(node.childNodes.length).toBe(2);
+      expect(node.childNodes).toHaveLength(2);
     });
 
     it('ignores null/undefined children', () => {
       const node = el('div', {}, [null, undefined, 'valid']);
-      expect(node.childNodes.length).toBe(1);
+      expect(node.childNodes).toHaveLength(1);
       expect(node.textContent).toBe('valid');
     });
   });

@@ -129,7 +129,7 @@ describe('tracker.js', () => {
       cleanup = typeof result === 'function' ? result : null;
 
       const buttons = target.querySelectorAll('.action-btn');
-      expect(buttons.length).toBe(4);
+      expect(buttons).toHaveLength(4);
     });
 
     it('creates state label element', async () => {
@@ -466,7 +466,7 @@ describe('tracker.js', () => {
       cleanup = typeof result === 'function' ? result : null;
 
       const logEntries = target.querySelectorAll('.log-entry');
-      expect(logEntries.length).toBe(2);
+      expect(logEntries).toHaveLength(2);
     });
   });
 
@@ -526,11 +526,11 @@ describe('tracker.js', () => {
   });
 
   describe('helper functions (through renderTracker closure)', () => {
-    it('calcAvgCycleTime returns 0 with less than 2 up events', async () => {
+    it('does not report a cycle trend with less than 2 up events', async () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
-      expect(true).toBe(true);
+      expect(target.querySelector('.tracker-mini-state').textContent).toBe('Ready');
     });
   });
 
@@ -551,8 +551,18 @@ describe('tracker.js', () => {
   });
 
   describe('onPress with invalid transition', () => {
-    it('invalid transition handling exists in onPress', () => {
-      expect(true).toBe(true);
+    it('warns when an event is not allowed in the current state', async () => {
+      const now = Date.now();
+      getCurrentSession.mockResolvedValueOnce({ id: 1, createdAt: now, isStopped: false });
+      listEventsBySession.mockResolvedValueOnce([]);
+
+      const result = await renderTracker(target);
+      cleanup = typeof result === 'function' ? result : null;
+
+      target.querySelector('[data-kind="pause"]').click();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(toast).toHaveBeenCalledWith('Not allowed in current state');
     });
   });
 
@@ -614,14 +624,36 @@ describe('tracker.js', () => {
   });
 
   describe('render with over goal', () => {
-    it('goal over logic exists in render function', () => {
-      expect(true).toBe(true);
+    it('still shows the over-goal status for a stopped session', async () => {
+      const now = Date.now();
+      const mockSession = { id: 1, createdAt: now, isStopped: true };
+      const events = [];
+      for (let i = 0; i < 4; i++) {
+        events.push({ id: i * 2, sessionId: 1, type: 'up', ts: now + i * 10000 });
+        events.push({ id: i * 2 + 1, sessionId: 1, type: 'pause', ts: now + i * 10000 + 5000 });
+      }
+      getCurrentSession.mockResolvedValueOnce(mockSession);
+      listEventsBySession.mockResolvedValueOnce(events);
+      getCompetitionGoal.mockReturnValue({ ups: 2 });
+
+      const result = await renderTracker(target);
+      cleanup = typeof result === 'function' ? result : null;
+
+      expect(target.querySelector('.tracker-goal-progress').textContent).toContain('over');
     });
   });
 
   describe('render with time up', () => {
-    it('time up logic exists in render function', () => {
-      expect(true).toBe(true);
+    it('shows time up when the deadline has passed', async () => {
+      vi.setSystemTime(new Date(2026, 0, 1, 12, 0, 0));
+      getCurrentSession.mockResolvedValueOnce({ id: 1, createdAt: Date.now(), isStopped: false });
+      listEventsBySession.mockResolvedValueOnce([]);
+      getCompetitionGoal.mockReturnValue({ endTime: '12:00' });
+
+      const result = await renderTracker(target);
+      cleanup = typeof result === 'function' ? result : null;
+
+      expect(target.querySelector('.tracker-goal-progress').textContent).toBe('time up');
     });
   });
 
@@ -656,7 +688,9 @@ describe('tracker.js', () => {
 
       const { findPrevSameType } = await import('../analytics.js');
       findPrevSameType.mockImplementation((idx, type) => {
-        if (idx === 2 && type === 'up') return { ...mockEvents[0], nextTs: mockEvents[1].ts };
+        if (idx === 2 && type === 'up') {
+          return { ...mockEvents[0], nextTs: mockEvents[1].ts };
+        }
         return null;
       });
 
@@ -685,7 +719,7 @@ describe('tracker.js', () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
-      expect(true).toBe(true);
+      expect(target.querySelectorAll('.log-entry')).toHaveLength(5);
     });
   });
 
@@ -703,7 +737,7 @@ describe('tracker.js', () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
-      expect(true).toBe(true);
+      expect(target.querySelectorAll('.log-entry')).toHaveLength(6);
     });
 
     it('returns flat trend with less than 2 cycles', async () => {
@@ -719,7 +753,7 @@ describe('tracker.js', () => {
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
-      expect(true).toBe(true);
+      expect(target.querySelectorAll('.log-entry')).toHaveLength(2);
     });
   });
 
@@ -734,12 +768,12 @@ describe('tracker.js', () => {
       getCurrentSession.mockResolvedValueOnce(mockSession);
       listEventsBySession.mockResolvedValueOnce(mockEvents);
 
-      getCompetitionGoal.mockReturnValue({ ups: 1 });
+      getCompetitionGoal.mockReturnValue({ ups: 2 });
 
       const result = await renderTracker(target);
       cleanup = typeof result === 'function' ? result : null;
 
-      expect(true).toBe(true);
+      expect(target.querySelector('.tracker-goal-progress').textContent).toBe('1 up');
     });
   });
 });

@@ -64,7 +64,9 @@ export async function renderActivities(target) {
       class: 'btn btn-ghost',
       style: { color: 'var(--danger)', padding: '0.5rem' },
       onClick: async () => {
-        if (!confirm('Delete this activity?')) return;
+        if (!confirm('Delete this activity?')) {
+          return;
+        }
         await deleteActivity(a.id);
         toast('Activity deleted');
         target.innerHTML = '';

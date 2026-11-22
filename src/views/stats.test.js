@@ -91,20 +91,26 @@ describe('stats.js', () => {
   it('renders toolbar with range and view selectors', async () => {
     const cleanup = await renderStats(target);
     expect(target.querySelector('h2').textContent).toBe('Stats');
-    expect(target.querySelectorAll('select').length).toBe(2);
-    if (cleanup) cleanup();
+    expect(target.querySelectorAll('select')).toHaveLength(2);
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('renders summary card', async () => {
     const cleanup = await renderStats(target);
     expect(target.textContent).toContain('Summary');
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('renders trend chart card', async () => {
     const cleanup = await renderStats(target);
     expect(target.textContent).toContain('Trend');
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('saves range preference to localStorage', async () => {
@@ -115,7 +121,9 @@ describe('stats.js', () => {
     rangeSelect.dispatchEvent(new Event('change'));
     const saved = JSON.parse(localStorage.getItem('walk-cycle-stats'));
     expect(saved).toHaveProperty('range', '7d');
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('saves view preference to localStorage', async () => {
@@ -126,19 +134,25 @@ describe('stats.js', () => {
     viewSelect.dispatchEvent(new Event('change'));
     const saved = JSON.parse(localStorage.getItem('walk-cycle-stats'));
     expect(saved).toHaveProperty('view', 'days');
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('returns cleanup function', async () => {
     const cleanup = await renderStats(target);
     expect(typeof cleanup).toBe('function');
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('handles empty data gracefully', async () => {
     const cleanup = await renderStats(target);
     expect(target.textContent).toContain('Summary');
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('renders stat grid with cycle count when cycles exist', async () => {
@@ -149,7 +163,9 @@ describe('stats.js', () => {
     ]);
     const cleanup = await renderStats(target);
     expect(target.textContent).toContain('Cycles');
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('attaches excludeOpts from session flags to cycles (lines 145-149)', async () => {
@@ -171,7 +187,9 @@ describe('stats.js', () => {
     expect(cycleTotalMs).toHaveBeenCalled();
     const call = cycleTotalMs.mock.calls[0];
     expect(call[1]).toEqual({ excludeTopRest: true, excludeBottomRest: false });
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('loads cycles for current session when range is session (lines 128-135)', async () => {
@@ -193,7 +211,9 @@ describe('stats.js', () => {
     rangeSelect.dispatchEvent(new Event('change'));
 
     expect(getCurrentSession).toHaveBeenCalled();
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('shows cycles from sessions created before cutoff when cycle endTs is within range (issue #10)', async () => {
@@ -228,7 +248,9 @@ describe('stats.js', () => {
 
     const grid = target.querySelector('#summary-grid');
     expect(grid.textContent).toContain('1'); // one cycle
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('destroys previous chart before creating new one (lines 202-204)', async () => {
@@ -251,7 +273,9 @@ describe('stats.js', () => {
     viewSelect.dispatchEvent(new Event('change'));
 
     expect(createTrendChart).toHaveBeenCalled();
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('uses dark mode colors when prefers-color-scheme is dark (lines 234-237)', async () => {
@@ -278,7 +302,9 @@ describe('stats.js', () => {
     const cleanup = await renderStats(target);
 
     expect(createTrendChart).toHaveBeenCalled();
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('renders daily averages view (lines 246-285)', async () => {
@@ -299,7 +325,9 @@ describe('stats.js', () => {
     viewSelect.dispatchEvent(new Event('change'));
 
     expect(target.textContent).toContain('Trend');
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 
   it('saves 30d range preference (lines 291-296)', async () => {
@@ -313,6 +341,8 @@ describe('stats.js', () => {
 
     const saved = JSON.parse(localStorage.getItem('walk-cycle-stats'));
     expect(saved).toHaveProperty('range', '30d');
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+    }
   });
 });

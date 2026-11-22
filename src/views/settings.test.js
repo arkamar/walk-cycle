@@ -31,7 +31,9 @@ vi.mock('../ui.js', () => ({
     }
     // Handle children
     const appendChildren = (parent, child) => {
-      if (child == null) return;
+      if (child == null) {
+        return;
+      }
       if (Array.isArray(child)) {
         child.forEach(c => appendChildren(parent, c));
       } else if (child instanceof Node) {

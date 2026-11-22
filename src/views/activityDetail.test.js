@@ -141,7 +141,7 @@ describe('renderActivityDetail', () => {
     await renderActivityDetail(target, { id: 1 });
 
     const items = target.querySelectorAll('.list-item');
-    expect(items.length).toBe(3);
+    expect(items).toHaveLength(3);
     expect(items[0].textContent).toContain('2026');
     expect(items[0].textContent).toContain('3');
     expect(items[1].textContent).toContain('2026');
@@ -175,7 +175,7 @@ describe('renderActivityDetail', () => {
       c => c.querySelector('h3')?.textContent === 'Motivation',
     );
     const buttons = chartCard.querySelectorAll('button');
-    expect(buttons.length).toBe(4);
+    expect(buttons).toHaveLength(4);
     expect(buttons[0].textContent).toBe('Day');
     expect(buttons[1].textContent).toBe('Week');
     expect(buttons[2].textContent).toBe('Pace');
@@ -351,7 +351,7 @@ describe('renderActivityDetail', () => {
     await renderActivityDetail(target, { id: 1 });
 
     const checkboxes = target.querySelectorAll('input[data-edit="written"]');
-    expect(checkboxes.length).toBe(2);
+    expect(checkboxes).toHaveLength(2);
     expect(checkboxes[0].checked).toBe(false);
     expect(checkboxes[1].checked).toBe(true);
   });
@@ -627,7 +627,7 @@ describe('renderActivityDetail', () => {
     expect(target.textContent).toContain('Park entrance');
 
     const noteSpans = target.querySelectorAll('span[data-edit="note"]');
-    expect(noteSpans.length).toBe(2);
+    expect(noteSpans).toHaveLength(2);
     expect(noteSpans[0].textContent).toBe('Park entrance');
     expect(noteSpans[1].textContent).toBe('');
 
@@ -692,7 +692,7 @@ describe('renderActivityDetail', () => {
       expect(card).toBeTruthy();
 
       const items = card.querySelectorAll('.list-item');
-      expect(items.length).toBe(2);
+      expect(items).toHaveLength(2);
 
       expect(items[0].textContent).toContain('Park');
       expect(items[0].textContent).toContain('8');
@@ -715,7 +715,7 @@ describe('renderActivityDetail', () => {
       await renderActivityDetail(target, { id: 1 });
 
       const items = findNoteCard().querySelectorAll('.list-item');
-      expect(items.length).toBe(3);
+      expect(items).toHaveLength(3);
       expect(items[0].textContent).toContain('B');
       expect(items[1].textContent).toContain('C');
       expect(items[2].textContent).toContain('A');
@@ -733,7 +733,7 @@ describe('renderActivityDetail', () => {
       await renderActivityDetail(target, { id: 1 });
 
       const items = findNoteCard().querySelectorAll('.list-item');
-      expect(items.length).toBe(2);
+      expect(items).toHaveLength(2);
       expect(items[0].textContent).toContain('10');
       expect(items[1].textContent).toContain('Park');
       expect(items[1].textContent).toContain('5');
@@ -759,7 +759,7 @@ describe('renderActivityDetail', () => {
       await renderActivityDetail(target, { id: 1 });
 
       const items = findNoteCard().querySelectorAll('.list-item');
-      expect(items.length).toBe(1);
+      expect(items).toHaveLength(1);
       expect(items[0].textContent).toContain('0.0%');
     });
   });

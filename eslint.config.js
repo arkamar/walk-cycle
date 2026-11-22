@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import globals from 'globals';
 import stylistic from '@stylistic/eslint-plugin';
+import sonarjs from 'eslint-plugin-sonarjs';
 
 export default [
   {
@@ -8,6 +9,7 @@ export default [
   },
   js.configs.recommended,
   stylistic.configs.recommended,
+  sonarjs.configs.recommended,
   {
     languageOptions: {
       globals: {
@@ -23,9 +25,15 @@ export default [
     rules: {
       'no-console': ['error', { allow: ['warn', 'error'] }],
 
+      // SonarJS rules are enabled in later commits, together with the fixes
+      // they require, so every commit stays lint-clean.
+      'sonarjs/cognitive-complexity': ['error', 60],
+      'sonarjs/no-os-command-from-path': 'off',
+      'sonarjs/parameterized-tests': 'off',
+
       // Strict correctness and modern-JS best practices
       'array-callback-return': 'error',
-      'curly': ['error', 'multi-line'],
+      'curly': ['error', 'all'],
       'eqeqeq': ['error', 'always', { null: 'ignore' }],
       'no-async-promise-executor': 'error',
       'no-duplicate-imports': 'error',
