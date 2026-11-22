@@ -68,8 +68,10 @@ export async function renderSessions(target) {
 
     const rowClass = `list-item${isCurrent ? ' list-item--current' : ''}`;
     const statusIcon =
-      status === 'active' ? ' ▶'
-        : status === 'stopped' ? ' ■'
+      status === 'active'
+        ? ' ▶'
+        : status === 'stopped'
+          ? ' ■'
           : '';
 
     const baseMeta = `${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'}${statusIcon} · ${formatDuration(durationMs)}`;
