@@ -195,9 +195,14 @@ export async function renderActivityDetail(target, { id }) {
         if (year !== String(currentYear)) {
           const yearLabel = el('div', {
             style: {
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-              color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 600,
-              textTransform: 'uppercase', letterSpacing: '0.06em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              color: 'var(--muted)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
               padding: '0.5rem 0.25rem',
             },
           }, [
@@ -370,7 +375,9 @@ export async function renderActivityDetail(target, { id }) {
 
     const btnStyle = (active) => ({
       ...(active ? activeBtn : inactiveBtn),
-      padding: '0.2rem 0.5rem', fontSize: '0.75rem', cursor: 'pointer',
+      padding: '0.2rem 0.5rem',
+      fontSize: '0.75rem',
+      cursor: 'pointer',
     });
 
     const dayBtn = el('button', {
@@ -709,8 +716,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     }
 
     const monthStartDay = Array.from({ length: 12 }, (_, m) =>
-      Math.floor((Date.UTC(currentYear, m, 1) - Date.UTC(currentYear, 0, 1)) / 86400000),
-    );
+      Math.floor((Date.UTC(currentYear, m, 1) - Date.UTC(currentYear, 0, 1)) / 86400000));
 
     ctx.strokeStyle = muted + '60';
     ctx.lineWidth = 1;
@@ -733,7 +739,8 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
         if (idx < visibleStart || idx > visibleEnd) continue;
         ctx.fillText(
           mf.format(new Date(currentYear, m, 1)),
-          x(idx), pad.top + plotH + 4,
+          x(idx),
+          pad.top + plotH + 4,
         );
       }
     };
@@ -749,7 +756,8 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
           const d = new Date(currentYear, 0, day + 1);
           ctx.fillText(
             df.format(d),
-            x(day), pad.top + plotH + 4,
+            x(day),
+            pad.top + plotH + 4,
           );
         }
       }
@@ -761,7 +769,8 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
           const day = Math.min(cumDays[i], daysInYear - 1);
           ctx.fillText(
             df.format(new Date(currentYear, 0, Math.floor(day) + 1)),
-            x(i), pad.top + plotH + 4,
+            x(i),
+            pad.top + plotH + 4,
           );
         }
       }
@@ -773,7 +782,8 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
         for (let d = Math.ceil(cumDays[visibleStart] / step) * step; d < cumDays[visibleEnd + 1]; d += step) {
           ctx.fillText(
             df.format(new Date(currentYear, 0, d + 1)),
-            x(monthIdx(d)), pad.top + plotH + 4,
+            x(monthIdx(d)),
+            pad.top + plotH + 4,
           );
         }
       } else if (visibleUnits <= 16) {
@@ -781,7 +791,8 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
           const d = w === 0 ? new Date(currentYear, 0, 1) : new Date(currentYear, 0, firstWeekStart + (w - 1) * 7 + 1);
           ctx.fillText(
             df.format(d),
-            x(w), pad.top + plotH + 4,
+            x(w),
+            pad.top + plotH + 4,
           );
         }
       }

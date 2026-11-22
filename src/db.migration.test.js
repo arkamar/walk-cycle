@@ -258,7 +258,9 @@ describe('v2 → v3 migration', () => {
     });
     const tx = db.transaction([STORE_SESSIONS, STORE_EVENTS], 'readwrite');
     await tx.objectStore(STORE_SESSIONS).add({
-      startedAt: 1000, pausedAt: 5000, note: 'from-pausedAt',
+      startedAt: 1000,
+      pausedAt: 5000,
+      note: 'from-pausedAt',
     });
     await tx.done;
     db.close();
@@ -287,7 +289,8 @@ describe('v2 → v3 migration', () => {
     });
     const tx = db.transaction([STORE_SESSIONS], 'readwrite');
     await tx.objectStore(STORE_SESSIONS).add({
-      startedAt: 1000, note: 'no-stoppedAt',
+      startedAt: 1000,
+      note: 'no-stoppedAt',
     });
     await tx.done;
     db.close();
