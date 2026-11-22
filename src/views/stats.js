@@ -55,7 +55,7 @@ export async function renderStats(target) {
         rerender();
       },
     },
-    RANGES.map((r) => el('option', { value: r.value }, r.label)),
+    RANGES.map(r => el('option', { value: r.value }, r.label)),
   );
   rangeSel.value = range;
 
@@ -69,7 +69,7 @@ export async function renderStats(target) {
         rerender();
       },
     },
-    VIEWS.map((v) => el('option', { value: v.value }, v.label)),
+    VIEWS.map(v => el('option', { value: v.value }, v.label)),
   );
   viewSel.value = view;
 
@@ -107,7 +107,9 @@ export async function renderStats(target) {
   // Cleanup
   return () => {
     CSS_DARK.removeEventListener('change', themeListener);
-    if (chart) chart.destroy();
+    if (chart) {
+      chart.destroy();
+    }
   };
 
   // ---------- Logic ----------
@@ -115,7 +117,9 @@ export async function renderStats(target) {
   async function loadCycles() {
     if (range === 'session') {
       const session = await getCurrentSession();
-      if (!session) return [];
+      if (!session) {
+        return [];
+      }
       const events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
       const segs = segmentsFromEvents(events);
       const cs = cyclesFromSegments(segs);
@@ -137,7 +141,9 @@ export async function renderStats(target) {
       const segs = segmentsFromEvents(events);
       const cs = cyclesFromSegments(segs);
       for (const c of cs) {
-        if (cutoff && c.endTs < cutoff) continue;
+        if (cutoff && c.endTs < cutoff) {
+          continue;
+        }
         cycles.push({
           ...c,
           sessionId: s.id,
@@ -166,9 +172,13 @@ export async function renderStats(target) {
 
     const allSegs = cycles.flatMap((c) => {
       const opts = c.excludeOpts || {};
-      return Object.values(c.segments).filter(s => {
-        if (opts.excludeTopRest && s.kind === SEGMENT_KINDS.TOP_REST) return false;
-        if (opts.excludeBottomRest && s.kind === SEGMENT_KINDS.BOTTOM_REST) return false;
+      return Object.values(c.segments).filter((s) => {
+        if (opts.excludeTopRest && s.kind === SEGMENT_KINDS.TOP_REST) {
+          return false;
+        }
+        if (opts.excludeBottomRest && s.kind === SEGMENT_KINDS.BOTTOM_REST) {
+          return false;
+        }
         return true;
       });
     });
@@ -180,7 +190,7 @@ export async function renderStats(target) {
     const cards = [
       { label: 'Cycles', value: String(totalCycles) },
       { label: 'Avg cycle', value: totalCycles ? formatDuration(avgCycleMs) : '–' },
-      ...Object.values(SEGMENT_KINDS).map((k) => ({
+      ...Object.values(SEGMENT_KINDS).map(k => ({
         label: `Avg ${SEGMENT_LABELS[k].toLowerCase()}`,
         value: byKind[k].count ? formatDuration(byKind[k].avgMs) : '–',
         color: SEGMENT_COLORS[k],
@@ -206,7 +216,9 @@ export async function renderStats(target) {
 
   function renderChart(cycles) {
     const ctx = chartCard.querySelector('#trend-chart');
-    if (!ctx) return;
+    if (!ctx) {
+      return;
+    }
     if (chart) {
       chart.destroy();
       chart = null;
@@ -223,18 +235,24 @@ export async function renderStats(target) {
     }
     const wrap = ctx.parentElement;
     const placeholder = wrap.querySelector('.chart-empty');
-    if (placeholder) placeholder.remove();
+    if (placeholder) {
+      placeholder.remove();
+    }
 
-    let datasets = [];
+    const datasets = [];
     let labels;
 
     if (view === 'cycles') {
       labels = cycles.map((_, i) => `#${i + 1}`);
       for (const k of Object.values(SEGMENT_KINDS)) {
-        const data = cycles.map(c => {
+        const data = cycles.map((c) => {
           const opts = c.excludeOpts || {};
-          if (opts.excludeTopRest && k === SEGMENT_KINDS.TOP_REST) return null;
-          if (opts.excludeBottomRest && k === SEGMENT_KINDS.BOTTOM_REST) return null;
+          if (opts.excludeTopRest && k === SEGMENT_KINDS.TOP_REST) {
+            return null;
+          }
+          if (opts.excludeBottomRest && k === SEGMENT_KINDS.BOTTOM_REST) {
+            return null;
+          }
           const ms = c.segments[k]?.durationMs ?? null;
           return ms == null ? null : ms / 1000;
         });
@@ -253,12 +271,18 @@ export async function renderStats(target) {
         let bucket = byDay.get(key);
         if (!bucket) {
           bucket = {};
-          for (const k of Object.values(SEGMENT_KINDS)) bucket[k] = { sum: 0, count: 0 };
+          for (const k of Object.values(SEGMENT_KINDS)) {
+            bucket[k] = { sum: 0, count: 0 };
+          }
           byDay.set(key, bucket);
         }
         for (const k of Object.values(SEGMENT_KINDS)) {
-          if (opts.excludeTopRest && k === SEGMENT_KINDS.TOP_REST) continue;
-          if (opts.excludeBottomRest && k === SEGMENT_KINDS.BOTTOM_REST) continue;
+          if (opts.excludeTopRest && k === SEGMENT_KINDS.TOP_REST) {
+            continue;
+          }
+          if (opts.excludeBottomRest && k === SEGMENT_KINDS.BOTTOM_REST) {
+            continue;
+          }
           const seg = c.segments[k];
           if (seg) {
             bucket[k].sum += seg.durationMs;
@@ -267,7 +291,7 @@ export async function renderStats(target) {
         }
       }
       const sortedDays = [...byDay.keys()].sort((a, b) => a - b);
-      labels = sortedDays.map((t) =>
+      labels = sortedDays.map(t =>
         new Date(t).toLocaleDateString(undefined, { month: 'short', day: '2-digit' }));
       for (const k of Object.values(SEGMENT_KINDS)) {
         const data = sortedDays.map((t) => {
@@ -283,9 +307,15 @@ export async function renderStats(target) {
 }
 
 function computeCutoff(range) {
-  if (range === 'all') return null;
+  if (range === 'all') {
+    return null;
+  }
   const now = Date.now();
-  if (range === '7d') return now - 7 * 24 * 60 * 60 * 1000;
-  if (range === '30d') return now - 30 * 24 * 60 * 60 * 1000;
+  if (range === '7d') {
+    return now - 7 * 24 * 60 * 60 * 1000;
+  }
+  if (range === '30d') {
+    return now - 30 * 24 * 60 * 60 * 1000;
+  }
   return null;
 }

@@ -18,13 +18,13 @@ async function deleteDB() {
 
 async function seedV1(sessions = [], events = []) {
   const db = await openDB(DB_NAME, 1, {
-    upgrade(db) {
-      const sessionsStore = db.createObjectStore(STORE_SESSIONS, {
+    upgrade(upgradeDb) {
+      const sessionsStore = upgradeDb.createObjectStore(STORE_SESSIONS, {
         keyPath: 'id',
         autoIncrement: true,
       });
       sessionsStore.createIndex('startedAt', 'startedAt');
-      const eventsStore = db.createObjectStore(STORE_EVENTS, {
+      const eventsStore = upgradeDb.createObjectStore(STORE_EVENTS, {
         keyPath: 'id',
         autoIncrement: true,
       });
@@ -45,14 +45,14 @@ async function seedV1(sessions = [], events = []) {
 
 async function seedV2(sessions = [], events = []) {
   const db = await openDB(DB_NAME, 2, {
-    async upgrade(db, oldVersion, _newVersion, tx) {
+    async upgrade(upgradeDb, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {
-        const sessionsStore = db.createObjectStore(STORE_SESSIONS, {
+        const sessionsStore = upgradeDb.createObjectStore(STORE_SESSIONS, {
           keyPath: 'id',
           autoIncrement: true,
         });
         sessionsStore.createIndex('startedAt', 'startedAt');
-        const eventsStore = db.createObjectStore(STORE_EVENTS, {
+        const eventsStore = upgradeDb.createObjectStore(STORE_EVENTS, {
           keyPath: 'id',
           autoIncrement: true,
         });
@@ -249,10 +249,10 @@ describe('v2 → v3 migration', () => {
 
   it('rewrites pausedAt to stoppedAt (v1→v2 path)', async () => {
     const db = await openDB(DB_NAME, 1, {
-      upgrade(db) {
-        const s = db.createObjectStore(STORE_SESSIONS, { keyPath: 'id', autoIncrement: true });
+      upgrade(upgradeDb) {
+        const s = upgradeDb.createObjectStore(STORE_SESSIONS, { keyPath: 'id', autoIncrement: true });
         s.createIndex('startedAt', 'startedAt');
-        const e = db.createObjectStore(STORE_EVENTS, { keyPath: 'id', autoIncrement: true });
+        const e = upgradeDb.createObjectStore(STORE_EVENTS, { keyPath: 'id', autoIncrement: true });
         e.createIndex('sessionId', 'sessionId');
       },
     });
@@ -280,10 +280,10 @@ describe('v2 → v3 migration', () => {
 
   it('adds stoppedAt:null when missing in v1→v2 path', async () => {
     const db = await openDB(DB_NAME, 1, {
-      upgrade(db) {
-        const s = db.createObjectStore(STORE_SESSIONS, { keyPath: 'id', autoIncrement: true });
+      upgrade(upgradeDb) {
+        const s = upgradeDb.createObjectStore(STORE_SESSIONS, { keyPath: 'id', autoIncrement: true });
         s.createIndex('startedAt', 'startedAt');
-        const e = db.createObjectStore(STORE_EVENTS, { keyPath: 'id', autoIncrement: true });
+        const e = upgradeDb.createObjectStore(STORE_EVENTS, { keyPath: 'id', autoIncrement: true });
         e.createIndex('sessionId', 'sessionId');
       },
     });

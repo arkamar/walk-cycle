@@ -6,8 +6,8 @@ vi.mock('../ui.js', async () => {
   return {
     ...actual,
     toast: vi.fn(),
-    formatTime: vi.fn((ts) => new Date(ts).toLocaleTimeString()),
-    formatDateTime: vi.fn((ts) => new Date(ts).toLocaleString()),
+    formatTime: vi.fn(ts => new Date(ts).toLocaleTimeString()),
+    formatDateTime: vi.fn(ts => new Date(ts).toLocaleString()),
   };
 });
 
@@ -32,7 +32,7 @@ vi.mock('../db.js', () => ({
 vi.mock('../analytics.js', () => ({
   segmentsFromEvents: vi.fn().mockReturnValue([]),
   cyclesFromSegments: vi.fn().mockReturnValue([]),
-  cycleTotalMs: vi.fn((cycle) => cycle.totalMs),
+  cycleTotalMs: vi.fn(cycle => cycle.totalMs),
   aggregateBySegmentKind: vi.fn().mockReturnValue({
     byKind: {
       up_duration: { count: 0, totalMs: 0, avgMs: 0, minMs: 0, maxMs: 0 },
@@ -41,8 +41,8 @@ vi.mock('../analytics.js', () => ({
       bottom_rest: { count: 0, totalMs: 0, avgMs: 0, minMs: 0, maxMs: 0 },
     },
   }),
-  formatDuration: vi.fn((ms) => `${ms}ms`),
-  formatLive: vi.fn((ms) => `${ms}ms`),
+  formatDuration: vi.fn(ms => `${ms}ms`),
+  formatLive: vi.fn(ms => `${ms}ms`),
   SEGMENT_KINDS: { UP: 'up_duration', TOP_REST: 'top_rest', DOWN: 'down_duration', BOTTOM_REST: 'bottom_rest' },
   SEGMENT_LABELS: { up_duration: 'Up', top_rest: 'Top rest', down_duration: 'Down', bottom_rest: 'Bottom rest' },
   SEGMENT_COLORS: { up_duration: '#4ade80', top_rest: '#fbbf24', down_duration: '#f87171', bottom_rest: '#94a3b8' },
@@ -211,7 +211,7 @@ describe('sessionDetail.js', () => {
 
     await renderSessionDetail(target, { id: 1 });
     const logEntries = target.querySelectorAll('.log-entry');
-    expect(logEntries.length).toBe(4);
+    expect(logEntries).toHaveLength(4);
     // Cycle counts should be shown
     expect(target.textContent).toContain('#1');
     expect(target.textContent).toContain('#2');
@@ -230,7 +230,9 @@ describe('sessionDetail.js', () => {
     const { findPrevSameType } = await import('../analytics.js');
     // Mock findPrevSameType to return the first up event when looking for second up
     findPrevSameType.mockImplementation((idx, type, events) => {
-      if (type === 'up' && idx === 2) return { ...events[0], nextTs: events[1].ts };
+      if (type === 'up' && idx === 2) {
+        return { ...events[0], nextTs: events[1].ts };
+      }
       return null;
     });
 
@@ -395,7 +397,7 @@ describe('sessionDetail.js', () => {
     it('renders both checkboxes checked by default', async () => {
       await renderSessionDetail(target, { id: 1 });
       const checkboxes = target.querySelectorAll('input[type="checkbox"]');
-      expect(checkboxes.length).toBe(2);
+      expect(checkboxes).toHaveLength(2);
       expect(checkboxes[0].checked).toBe(true);
       expect(checkboxes[1].checked).toBe(true);
     });
@@ -408,7 +410,7 @@ describe('sessionDetail.js', () => {
       });
       await renderSessionDetail(target, { id: 1 });
       const checkboxes = target.querySelectorAll('input[type="checkbox"]');
-      expect(checkboxes.length).toBe(2);
+      expect(checkboxes).toHaveLength(2);
       expect(checkboxes[0].checked).toBe(false);
       expect(checkboxes[1].checked).toBe(false);
     });
@@ -433,7 +435,7 @@ describe('sessionDetail.js', () => {
       await renderSessionDetail(target, { id: 1 });
       const labels = target.querySelectorAll('label');
       const checkboxLabels = Array.from(labels).filter(l => l.querySelector('input[type="checkbox"]'));
-      expect(checkboxLabels.length).toBe(2);
+      expect(checkboxLabels).toHaveLength(2);
       expect(checkboxLabels[0].textContent).toContain('Include top rest');
       expect(checkboxLabels[1].textContent).toContain('Include bottom rest');
     });

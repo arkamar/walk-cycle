@@ -4,7 +4,7 @@ vi.mock('./ui.js', async () => {
   const actual = await vi.importActual('./ui.js');
   return {
     ...actual,
-    formatTime: vi.fn((ts) => new Date(ts).toLocaleTimeString()),
+    formatTime: vi.fn(ts => new Date(ts).toLocaleTimeString()),
   };
 });
 
@@ -71,7 +71,7 @@ describe('sessionLog.js', () => {
     ];
     renderLogEntries(container, events);
     const kinds = container.querySelectorAll('.log-entry-kind');
-    expect(kinds.length).toBe(3);
+    expect(kinds).toHaveLength(3);
     expect(kinds[0].textContent).toBe('Down');
     expect(kinds[2].textContent).toBe('Up');
   });
@@ -148,7 +148,7 @@ describe('sessionLog.js', () => {
     renderLogEntries(container, events);
     const nonEmpty = Array.from(container.querySelectorAll('.log-entry-diff'))
       .filter(el => el.textContent !== '');
-    expect(nonEmpty.length).toBe(0);
+    expect(nonEmpty).toHaveLength(0);
   });
 
   it('does not show diff when thisDuration equals prevDuration', () => {
@@ -160,7 +160,7 @@ describe('sessionLog.js', () => {
     renderLogEntries(container, events);
     const nonEmpty = Array.from(container.querySelectorAll('.log-entry-diff'))
       .filter(el => el.textContent !== '');
-    expect(nonEmpty.length).toBe(0);
+    expect(nonEmpty).toHaveLength(0);
   });
 
   it('shows 00:00 for last event when isRunning', () => {
@@ -187,7 +187,7 @@ describe('sessionLog.js', () => {
 
   it('handles empty events', () => {
     renderLogEntries(container, []);
-    expect(container.querySelectorAll('.log-entry').length).toBe(0);
+    expect(container.querySelectorAll('.log-entry')).toHaveLength(0);
   });
 
   it('shows diff string when slower than previous same type', () => {
@@ -198,7 +198,9 @@ describe('sessionLog.js', () => {
       { id: 4, type: 'pause', ts: 15000 },
     ];
     findPrevSameType.mockImplementation((idx, type) => {
-      if (type === 'up' && idx === 2) return { ...events[0], nextTs: events[1].ts };
+      if (type === 'up' && idx === 2) {
+        return { ...events[0], nextTs: events[1].ts };
+      }
       return null;
     });
     renderLogEntries(container, events);
@@ -216,7 +218,9 @@ describe('sessionLog.js', () => {
       { id: 4, type: 'pause', ts: 8000 },
     ];
     findPrevSameType.mockImplementation((idx, type) => {
-      if (type === 'up' && idx === 2) return { ...events[0], nextTs: events[1].ts };
+      if (type === 'up' && idx === 2) {
+        return { ...events[0], nextTs: events[1].ts };
+      }
       return null;
     });
     renderLogEntries(container, events);
@@ -233,13 +237,15 @@ describe('sessionLog.js', () => {
       { id: 2, type: 'pause', ts: 3000 },
     ];
     findPrevSameType.mockImplementation((idx, type) => {
-      if (type === 'pause' && idx === 1) return { ...events[0], nextTs: events[1].ts };
+      if (type === 'pause' && idx === 1) {
+        return { ...events[0], nextTs: events[1].ts };
+      }
       return null;
     });
     renderLogEntries(container, events);
     const diffs = container.querySelectorAll('.log-entry-diff');
     const nonEmpty = Array.from(diffs).filter(el => el.textContent !== '');
-    expect(nonEmpty.length).toBe(0);
+    expect(nonEmpty).toHaveLength(0);
   });
 
   it('shows no diff when prevSame lacks nextTs', () => {
@@ -251,7 +257,7 @@ describe('sessionLog.js', () => {
     renderLogEntries(container, events);
     const nonEmpty = Array.from(container.querySelectorAll('.log-entry-diff'))
       .filter(el => el.textContent !== '');
-    expect(nonEmpty.length).toBe(0);
+    expect(nonEmpty).toHaveLength(0);
   });
 
   it('diffs top pause against previous top pause, not intervening bottom pause', () => {
@@ -267,7 +273,9 @@ describe('sessionLog.js', () => {
     ];
     enrichNextTs(events, 16000);
     findPrevSameType.mockImplementation((idx, type) => {
-      if (type === 'pause' && idx === 5) return events[1];
+      if (type === 'pause' && idx === 5) {
+        return events[1];
+      }
       return null;
     });
     renderLogEntries(container, events);
@@ -297,7 +305,9 @@ describe('sessionLog.js', () => {
     ];
     enrichNextTs(events, 30000);
     findPrevSameType.mockImplementation((idx, type) => {
-      if (type === 'pause' && idx === 7) return events[3];
+      if (type === 'pause' && idx === 7) {
+        return events[3];
+      }
       return null;
     });
     renderLogEntries(container, events);
@@ -312,7 +322,7 @@ describe('sessionLog.js', () => {
     expect(diffs[4].dataset.faster).toBe('false');
   });
 
-  it('diffs bottom pause against previous bottom pause, not intervening top pause', () => {
+  it('diffs bottom pause using the real findPrevSameType', () => {
     const events = [
       { id: 1, type: 'up', ts: 1000 },
       { id: 2, type: 'pause', ts: 2000 },
@@ -346,7 +356,7 @@ describe('sessionLog.js', () => {
       { id: 2, type: 'pause', ts: 2000 },
     ];
     renderLogEntries(container, events);
-    expect(container.querySelectorAll('.log-entry-time').length).toBe(2);
+    expect(container.querySelectorAll('.log-entry-time')).toHaveLength(2);
   });
 });
 
@@ -421,6 +431,8 @@ describe('onEdit long-press behavior', () => {
 
     row.dispatchEvent(new PointerEvent('pointerdown'));
     vi.advanceTimersByTime(500);
+
+    expect(document.querySelector('.event-editor-overlay')).toBeNull();
   });
 
   it('triggers onEdit with the correct event per row (reverse render order)', () => {

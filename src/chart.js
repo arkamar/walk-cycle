@@ -51,8 +51,10 @@ export function buildCycleDatasets(cycles, excludeKinds) {
   const datasets = [];
 
   for (const k of Object.values(SEGMENT_KINDS)) {
-    if (excludeKinds?.has(k)) continue;
-    const data = cycles.map(c => {
+    if (excludeKinds?.has(k)) {
+      continue;
+    }
+    const data = cycles.map((c) => {
       const ms = c.segments[k]?.durationMs ?? null;
       return ms == null ? null : ms / 1000;
     });
@@ -85,7 +87,7 @@ export function createTrendChart(canvas, labels, datasets) {
         },
         tooltip: {
           callbacks: {
-            label: (c) =>
+            label: c =>
               ` ${c.dataset.label}: ${formatDuration(c.parsed.y * 1000)}`,
           },
         },
@@ -98,7 +100,7 @@ export function createTrendChart(canvas, labels, datasets) {
         y: {
           ticks: {
             color: muted,
-            callback: (v) => formatDuration(v * 1000),
+            callback: v => formatDuration(v * 1000),
           },
           grid: { color: grid },
           title: { display: true, text: 'Duration', color: muted },

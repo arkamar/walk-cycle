@@ -51,9 +51,13 @@ export async function renderSessionDetail(target, { id }) {
   const includeTopRest = session.includeTopRest !== false;
   const includeBottomRest = session.includeBottomRest !== false;
   const excludedKinds = new Set();
-  if (!includeTopRest) excludedKinds.add(SEGMENT_KINDS.TOP_REST);
-  if (!includeBottomRest) excludedKinds.add(SEGMENT_KINDS.BOTTOM_REST);
-  const effectiveTotalMs = (c) => cycleTotalMs(c, { excludeTopRest: !includeTopRest, excludeBottomRest: !includeBottomRest });
+  if (!includeTopRest) {
+    excludedKinds.add(SEGMENT_KINDS.TOP_REST);
+  }
+  if (!includeBottomRest) {
+    excludedKinds.add(SEGMENT_KINDS.BOTTOM_REST);
+  }
+  const effectiveTotalMs = c => cycleTotalMs(c, { excludeTopRest: !includeTopRest, excludeBottomRest: !includeBottomRest });
 
   const EVENT_LABELS = {
     up: 'Up',
@@ -73,62 +77,69 @@ export async function renderSessionDetail(target, { id }) {
   const isCurrent = current && current.id === id;
   const promoteLabel = sessionStatus(session) === 'stopped' ? 'Resume' : 'Set as current';
 
+  let headerAction;
+  if (isCurrent && !session.isStopped) {
+    headerAction = el(
+      'button',
+      {
+        class: 'btn btn-primary',
+        type: 'button',
+        onClick: async () => {
+          await stopSession(id);
+          toast('Session stopped');
+          target.innerHTML = '';
+          renderSessionDetail(target, { id });
+        },
+      },
+      'Stop',
+    );
+  } else if (isCurrent && session.isStopped) {
+    headerAction = el(
+      'button',
+      {
+        class: 'btn btn-primary',
+        type: 'button',
+        onClick: async () => {
+          await resumeSession(id);
+          toast('Session resumed');
+          target.innerHTML = '';
+          renderSessionDetail(target, { id });
+        },
+      },
+      'Resume',
+    );
+  } else {
+    headerAction = el(
+      'button',
+      {
+        class: 'btn btn-primary',
+        type: 'button',
+        onClick: async () => {
+          await setCurrentSession(id);
+          toast('Session is now current');
+          window.location.hash = '/';
+        },
+      },
+      promoteLabel,
+    );
+  }
+
   const headerRow = el('div', { class: 'row between' }, [
     el(
       'a',
       { class: 'btn btn-ghost', href: '#/sessions' },
       '← Back',
     ),
-    isCurrent && !session.isStopped
-      ? el(
-        'button',
-        {
-          class: 'btn btn-primary',
-          type: 'button',
-          onClick: async () => {
-            await stopSession(id);
-            toast('Session stopped');
-            target.innerHTML = '';
-            renderSessionDetail(target, { id });
-          },
-        },
-        'Stop',
-      )
-      : isCurrent && session.isStopped
-        ? el(
-          'button',
-          {
-            class: 'btn btn-primary',
-            type: 'button',
-            onClick: async () => {
-              await resumeSession(id);
-              toast('Session resumed');
-              target.innerHTML = '';
-              renderSessionDetail(target, { id });
-            },
-          },
-          'Resume',
-        )
-        : el(
-          'button',
-          {
-            class: 'btn btn-primary',
-            type: 'button',
-            onClick: async () => {
-              await setCurrentSession(id);
-              toast('Session is now current');
-              window.location.hash = '/';
-            },
-          },
-          promoteLabel,
-        ),
+    headerAction,
     el(
       'button',
       {
         class: 'btn btn-danger',
         type: 'button',
         onClick: async () => {
-          if (!confirm('Delete this session and all its events?')) return;
+          if (!confirm('Delete this session and all its events?')) {
+            return;
+          }
           await deleteSession(id);
           toast('Session deleted');
           window.location.hash = '/sessions';
@@ -137,6 +148,14 @@ export async function renderSessionDetail(target, { id }) {
       'Delete',
     ),
   ]);
+
+  let statusText = 'Active · ';
+  if (sessionStatus(session) === 'stopped') {
+    const stoppedAt = events.length ? events[events.length - 1].nextTs : session.createdAt;
+    statusText = `Stopped ${formatDateTime(stoppedAt)} · `;
+  } else if (isCurrent) {
+    statusText = 'Current · ';
+  }
 
   const headerCard = el('div', { class: 'card' }, [
     el('div', { style: { display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' } }, [
@@ -181,11 +200,7 @@ export async function renderSessionDetail(target, { id }) {
       ]),
     ]),
     el('p', { class: 'muted' }, [
-      sessionStatus(session) === 'stopped'
-        ? `Stopped ${formatDateTime(events.length ? events[events.length - 1].nextTs : session.createdAt)} · `
-        : isCurrent
-          ? 'Current · '
-          : 'Active · ',
+      statusText,
       `${cycles.length} ${cycles.length === 1 ? 'cycle' : 'cycles'} · ${events.length} presses`,
     ]),
   ]);
@@ -198,7 +213,7 @@ export async function renderSessionDetail(target, { id }) {
   const logList = logCard.querySelector('.log-list');
   renderLogEntries(logList, events, {
     eventLabels: EVENT_LABELS,
-    onEdit: async (event) => {
+    onEdit: (event) => {
       showEventEditor(event, async (patch) => {
         await updateEvent(event.id, patch);
         target.innerHTML = '';
@@ -213,7 +228,7 @@ export async function renderSessionDetail(target, { id }) {
     el(
       'div',
       { class: 'stat-grid' },
-      Object.values(SEGMENT_KINDS).filter(k => !excludedKinds.has(k)).map((k) =>
+      Object.values(SEGMENT_KINDS).filter(k => !excludedKinds.has(k)).map(k =>
         el(
           'div',
           { class: 'stat', style: { borderLeft: `4px solid ${SEGMENT_COLORS[k]}` } },
@@ -295,11 +310,14 @@ export async function renderSessionDetail(target, { id }) {
     if (upEvents.length > cycles.length) {
       const lastUp = upEvents[upEvents.length - 1];
       const lastUpIdx = events.indexOf(lastUp);
-      let parts = [];
+      const parts = [];
       let partialDuration = 0;
       for (let i = lastUpIdx + 1; i < events.length; i++) {
         const seg = events[i];
-        const segType = seg.type === 'pause' ? (i === lastUpIdx + 1 ? 'top' : 'bot') : 'down';
+        let segType = 'down';
+        if (seg.type === 'pause') {
+          segType = i === lastUpIdx + 1 ? 'top' : 'bot';
+        }
         const dur = seg.ts - events[i - 1].ts;
         parts.push(`${segType} ${formatDuration(dur)}`);
         partialDuration += dur;
@@ -324,7 +342,9 @@ export async function renderSessionDetail(target, { id }) {
   const CSS_DARK = matchMedia('(prefers-color-scheme: dark)');
   const themeListener = () => {
     if (chartLabels && chartDatasets) {
-      if (cycleChart) cycleChart.destroy();
+      if (cycleChart) {
+        cycleChart.destroy();
+      }
       cycleChart = createTrendChart(cycleChartCanvas, chartLabels, chartDatasets);
     }
   };
@@ -332,6 +352,8 @@ export async function renderSessionDetail(target, { id }) {
 
   return () => {
     CSS_DARK.removeEventListener('change', themeListener);
-    if (cycleChart) cycleChart.destroy();
+    if (cycleChart) {
+      cycleChart.destroy();
+    }
   };
 }

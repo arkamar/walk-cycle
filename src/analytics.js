@@ -37,7 +37,9 @@ export const SEGMENT_COLORS = Object.freeze({
  * The transition table mirrors the state machine. Invalid pairs are skipped.
  */
 export function segmentsFromEvents(events) {
-  if (!events || events.length < 2) return [];
+  if (!events || events.length < 2) {
+    return [];
+  }
   const sorted = [...events].sort((a, b) => a.ts - b.ts);
   const segments = [];
   let cycleIndex = 0;
@@ -46,7 +48,9 @@ export function segmentsFromEvents(events) {
     const prev = sorted[i - 1];
     const cur = sorted[i];
     const kind = pairKind(prev.type, cur.type);
-    if (!kind) continue;
+    if (!kind) {
+      continue;
+    }
     segments.push({
       kind,
       startTs: prev.ts,
@@ -56,16 +60,26 @@ export function segmentsFromEvents(events) {
       cycleIndex,
     });
     // Bottom rest closes a cycle (its end starts the next one).
-    if (kind === SEGMENT_KINDS.BOTTOM_REST) cycleIndex++;
+    if (kind === SEGMENT_KINDS.BOTTOM_REST) {
+      cycleIndex++;
+    }
   }
   return segments;
 }
 
 function pairKind(a, b) {
-  if (a === 'up' && b === 'pause') return SEGMENT_KINDS.UP;
-  if (a === 'pause' && b === 'down') return SEGMENT_KINDS.TOP_REST;
-  if (a === 'down' && b === 'pause') return SEGMENT_KINDS.DOWN;
-  if (a === 'pause' && b === 'up') return SEGMENT_KINDS.BOTTOM_REST;
+  if (a === 'up' && b === 'pause') {
+    return SEGMENT_KINDS.UP;
+  }
+  if (a === 'pause' && b === 'down') {
+    return SEGMENT_KINDS.TOP_REST;
+  }
+  if (a === 'down' && b === 'pause') {
+    return SEGMENT_KINDS.DOWN;
+  }
+  if (a === 'pause' && b === 'up') {
+    return SEGMENT_KINDS.BOTTOM_REST;
+  }
   return null;
 }
 
@@ -82,7 +96,7 @@ export function cyclesFromSegments(segments, includeIncomplete = true) {
   const cycles = [];
   let current = null;
 
-  const open = (seg) => ({
+  const open = seg => ({
     index: cycles.length,
     startTs: seg.startTs,
     endTs: null,
@@ -126,7 +140,9 @@ export function aggregateBySegmentKind(segments) {
   }
   for (const s of segments) {
     const acc = byKind[s.kind];
-    if (!acc) continue;
+    if (!acc) {
+      continue;
+    }
     acc.count++;
     acc.totalMs += s.durationMs;
     acc.minMs = Math.min(acc.minMs, s.durationMs);
@@ -135,7 +151,9 @@ export function aggregateBySegmentKind(segments) {
   for (const k of Object.keys(byKind)) {
     const acc = byKind[k];
     acc.avgMs = acc.count ? acc.totalMs / acc.count : 0;
-    if (acc.minMs === Infinity) acc.minMs = 0;
+    if (acc.minMs === Infinity) {
+      acc.minMs = 0;
+    }
   }
   return { byKind };
 }
@@ -146,7 +164,9 @@ export function aggregateBySegmentKind(segments) {
  */
 export function segmentDurationFromCycle(cycles, cycleIndex, kind) {
   const cyc = cycles[cycleIndex];
-  if (!cyc) return undefined;
+  if (!cyc) {
+    return undefined;
+  }
   const seg = cyc.segments[kind];
   return seg?.durationMs;
 }
@@ -163,11 +183,15 @@ export function cycleTotalMs(cycle, opts = {}) {
   let total = cycle.totalMs;
   if (opts.excludeTopRest) {
     const seg = cycle.segments[SEGMENT_KINDS.TOP_REST];
-    if (seg) total -= seg.durationMs;
+    if (seg) {
+      total -= seg.durationMs;
+    }
   }
   if (opts.excludeBottomRest) {
     const seg = cycle.segments[SEGMENT_KINDS.BOTTOM_REST];
-    if (seg) total -= seg.durationMs;
+    if (seg) {
+      total -= seg.durationMs;
+    }
   }
   return total;
 }
@@ -179,8 +203,12 @@ export function cycleTotalMs(cycle, opts = {}) {
  *   3725000 -> "1h 2m 5s"
  */
 export function formatDuration(ms) {
-  if (!Number.isFinite(ms) || ms < 0) return '–';
-  if (ms < 1000) return `${ms} ms`;
+  if (!Number.isFinite(ms) || ms < 0) {
+    return '–';
+  }
+  if (ms < 1000) {
+    return `${ms} ms`;
+  }
   const totalSec = Math.round(ms / 1000);
   if (totalSec < 60) {
     return `${(ms / 1000).toFixed(1)}s`;
@@ -193,7 +221,9 @@ export function formatDuration(ms) {
     const rh = h % 24;
     return `${d}d ${rh}h ${m}m`;
   }
-  if (h > 0) return `${h}h ${m}m ${s}s`;
+  if (h > 0) {
+    return `${h}h ${m}m ${s}s`;
+  }
   return `${m}m ${s}s`;
 }
 
@@ -201,13 +231,15 @@ export function formatDuration(ms) {
  * Live duration formatter for the active timer (always mm:ss or h:mm:ss).
  */
 export function formatLive(ms) {
-  if (!Number.isFinite(ms) || ms < 0) ms = 0;
-  const totalSec = Math.floor(ms / 1000);
+  const validMs = !Number.isFinite(ms) || ms < 0 ? 0 : ms;
+  const totalSec = Math.floor(validMs / 1000);
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
-  const pad = (n) => String(n).padStart(2, '0');
-  if (h > 0) return `${h}:${pad(m)}:${pad(s)}`;
+  const pad = n => String(n).padStart(2, '0');
+  if (h > 0) {
+    return `${h}:${pad(m)}:${pad(s)}`;
+  }
   return `${pad(m)}:${pad(s)}`;
 }
 
@@ -221,7 +253,9 @@ export function formatLive(ms) {
  * @returns {Object|null} Previous event or null
  */
 export function findPrevSameType(idx, type, events) {
-  if (!events || idx >= events.length) return null;
+  if (!events || idx >= events.length) {
+    return null;
+  }
   const contextType = type === 'pause' ? events[idx - 1]?.type : undefined;
   for (let i = idx - 1; i >= 0; i--) {
     if (events[i].type === type && events[i].nextTs) {

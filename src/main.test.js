@@ -83,7 +83,7 @@ describe('main.js', () => {
     expect(tabBar).toBeTruthy();
 
     const tabs = tabBar.querySelectorAll('.tab');
-    expect(tabs.length).toBe(5);
+    expect(tabs).toHaveLength(5);
 
     // Check Track tab
     expect(tabs[0].dataset.path).toBe('/');

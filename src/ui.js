@@ -3,7 +3,9 @@
 export function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
-    if (v === false || v == null) continue;
+    if (v === false || v == null) {
+      continue;
+    }
     if (k === 'class' || k === 'className') {
       node.className = v;
     } else if (k === 'textContent') {
@@ -11,7 +13,9 @@ export function el(tag, attrs = {}, children = []) {
     } else if (k === 'style' && typeof v === 'object') {
       Object.assign(node.style, v);
     } else if (k === 'dataset' && typeof v === 'object') {
-      for (const [dk, dv] of Object.entries(v)) node.dataset[dk] = dv;
+      for (const [dk, dv] of Object.entries(v)) {
+        node.dataset[dk] = dv;
+      }
     } else if (k.startsWith('on') && typeof v === 'function') {
       node.addEventListener(k.slice(2).toLowerCase(), v);
     } else if (k === 'html') {
@@ -25,9 +29,13 @@ export function el(tag, attrs = {}, children = []) {
 }
 
 function appendChildren(node, children) {
-  if (children == null) return;
+  if (children == null) {
+    return;
+  }
   if (Array.isArray(children)) {
-    for (const c of children) appendChildren(node, c);
+    for (const c of children) {
+      appendChildren(node, c);
+    }
   } else if (children instanceof Node) {
     node.appendChild(children);
   } else {
@@ -44,9 +52,11 @@ export function toast(message, ms = 1800) {
   }
   t.textContent = message;
   // Force reflow so the transition runs.
-  void t.offsetWidth;
+  t.getBoundingClientRect();
   t.classList.add('show');
-  if (toastTimer) clearTimeout(toastTimer);
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
   toastTimer = setTimeout(() => t.classList.remove('show'), ms);
 }
 

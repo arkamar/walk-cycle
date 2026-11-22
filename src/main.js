@@ -54,53 +54,20 @@ for (const t of TABS) {
 document.addEventListener('route:changed', (e) => {
   const path = e.detail.path;
   // Detail routes still highlight their parent tab.
-  const tabPath = path.startsWith('/sessions') ? '/sessions'
-    : path.startsWith('/activities') ? '/activities'
-      : path;
+  let tabPath = path;
+  if (path.startsWith('/sessions')) {
+    tabPath = '/sessions';
+  } else if (path.startsWith('/activities')) {
+    tabPath = '/activities';
+  }
   for (const a of tabBar.querySelectorAll('.tab')) {
-    if (a.dataset.path === tabPath) a.setAttribute('aria-current', 'page');
-    else a.removeAttribute('aria-current');
+    if (a.dataset.path === tabPath) {
+      a.setAttribute('aria-current', 'page');
+    } else {
+      a.removeAttribute('aria-current');
+    }
   }
 });
-
-// Swipe left/right to switch tabs on mobile.
-let swipeStartX = 0;
-let swipeStartY = 0;
-
-document.addEventListener('touchstart', (e) => {
-  if (e.touches.length !== 1) { swipeStartX = 0; return; }
-  if (e.target.closest('canvas, input, textarea, select, .tab-bar')) { swipeStartX = 0; return; }
-  swipeStartX = e.touches[0].clientX;
-  swipeStartY = e.touches[0].clientY;
-}, { passive: true });
-
-document.addEventListener('touchend', (e) => {
-  if (!swipeStartX) return;
-  const deltaX = e.changedTouches[0].clientX - swipeStartX;
-  const deltaY = e.changedTouches[0].clientY - swipeStartY;
-  swipeStartX = 0;
-
-  if (Math.abs(deltaX) < 50) return;
-  if (Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
-
-  const tabs = TABS.map(t => t.path);
-  let base = router.current();
-  if (base.startsWith('/sessions')) base = '/sessions';
-  else if (base.startsWith('/activities')) base = '/activities';
-
-  let idx = tabs.indexOf(base);
-  if (idx === -1) return;
-
-  if (deltaX < 0) {
-    if (idx >= tabs.length - 1) return;
-    idx++;
-  } else {
-    if (idx <= 0) return;
-    idx--;
-  }
-
-  router.navigate(tabs[idx]);
-}, { passive: true });
 
 const router = createRouter(
   {
@@ -115,10 +82,14 @@ const router = createRouter(
     notFound: (target, ctx) => {
       // Detail routes like /activities/:id
       const mActivity = ctx.path.match(/^\/activities\/(\d+)$/);
-      if (mActivity) return renderActivityDetail(target, { id: Number(mActivity[1]) });
+      if (mActivity) {
+        return renderActivityDetail(target, { id: Number(mActivity[1]) });
+      }
       // Detail routes like /sessions/:id (also accept legacy /history/:id)
       const m = ctx.path.match(/^\/(?:sessions|history)\/(\d+)$/);
-      if (m) return renderSessionDetail(target, { id: Number(m[1]) });
+      if (m) {
+        return renderSessionDetail(target, { id: Number(m[1]) });
+      }
       // Legacy /history -> /sessions redirect.
       if (ctx.path === '/history') {
         window.location.hash = '/sessions';
@@ -128,5 +99,65 @@ const router = createRouter(
     },
   },
 );
+
+// Swipe left/right to switch tabs on mobile.
+let swipeStartX = 0;
+let swipeStartY = 0;
+
+document.addEventListener('touchstart', (e) => {
+  if (e.touches.length !== 1) {
+    swipeStartX = 0;
+    return;
+  }
+  if (e.target.closest('canvas, input, textarea, select, .tab-bar')) {
+    swipeStartX = 0;
+    return;
+  }
+  swipeStartX = e.touches[0].clientX;
+  swipeStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+  if (!swipeStartX) {
+    return;
+  }
+  const deltaX = e.changedTouches[0].clientX - swipeStartX;
+  const deltaY = e.changedTouches[0].clientY - swipeStartY;
+  swipeStartX = 0;
+
+  if (Math.abs(deltaX) < 50) {
+    return;
+  }
+  if (Math.abs(deltaX) < Math.abs(deltaY) * 1.5) {
+    return;
+  }
+
+  const tabs = TABS.map(t => t.path);
+  let base = router.current();
+  if (base.startsWith('/sessions')) {
+    base = '/sessions';
+  } else if (base.startsWith('/activities')) {
+    base = '/activities';
+  }
+
+  let idx = tabs.indexOf(base);
+  if (idx === -1) {
+    return;
+  }
+
+  if (deltaX < 0) {
+    if (idx >= tabs.length - 1) {
+      return;
+    }
+    idx++;
+  } else {
+    if (idx <= 0) {
+      return;
+    }
+    idx--;
+  }
+
+  router.navigate(tabs[idx]);
+}, { passive: true });
 
 router.start();

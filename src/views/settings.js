@@ -28,7 +28,7 @@ export function setCompetitionGoal(goal) {
   setConfig(cfg);
 }
 
-export async function renderSettings(target) {
+export function renderSettings(target) {
   target.innerHTML = '';
 
   // ---------- Competition goal ----------
@@ -211,7 +211,9 @@ export async function renderSettings(target) {
 
   async function doImport(e) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
     try {
       const text = await file.text();
       const data = JSON.parse(text);

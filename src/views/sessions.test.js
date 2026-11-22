@@ -10,7 +10,7 @@ vi.mock('../ui.js', async () => {
   return {
     ...actual,
     toast: vi.fn(),
-    formatDateTime: vi.fn((ts) => new Date(ts).toLocaleString()),
+    formatDateTime: vi.fn(ts => new Date(ts).toLocaleString()),
   };
 });
 
@@ -28,7 +28,7 @@ vi.mock('../db.js', () => ({
 vi.mock('../analytics.js', () => ({
   segmentsFromEvents: vi.fn(() => []),
   cyclesFromSegments: vi.fn(() => []),
-  formatDuration: vi.fn((ms) => `${Math.round(ms / 1000)}s`),
+  formatDuration: vi.fn(ms => `${Math.round(ms / 1000)}s`),
 }));
 
 // Mock stateMachine.js
@@ -74,6 +74,13 @@ describe('renderSessions', () => {
     vi.restoreAllMocks();
   });
 
+  const createMockSession = (id, createdAt, name = null, isStopped = false) => ({
+    id,
+    createdAt,
+    name,
+    isStopped,
+  });
+
   describe('empty state', () => {
     it('renders empty state when no sessions exist', async () => {
       listSessions.mockResolvedValue([]);
@@ -97,13 +104,6 @@ describe('renderSessions', () => {
   });
 
   describe('sessions list rendering', () => {
-    const createMockSession = (id, createdAt, name = null, isStopped = false) => ({
-      id,
-      createdAt,
-      name,
-      isStopped,
-    });
-
     const createMockEvents = (sessionId, count = 4) => {
       const events = [];
       const baseTs = 1000000;
@@ -239,13 +239,6 @@ describe('renderSessions', () => {
   });
 
   describe('session status display', () => {
-    const createMockSession = (id, createdAt, name = null, isStopped = false) => ({
-      id,
-      createdAt,
-      name,
-      isStopped,
-    });
-
     it('shows status text for current session (visual indicator + status)', async () => {
       const sessions = [createMockSession(1, 1000000)];
       listSessions.mockResolvedValue(sessions);
@@ -289,12 +282,6 @@ describe('renderSessions', () => {
   });
 
   describe('"Set as current" button', () => {
-    const createMockSession = (id, createdAt) => ({
-      id,
-      createdAt,
-      isStopped: false,
-    });
-
     beforeEach(() => {
       sessionStatus.mockReturnValue('active');
       getCurrentSession.mockResolvedValue({ id: 999 });
@@ -358,7 +345,7 @@ describe('renderSessions', () => {
   });
 
   describe('"Set as current" button for stopped sessions', () => {
-    const createMockSession = (id, createdAt) => ({
+    const createStoppedSession = (id, createdAt) => ({
       id,
       createdAt,
       isStopped: true,
@@ -370,7 +357,7 @@ describe('renderSessions', () => {
     });
 
     it('renders "Set as current" button for stopped sessions', async () => {
-      const sessions = [createMockSession(1, 1000000)];
+      const sessions = [createStoppedSession(1, 1000000)];
       listSessions.mockResolvedValue(sessions);
       listEventsBySession.mockResolvedValue([]);
 
@@ -382,7 +369,7 @@ describe('renderSessions', () => {
     });
 
     it('calls setCurrentSession when clicked', async () => {
-      const sessions = [createMockSession(1, 1000000)];
+      const sessions = [createStoppedSession(1, 1000000)];
       listSessions.mockResolvedValue(sessions);
       listEventsBySession.mockResolvedValue([]);
       setCurrentSession.mockResolvedValue({ id: 1 });
@@ -399,25 +386,19 @@ describe('renderSessions', () => {
   });
 
   describe('Delete button', () => {
-    const createMockSession = (id, createdAt) => ({
-      id,
-      createdAt,
-      isStopped: false,
-    });
-
     beforeEach(() => {
       sessionStatus.mockReturnValue('active');
       getCurrentSession.mockResolvedValue(null);
       window.confirm = vi.fn();
     });
 
-    function findDeleteButtons(target) {
-      return Array.from(target.querySelectorAll('.btn-ghost'))
+    function findDeleteButtons(root) {
+      return Array.from(root.querySelectorAll('.btn-ghost'))
         .filter(b => b.textContent === '🗑');
     }
 
-    function findDeleteButton(target) {
-      return findDeleteButtons(target)[0];
+    function findDeleteButton(root) {
+      return findDeleteButtons(root)[0];
     }
 
     it('renders delete button for each session', async () => {
@@ -431,7 +412,7 @@ describe('renderSessions', () => {
       await renderSessions(target);
 
       const deleteButtons = findDeleteButtons(target);
-      expect(deleteButtons.length).toBe(2);
+      expect(deleteButtons).toHaveLength(2);
     });
 
     it('calls deleteSession after confirmation', async () => {
@@ -508,12 +489,6 @@ describe('renderSessions', () => {
   });
 
   describe('summary calculations', () => {
-    const createMockSession = (id, createdAt) => ({
-      id,
-      createdAt,
-      isStopped: false,
-    });
-
     beforeEach(() => {
       sessionStatus.mockReturnValue('active');
       getCurrentSession.mockResolvedValue(null);
@@ -615,12 +590,6 @@ describe('renderSessions', () => {
   });
 
   describe('list item structure', () => {
-    const createMockSession = (id, createdAt) => ({
-      id,
-      createdAt,
-      isStopped: false,
-    });
-
     beforeEach(() => {
       sessionStatus.mockReturnValue('active');
       getCurrentSession.mockResolvedValue(null);
@@ -634,7 +603,7 @@ describe('renderSessions', () => {
       await renderSessions(target);
 
       const listItems = target.querySelectorAll('.list-item');
-      expect(listItems.length).toBe(1);
+      expect(listItems).toHaveLength(1);
     });
 
     it('renders session link with correct href', async () => {

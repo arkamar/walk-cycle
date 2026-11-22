@@ -148,7 +148,9 @@ describe('db session queries', () => {
     it('dispatches current-session-changed event', async () => {
       const id = await createSession(Date.now(), 'test');
       let fired = false;
-      const handler = () => { fired = true; };
+      const handler = () => {
+        fired = true;
+      };
       window.addEventListener('current-session-changed', handler);
       await setCurrentSession(id);
       window.removeEventListener('current-session-changed', handler);
@@ -330,7 +332,7 @@ describe('listSessions', () => {
     for (let i = 0; i < 5; i++) {
       await createSession(i, `s${i}`);
     }
-    expect((await listSessions({ limit: 2 })).length).toBe(2);
+    expect(await listSessions({ limit: 2 })).toHaveLength(2);
   });
 
   it('returns empty array for limit 0', async () => {
@@ -359,7 +361,7 @@ describe('deleteSession', () => {
     await addEvent({ sessionId: id, type: 'up' });
     await addEvent({ sessionId: id, type: 'pause' });
     await deleteSession(id);
-    expect((await listEventsBySession(id)).length).toBe(0);
+    expect(await listEventsBySession(id)).toHaveLength(0);
   });
 
   it('leaves other sessions and events untouched', async () => {
@@ -412,7 +414,7 @@ describe('addEvent', () => {
     const id = await createSession();
     const result = await addEvent({ sessionId: id, type: 'pause', ts: 5000 });
     const events = await listAllEvents();
-    const stored = events.find((e) => e.id === result.id);
+    const stored = events.find(e => e.id === result.id);
     expect(stored).toBeDefined();
     expect(stored.sessionId).toBe(id);
     expect(stored.type).toBe('pause');
@@ -494,7 +496,7 @@ describe('listEventsBySession', () => {
     await addEvent({ sessionId: id1, type: 'down', ts: 300 });
     const events = await listEventsBySession(id1);
     expect(events).toHaveLength(2);
-    expect(events.every((e) => e.sessionId === id1)).toBe(true);
+    expect(events.every(e => e.sessionId === id1)).toBe(true);
   });
 
   it('returns events sorted by ts ascending', async () => {
@@ -503,7 +505,7 @@ describe('listEventsBySession', () => {
     await addEvent({ sessionId: id, type: 'up', ts: 100 });
     await addEvent({ sessionId: id, type: 'pause', ts: 200 });
     const events = await listEventsBySession(id);
-    expect(events.map((e) => e.ts)).toEqual([100, 200, 300]);
+    expect(events.map(e => e.ts)).toEqual([100, 200, 300]);
   });
 
   it('returns empty array for session with no events', async () => {
@@ -525,7 +527,7 @@ describe('listAllEvents', () => {
     await addEvent({ sessionId: id1, type: 'down', ts: 200 });
     const events = await listAllEvents();
     expect(events).toHaveLength(3);
-    expect(events.map((e) => e.ts)).toEqual([100, 200, 300]);
+    expect(events.map(e => e.ts)).toEqual([100, 200, 300]);
   });
 });
 
@@ -550,17 +552,17 @@ describe('exportAll', () => {
     const activityId = await createActivity('hills');
     const rec = await addRecord({ activityId, date: '2026-01-01', count: 3 });
     const data = await exportAll();
-    const session = data.sessions.find((s) => s.id === id);
+    const session = data.sessions.find(s => s.id === id);
     expect(session).toBeDefined();
     expect(session.note).toBe('test');
     expect(session.createdAt).toBe(1000);
-    const event = data.events.find((ev) => ev.id === e.id);
+    const event = data.events.find(ev => ev.id === e.id);
     expect(event).toBeDefined();
     expect(event.type).toBe('pause');
-    const activity = data.activities.find((a) => a.id === activityId);
+    const activity = data.activities.find(a => a.id === activityId);
     expect(activity).toBeDefined();
     expect(activity.name).toBe('hills');
-    const record = data.records.find((r) => r.id === rec.id);
+    const record = data.records.find(r => r.id === rec.id);
     expect(record).toBeDefined();
     expect(record.count).toBe(3);
     expect(record.activityId).toBe(activityId);
@@ -602,9 +604,9 @@ describe('importAll', () => {
     const aid = await createActivity('test');
     await addRecord({ activityId: aid, date: '2026-05-11' });
     await importAll({ sessions: [], events: [], activities: [], records: [] });
-    expect((await listSessions()).length).toBe(0);
-    expect((await listAllEvents()).length).toBe(0);
-    expect((await listActivities()).length).toBe(0);
+    expect(await listSessions()).toHaveLength(0);
+    expect(await listAllEvents()).toHaveLength(0);
+    expect(await listActivities()).toHaveLength(0);
   });
 
   it('merge mode preserves existing data', async () => {
@@ -618,8 +620,8 @@ describe('importAll', () => {
     );
     const sessions = await listSessions();
     expect(sessions).toHaveLength(2);
-    expect(sessions.some((s) => s.note === 'existing')).toBe(true);
-    expect(sessions.some((s) => s.note === 'imported')).toBe(true);
+    expect(sessions.some(s => s.note === 'existing')).toBe(true);
+    expect(sessions.some(s => s.note === 'imported')).toBe(true);
   });
 
   it('re-maps session ids in events', async () => {
@@ -633,7 +635,7 @@ describe('importAll', () => {
     expect(events[0].type).toBe('up');
     expect(events[0].ts).toBe(500);
     expect(events[0].sessionId).not.toBe(100);
-    const importedSession = (await listSessions()).find((s) => s.note === 's');
+    const importedSession = (await listSessions()).find(s => s.note === 's');
     expect(events[0].sessionId).toBe(importedSession.id);
   });
 
@@ -681,8 +683,8 @@ describe('importAll', () => {
 
   it('imports data without activities/records arrays (backward compat)', async () => {
     await importAll({ sessions: [], events: [] });
-    expect((await listActivities()).length).toBe(0);
-    expect((await listRecordsByActivity(0)).length).toBe(0);
+    expect(await listActivities()).toHaveLength(0);
+    expect(await listRecordsByActivity(0)).toHaveLength(0);
   });
 
   it('keeps session ids that are not in the import map (fallback)', async () => {
@@ -695,7 +697,7 @@ describe('importAll', () => {
       { merge: true },
     );
     const events = await listEventsBySession(existingId);
-    expect(events.some((e) => e.type === 'down' && e.ts === 400)).toBe(true);
+    expect(events.some(e => e.type === 'down' && e.ts === 400)).toBe(true);
   });
 });
 

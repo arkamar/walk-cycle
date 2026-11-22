@@ -20,7 +20,7 @@ describe('el()', () => {
   });
 
   it('skips null/undefined attribute values (line 6)', () => {
-    const node = el('div', { id: null, 'data-val': undefined, className: 'test' });
+    const node = el('div', { 'id': null, 'data-val': undefined, 'className': 'test' });
     expect(node.id).toBe('');
     expect(node.dataset.val).toBeUndefined();
     expect(node.className).toBe('test');
@@ -77,18 +77,18 @@ describe('el()', () => {
     it('handles array of children', () => {
       const [c1, c2] = [el('span'), el('p')];
       const node = el('div', {}, [c1, c2]);
-      expect(node.childNodes.length).toBe(2);
+      expect(node.childNodes).toHaveLength(2);
     });
 
     it('handles nested arrays', () => {
       const [c1, c2] = [el('span'), el('p')];
       const node = el('div', {}, [[c1, c2]]);
-      expect(node.childNodes.length).toBe(2);
+      expect(node.childNodes).toHaveLength(2);
     });
 
     it('ignores null/undefined children', () => {
       const node = el('div', {}, [null, undefined, 'valid']);
-      expect(node.childNodes.length).toBe(1);
+      expect(node.childNodes).toHaveLength(1);
       expect(node.textContent).toBe('valid');
     });
   });

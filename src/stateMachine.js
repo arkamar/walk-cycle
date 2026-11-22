@@ -35,7 +35,9 @@ const TRANSITIONS = {
 
 export function nextState(state, event) {
   const t = TRANSITIONS[state];
-  if (!t) return null;
+  if (!t) {
+    return null;
+  }
   return t[event] ?? null;
 }
 
@@ -52,7 +54,9 @@ export function stateFromEvents(events) {
   let state = STATES.IDLE;
   for (const e of events) {
     const next = nextState(state, e.type);
-    if (next) state = next;
+    if (next) {
+      state = next;
+    }
     // Invalid events (shouldn't happen since UI prevents them) are ignored
     // for the purpose of state recovery.
   }
@@ -80,8 +84,12 @@ export function stateLabel(state) {
  * @returns {'none'|'stopped'|'active'}
  */
 export function sessionStatus(session) {
-  if (!session) return 'none';
-  if (session.isStopped) return 'stopped';
+  if (!session) {
+    return 'none';
+  }
+  if (session.isStopped) {
+    return 'stopped';
+  }
   return 'active';
 }
 
@@ -139,10 +147,18 @@ export function buttonStatesFor({ session, events } = {}) {
 
   const state = stateFromEvents(evts);
   const allowed = new Set(allowedEvents(state));
-  if (state === STATES.GOING_UP) allowed.add(EVENTS.DOWN);
-  if (state === STATES.AT_TOP) allowed.add(EVENTS.DOWN);
-  if (state === STATES.GOING_DOWN) allowed.add(EVENTS.UP);
-  if (state === STATES.AT_BOTTOM) allowed.add(EVENTS.UP);
+  if (state === STATES.GOING_UP) {
+    allowed.add(EVENTS.DOWN);
+  }
+  if (state === STATES.AT_TOP) {
+    allowed.add(EVENTS.DOWN);
+  }
+  if (state === STATES.GOING_DOWN) {
+    allowed.add(EVENTS.UP);
+  }
+  if (state === STATES.AT_BOTTOM) {
+    allowed.add(EVENTS.UP);
+  }
 
   return {
     up: { enabled: allowed.has(EVENTS.UP) },

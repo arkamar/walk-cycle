@@ -65,7 +65,7 @@ describe('allowedEvents', () => {
 });
 
 describe('stateFromEvents', () => {
-  const ts = (i) => ({ ts: 1000 + i });
+  const ts = i => ({ ts: 1000 + i });
 
   it('empty event list -> idle', () => {
     expect(stateFromEvents([])).toBe(STATES.IDLE);
