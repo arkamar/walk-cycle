@@ -149,7 +149,7 @@ export async function renderTracker(target) {
   }
 
   function onCurrentSessionChanged() {
-    loadActiveSession();
+    void loadActiveSession();
   }
 
   window.addEventListener('current-session-changed', onCurrentSessionChanged);
@@ -461,7 +461,7 @@ export async function renderTracker(target) {
     for (let i = 0; i < upEvents.length; i++) {
       const upEv = upEvents[i];
       const nextEv = events.find(e => e.ts > upEv.ts);
-      if (nextEv && nextEv.type === EVENTS.PAUSE) {
+      if (nextEv?.type === EVENTS.PAUSE) {
         completed++;
       }
     }

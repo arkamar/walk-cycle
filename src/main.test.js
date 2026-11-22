@@ -187,7 +187,7 @@ describe('main.js', () => {
 
     // Mock window.location.hash setter
     let hashValue = '';
-    const originalLocation = { ...window.location };
+    const originalLocation = window.location;
     Object.defineProperty(window, 'location', {
       value: {
         get hash() { return hashValue; },

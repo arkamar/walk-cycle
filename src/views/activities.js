@@ -70,7 +70,7 @@ export async function renderActivities(target) {
         await deleteActivity(a.id);
         toast('Activity deleted');
         target.innerHTML = '';
-        renderActivities(target);
+        await renderActivities(target);
       },
     }, '🗑'));
 

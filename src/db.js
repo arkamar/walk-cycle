@@ -19,6 +19,7 @@ export function resetDB() {
 export function getDB() {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises -- idb ignores the return value; awaits are needed for the cursor migration.
       async upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           const sessions = db.createObjectStore(STORE_SESSIONS, {

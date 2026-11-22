@@ -52,7 +52,7 @@ export async function renderStats(target) {
       onChange: (e) => {
         range = e.target.value;
         savePrefs({ range });
-        rerender();
+        void rerender();
       },
     },
     RANGES.map(r => el('option', { value: r.value }, r.label)),
@@ -66,7 +66,7 @@ export async function renderStats(target) {
       onChange: (e) => {
         view = e.target.value;
         savePrefs({ view });
-        rerender();
+        void rerender();
       },
     },
     VIEWS.map(v => el('option', { value: v.value }, v.label)),
@@ -99,7 +99,9 @@ export async function renderStats(target) {
   target.appendChild(el('div', {}, [toolbar, summaryCard, chartCard]));
 
   // Track theme changes during session.
-  const themeListener = () => rerender();
+  const themeListener = () => {
+    void rerender();
+  };
   CSS_DARK.addEventListener('change', themeListener);
 
   await rerender();

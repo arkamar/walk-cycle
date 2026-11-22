@@ -102,9 +102,7 @@ describe('tracker.js', () => {
       cleanup();
       cleanup = null;
     }
-    if (target && target.parentNode) {
-      target.parentNode.removeChild(target);
-    }
+    target?.parentNode?.removeChild(target);
     vi.useRealTimers();
     vi.clearAllTimers();
   });

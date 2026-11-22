@@ -113,7 +113,7 @@ export async function renderSessions(target) {
         await deleteSession(s.id);
         toast('Session deleted');
         target.innerHTML = '';
-        renderSessions(target);
+        await renderSessions(target);
       },
     }, '🗑'));
 

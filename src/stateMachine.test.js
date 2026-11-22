@@ -56,7 +56,7 @@ describe('allowedEvents', () => {
     [STATES.GOING_DOWN, [EVENTS.PAUSE]],
     [STATES.AT_BOTTOM, [EVENTS.UP]],
   ])('%s allows exactly %j', (state, expected) => {
-    expect(allowedEvents(state).sort()).toEqual(expected.sort());
+    expect(allowedEvents(state).sort((a, b) => a.localeCompare(b))).toEqual(expected.sort((a, b) => a.localeCompare(b)));
   });
 
   it('returns [] for an unknown state', () => {

@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import globals from 'globals';
 import stylistic from '@stylistic/eslint-plugin';
 import sonarjs from 'eslint-plugin-sonarjs';
+import tseslint from 'typescript-eslint';
 
 export default [
   {
@@ -55,7 +56,9 @@ export default [
       'no-shadow': 'error',
       'no-throw-literal': 'error',
       'no-unassigned-vars': 'error',
-      'no-void': 'error',
+      // `void promise` is the explicit way to mark a fire-and-forget promise
+      // once no-floating-promises is enabled.
+      'no-void': ['error', { allowAsStatement: true }],
       'no-unexpected-multiline': 'error',
       'no-unmodified-loop-condition': 'error',
       'no-unused-expressions': ['error', { allowShortCircuit: true, allowTernary: true }],
@@ -96,6 +99,36 @@ export default [
         ...globals.vitest,
         ...globals.node,
       },
+    },
+  },
+  {
+    files: ['src/**/*.js'],
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+    },
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      // Type-aware rules that pay off with the JSDoc already in the project.
+      // The no-unsafe-* family is left out: with sparse JSDoc it would flag
+      // almost every value instead of finding real mistakes.
+      '@typescript-eslint/no-base-to-string': 'error',
+      '@typescript-eslint/no-duplicate-type-constituents': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-meaningless-void-operator': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/no-misused-spread': 'error',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+      '@typescript-eslint/non-nullable-type-assertion-style': 'error',
+      '@typescript-eslint/prefer-optional-chain': 'error',
+      '@typescript-eslint/require-array-sort-compare': 'error',
+      '@typescript-eslint/restrict-plus-operands': 'error',
+      '@typescript-eslint/restrict-template-expressions': 'error',
     },
   },
 ];
