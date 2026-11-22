@@ -53,7 +53,7 @@ export async function renderSessionDetail(target, { id }) {
   const excludedKinds = new Set();
   if (!includeTopRest) excludedKinds.add(SEGMENT_KINDS.TOP_REST);
   if (!includeBottomRest) excludedKinds.add(SEGMENT_KINDS.BOTTOM_REST);
-  const effectiveTotalMs = (c) => cycleTotalMs(c, { excludeTopRest: !includeTopRest, excludeBottomRest: !includeBottomRest });
+  const effectiveTotalMs = c => cycleTotalMs(c, { excludeTopRest: !includeTopRest, excludeBottomRest: !includeBottomRest });
 
   const EVENT_LABELS = {
     up: 'Up',
@@ -213,7 +213,7 @@ export async function renderSessionDetail(target, { id }) {
     el(
       'div',
       { class: 'stat-grid' },
-      Object.values(SEGMENT_KINDS).filter(k => !excludedKinds.has(k)).map((k) =>
+      Object.values(SEGMENT_KINDS).filter(k => !excludedKinds.has(k)).map(k =>
         el(
           'div',
           { class: 'stat', style: { borderLeft: `4px solid ${SEGMENT_COLORS[k]}` } },

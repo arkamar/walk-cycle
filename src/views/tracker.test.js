@@ -65,7 +65,7 @@ vi.mock('../analytics.js', () => ({
     const sec = s % 60;
     return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}:000`;
   }),
-  formatDuration: vi.fn((ms) => `${Math.round(ms / 1000)}s`),
+  formatDuration: vi.fn(ms => `${Math.round(ms / 1000)}s`),
   findPrevSameType: vi.fn(() => null),
 }));
 

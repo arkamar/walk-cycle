@@ -4,7 +4,7 @@ vi.mock('./ui.js', async () => {
   const actual = await vi.importActual('./ui.js');
   return {
     ...actual,
-    formatTime: vi.fn((ts) => new Date(ts).toLocaleTimeString()),
+    formatTime: vi.fn(ts => new Date(ts).toLocaleTimeString()),
   };
 });
 

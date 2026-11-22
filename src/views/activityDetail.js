@@ -373,7 +373,7 @@ export async function renderActivityDetail(target, { id }) {
     const activeModes = { day: false, week: false, pace: false };
     activeModes[chartMode] = true;
 
-    const btnStyle = (active) => ({
+    const btnStyle = active => ({
       ...(active ? activeBtn : inactiveBtn),
       padding: '0.2rem 0.5rem',
       fontSize: '0.75rem',
@@ -654,7 +654,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       const endDays = cumDaysAt(visibleEnd + 1);
       return pad.left + ((cumDaysAt(idx) - startDays) / (endDays - startDays)) * plotW;
     };
-    const y = (val) => pad.top + plotH - (val / maxVal) * plotH;
+    const y = val => pad.top + plotH - (val / maxVal) * plotH;
     const monthIdx = (dayOfMonth) => {
       if (mode === 'day') return dayOfMonth;
       if (mode === 'pace') return dayOfMonth / stepWidth;

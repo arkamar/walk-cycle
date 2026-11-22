@@ -55,7 +55,7 @@ export async function renderStats(target) {
         rerender();
       },
     },
-    RANGES.map((r) => el('option', { value: r.value }, r.label)),
+    RANGES.map(r => el('option', { value: r.value }, r.label)),
   );
   rangeSel.value = range;
 
@@ -69,7 +69,7 @@ export async function renderStats(target) {
         rerender();
       },
     },
-    VIEWS.map((v) => el('option', { value: v.value }, v.label)),
+    VIEWS.map(v => el('option', { value: v.value }, v.label)),
   );
   viewSel.value = view;
 
@@ -166,7 +166,7 @@ export async function renderStats(target) {
 
     const allSegs = cycles.flatMap((c) => {
       const opts = c.excludeOpts || {};
-      return Object.values(c.segments).filter(s => {
+      return Object.values(c.segments).filter((s) => {
         if (opts.excludeTopRest && s.kind === SEGMENT_KINDS.TOP_REST) return false;
         if (opts.excludeBottomRest && s.kind === SEGMENT_KINDS.BOTTOM_REST) return false;
         return true;
@@ -180,7 +180,7 @@ export async function renderStats(target) {
     const cards = [
       { label: 'Cycles', value: String(totalCycles) },
       { label: 'Avg cycle', value: totalCycles ? formatDuration(avgCycleMs) : '–' },
-      ...Object.values(SEGMENT_KINDS).map((k) => ({
+      ...Object.values(SEGMENT_KINDS).map(k => ({
         label: `Avg ${SEGMENT_LABELS[k].toLowerCase()}`,
         value: byKind[k].count ? formatDuration(byKind[k].avgMs) : '–',
         color: SEGMENT_COLORS[k],
@@ -231,7 +231,7 @@ export async function renderStats(target) {
     if (view === 'cycles') {
       labels = cycles.map((_, i) => `#${i + 1}`);
       for (const k of Object.values(SEGMENT_KINDS)) {
-        const data = cycles.map(c => {
+        const data = cycles.map((c) => {
           const opts = c.excludeOpts || {};
           if (opts.excludeTopRest && k === SEGMENT_KINDS.TOP_REST) return null;
           if (opts.excludeBottomRest && k === SEGMENT_KINDS.BOTTOM_REST) return null;
@@ -267,7 +267,7 @@ export async function renderStats(target) {
         }
       }
       const sortedDays = [...byDay.keys()].sort((a, b) => a - b);
-      labels = sortedDays.map((t) =>
+      labels = sortedDays.map(t =>
         new Date(t).toLocaleDateString(undefined, { month: 'short', day: '2-digit' }));
       for (const k of Object.values(SEGMENT_KINDS)) {
         const data = sortedDays.map((t) => {
