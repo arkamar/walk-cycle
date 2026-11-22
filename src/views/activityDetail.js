@@ -37,7 +37,7 @@ export async function renderActivityDetail(target, { id }) {
       }
       byYear[year].push(r);
     }
-    for (const year of Object.keys(byYear).sort()) {
+    for (const year of Object.keys(byYear).sort((a, b) => a.localeCompare(b))) {
       let total = 0;
       for (const r of byYear[year]) {
         total += r.count;
@@ -107,7 +107,7 @@ export async function renderActivityDetail(target, { id }) {
       await updateActivity(activity.id, { goal: cleanVal });
       activity.goal = cleanVal;
       target.innerHTML = '';
-      renderActivityDetail(target, { id });
+      await renderActivityDetail(target, { id });
     } else {
       goalSquare.style.display = '';
       goalInput.style.display = 'none';
@@ -171,7 +171,7 @@ export async function renderActivityDetail(target, { id }) {
         });
         toast('Record added');
         target.innerHTML = '';
-        renderActivityDetail(target, { id });
+        await renderActivityDetail(target, { id });
       } catch (err) {
         toast(err.message);
       }
@@ -289,7 +289,7 @@ export async function renderActivityDetail(target, { id }) {
           await updateRecord(r.id, { count: val });
           toast('Count updated');
           target.innerHTML = '';
-          renderActivityDetail(target, { id });
+          await renderActivityDetail(target, { id });
           return;
         }
         countSpan.style.display = '';
@@ -310,7 +310,7 @@ export async function renderActivityDetail(target, { id }) {
           await updateRecord(r.id, { written: e.target.checked });
           toast(e.target.checked ? 'Marked as written' : 'Marked as not written');
           target.innerHTML = '';
-          renderActivityDetail(target, { id });
+          await renderActivityDetail(target, { id });
         },
       });
 
@@ -337,7 +337,7 @@ export async function renderActivityDetail(target, { id }) {
           await updateRecord(r.id, { note: val });
           toast('Note updated');
           target.innerHTML = '';
-          renderActivityDetail(target, { id });
+          await renderActivityDetail(target, { id });
           return;
         }
         noteSpan.style.display = '';
@@ -369,7 +369,7 @@ export async function renderActivityDetail(target, { id }) {
               await deleteRecord(r.id);
               toast('Record deleted');
               target.innerHTML = '';
-              renderActivityDetail(target, { id });
+              await renderActivityDetail(target, { id });
             },
           }, '🗑'),
         ]),

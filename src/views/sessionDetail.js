@@ -88,7 +88,7 @@ export async function renderSessionDetail(target, { id }) {
           await stopSession(id);
           toast('Session stopped');
           target.innerHTML = '';
-          renderSessionDetail(target, { id });
+          await renderSessionDetail(target, { id });
         },
       },
       'Stop',
@@ -103,7 +103,7 @@ export async function renderSessionDetail(target, { id }) {
           await resumeSession(id);
           toast('Session resumed');
           target.innerHTML = '';
-          renderSessionDetail(target, { id });
+          await renderSessionDetail(target, { id });
         },
       },
       'Resume',
@@ -180,7 +180,7 @@ export async function renderSessionDetail(target, { id }) {
             onChange: async (e) => {
               await updateSession(id, { includeTopRest: e.target.checked });
               target.innerHTML = '';
-              renderSessionDetail(target, { id });
+              await renderSessionDetail(target, { id });
             },
           }),
           'Include top rest',
@@ -192,7 +192,7 @@ export async function renderSessionDetail(target, { id }) {
             onChange: async (e) => {
               await updateSession(id, { includeBottomRest: e.target.checked });
               target.innerHTML = '';
-              renderSessionDetail(target, { id });
+              await renderSessionDetail(target, { id });
             },
           }),
           'Include bottom rest',
@@ -217,7 +217,7 @@ export async function renderSessionDetail(target, { id }) {
       showEventEditor(event, async (patch) => {
         await updateEvent(event.id, patch);
         target.innerHTML = '';
-        renderSessionDetail(target, { id });
+        await renderSessionDetail(target, { id });
       });
     },
   });

@@ -45,6 +45,7 @@ async function seedV1(sessions = [], events = []) {
 
 async function seedV2(sessions = [], events = []) {
   const db = await openDB(DB_NAME, 2, {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises -- idb ignores the return value; awaits are needed for the cursor migration.
     async upgrade(upgradeDb, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {
         const sessionsStore = upgradeDb.createObjectStore(STORE_SESSIONS, {
@@ -71,7 +72,7 @@ async function seedV2(sessions = [], events = []) {
           if (!Object.prototype.hasOwnProperty.call(s, 'stoppedAt')) {
             s.stoppedAt = null;
           }
-          cursor.update(s);
+          await cursor.update(s);
           cursor = await cursor.continue();
         }
       }

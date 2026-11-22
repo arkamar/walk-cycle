@@ -44,7 +44,7 @@ export function createRouter(routes, { mount = '#view', notFound } = {}) {
 
   function navigate(path) {
     if (window.location.hash === `#${path}`) {
-      render();
+      void render();
     } else {
       window.location.hash = path;
     }
@@ -52,8 +52,10 @@ export function createRouter(routes, { mount = '#view', notFound } = {}) {
 
   return {
     start() {
-      window.addEventListener('hashchange', render);
-      render();
+      window.addEventListener('hashchange', () => {
+        void render();
+      });
+      void render();
     },
     navigate,
     current: parsePath,

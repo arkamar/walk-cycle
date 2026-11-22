@@ -117,7 +117,7 @@ export function isResumable(session) {
 export function buttonStatesFor({ session, events } = {}) {
   const evts = events || [];
   const isRunning = !!(session && !session.isStopped);
-  const isStopped = !!(session && session.isStopped);
+  const isStopped = !!session?.isStopped;
 
   let stop;
   if (isRunning) {

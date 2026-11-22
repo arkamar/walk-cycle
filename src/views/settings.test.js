@@ -106,9 +106,7 @@ describe('settings.js', () => {
 
   afterEach(() => {
     // Clean up container
-    if (container && container.parentNode) {
-      container.parentNode.removeChild(container);
-    }
+    container?.parentNode?.removeChild(container);
   });
 
   describe('getCompetitionGoal', () => {
