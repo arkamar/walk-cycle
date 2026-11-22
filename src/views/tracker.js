@@ -243,7 +243,7 @@ export async function renderTracker(target) {
         state = nextState(state, kind);
         lastEventTs = newEv.ts;
 
-        await renderAndContinue(kind);
+        await renderAndContinue();
         return;
       } else {
         toast('Not allowed in current state');
@@ -256,7 +256,7 @@ export async function renderTracker(target) {
     state = ns;
     lastEventTs = newEv.ts;
 
-    await renderAndContinue(kind);
+    await renderAndContinue();
   }
 
   function renderAndContinue() {
