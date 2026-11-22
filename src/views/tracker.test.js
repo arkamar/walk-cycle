@@ -97,7 +97,7 @@ describe('tracker.js', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     if (cleanup) {
       cleanup();
       cleanup = null;

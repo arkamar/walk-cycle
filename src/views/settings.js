@@ -28,7 +28,7 @@ export function setCompetitionGoal(goal) {
   setConfig(cfg);
 }
 
-export async function renderSettings(target) {
+export function renderSettings(target) {
   target.innerHTML = '';
 
   // ---------- Competition goal ----------

@@ -27,6 +27,7 @@ export default [
       'array-callback-return': 'error',
       'curly': ['error', 'multi-line'],
       'eqeqeq': ['error', 'always', { null: 'ignore' }],
+      'no-async-promise-executor': 'error',
       'no-duplicate-imports': 'error',
       'no-implicit-coercion': ['error', { allow: ['!!'] }],
       'no-implied-eval': 'error',
@@ -38,6 +39,7 @@ export default [
       'no-new-wrappers': 'error',
       'no-octal-escape': 'error',
       'no-param-reassign': ['error', { props: false }],
+      'no-promise-executor-return': 'error',
       'no-return-assign': 'error',
       'no-script-url': 'error',
       'no-self-compare': 'error',
@@ -62,9 +64,11 @@ export default [
       'prefer-const': 'error',
       'prefer-numeric-literals': 'error',
       'prefer-object-spread': 'error',
+      'prefer-promise-reject-errors': 'error',
       'prefer-rest-params': 'error',
       'prefer-spread': 'error',
       'prefer-template': 'error',
+      'require-await': 'error',
       'yoda': 'error',
 
       // Override stylistic recommended rules to match existing code style

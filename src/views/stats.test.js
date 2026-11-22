@@ -222,7 +222,9 @@ describe('stats.js', () => {
     rangeSelect.dispatchEvent(new Event('change'));
 
     // Give the async render a tick to settle
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     const grid = target.querySelector('#summary-grid');
     expect(grid.textContent).toContain('1'); // one cycle

@@ -198,7 +198,7 @@ export async function renderSessionDetail(target, { id }) {
   const logList = logCard.querySelector('.log-list');
   renderLogEntries(logList, events, {
     eventLabels: EVENT_LABELS,
-    onEdit: async (event) => {
+    onEdit: (event) => {
       showEventEditor(event, async (patch) => {
         await updateEvent(event.id, patch);
         target.innerHTML = '';

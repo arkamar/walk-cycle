@@ -259,7 +259,7 @@ export async function renderTracker(target) {
     await renderAndContinue(kind);
   }
 
-  async function renderAndContinue() {
+  function renderAndContinue() {
     render();
     renderLog();
     renderGoalProgress();
@@ -319,7 +319,7 @@ export async function renderTracker(target) {
     }
   }
 
-  async function render() {
+  function render() {
     stateLabelEl.textContent = events.length > 0 ? stateLabel(state) : 'Ready';
 
     const upCount = events.filter(e => e.type === EVENTS.UP).length;
@@ -353,7 +353,7 @@ export async function renderTracker(target) {
     renderLogEntries(logList, events, {
       isRunning: session && !session.isStopped,
       eventLabels: EVENT_LABELS,
-      onEdit: async (event) => {
+      onEdit: (event) => {
         showEventEditor(event, async (patch) => {
           await updateEvent(event.id, patch);
           events = (await listEventsBySession(session.id)).filter(e => e.type !== 'session_stopped');
