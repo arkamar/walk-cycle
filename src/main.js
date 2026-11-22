@@ -65,6 +65,33 @@ document.addEventListener('route:changed', (e) => {
   }
 });
 
+const router = createRouter(
+  {
+    '/': renderTracker,
+    '/sessions': renderSessions,
+    '/activities': renderActivities,
+    '/stats': renderStats,
+    '/settings': renderSettings,
+  },
+  {
+    mount: '#view',
+    notFound: (target, ctx) => {
+      // Detail routes like /activities/:id
+      const mActivity = ctx.path.match(/^\/activities\/(\d+)$/);
+      if (mActivity) return renderActivityDetail(target, { id: Number(mActivity[1]) });
+      // Detail routes like /sessions/:id (also accept legacy /history/:id)
+      const m = ctx.path.match(/^\/(?:sessions|history)\/(\d+)$/);
+      if (m) return renderSessionDetail(target, { id: Number(m[1]) });
+      // Legacy /history -> /sessions redirect.
+      if (ctx.path === '/history') {
+        window.location.hash = '/sessions';
+        return;
+      }
+      return renderTracker(target, ctx);
+    },
+  },
+);
+
 // Swipe left/right to switch tabs on mobile.
 let swipeStartX = 0;
 let swipeStartY = 0;
@@ -109,32 +136,5 @@ document.addEventListener('touchend', (e) => {
 
   router.navigate(tabs[idx]);
 }, { passive: true });
-
-const router = createRouter(
-  {
-    '/': renderTracker,
-    '/sessions': renderSessions,
-    '/activities': renderActivities,
-    '/stats': renderStats,
-    '/settings': renderSettings,
-  },
-  {
-    mount: '#view',
-    notFound: (target, ctx) => {
-      // Detail routes like /activities/:id
-      const mActivity = ctx.path.match(/^\/activities\/(\d+)$/);
-      if (mActivity) return renderActivityDetail(target, { id: Number(mActivity[1]) });
-      // Detail routes like /sessions/:id (also accept legacy /history/:id)
-      const m = ctx.path.match(/^\/(?:sessions|history)\/(\d+)$/);
-      if (m) return renderSessionDetail(target, { id: Number(m[1]) });
-      // Legacy /history -> /sessions redirect.
-      if (ctx.path === '/history') {
-        window.location.hash = '/sessions';
-        return;
-      }
-      return renderTracker(target, ctx);
-    },
-  },
-);
 
 router.start();

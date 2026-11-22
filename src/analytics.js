@@ -201,15 +201,15 @@ export function formatDuration(ms) {
  * Live duration formatter for the active timer (always mm:ss or h:mm:ss).
  */
 export function formatLive(ms) {
-  if (!Number.isFinite(ms) || ms < 0) ms = 0;
-  const totalSec = Math.floor(ms / 1000);
+  const validMs = !Number.isFinite(ms) || ms < 0 ? 0 : ms;
+  const totalSec = Math.floor(validMs / 1000);
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
-  ms = ms % 1000;
+  const remainingMs = validMs % 1000;
   const pad = n => String(n).padStart(2, '0');
   if (h > 0) return `${h}:${pad(m)}:${pad(s)}`;
-  return `${pad(m)}:${pad(s)}:${pad(ms)}`;
+  return `${pad(m)}:${pad(s)}:${pad(remainingMs)}`;
 }
 
 /**

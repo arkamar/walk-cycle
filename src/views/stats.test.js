@@ -233,7 +233,7 @@ describe('stats.js', () => {
     const { createTrendChart } = await import('../chart.js');
     const { cyclesFromSegments } = await import('../analytics.js');
 
-    let chartInstance = { destroy: vi.fn() };
+    const chartInstance = { destroy: vi.fn() };
     createTrendChart.mockReturnValue(chartInstance);
 
     cyclesFromSegments.mockReturnValue([

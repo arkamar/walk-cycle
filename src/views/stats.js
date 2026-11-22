@@ -225,7 +225,7 @@ export async function renderStats(target) {
     const placeholder = wrap.querySelector('.chart-empty');
     if (placeholder) placeholder.remove();
 
-    let datasets = [];
+    const datasets = [];
     let labels;
 
     if (view === 'cycles') {

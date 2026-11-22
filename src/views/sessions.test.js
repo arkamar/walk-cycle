@@ -411,13 +411,13 @@ describe('renderSessions', () => {
       window.confirm = vi.fn();
     });
 
-    function findDeleteButtons(target) {
-      return Array.from(target.querySelectorAll('.btn-ghost'))
+    function findDeleteButtons(root) {
+      return Array.from(root.querySelectorAll('.btn-ghost'))
         .filter(b => b.textContent === '🗑');
     }
 
-    function findDeleteButton(target) {
-      return findDeleteButtons(target)[0];
+    function findDeleteButton(root) {
+      return findDeleteButtons(root)[0];
     }
 
     it('renders delete button for each session', async () => {

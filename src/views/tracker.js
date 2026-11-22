@@ -270,7 +270,7 @@ export async function renderTracker(target) {
     const goal = getCompetitionGoal();
     if (goal && session) {
       goalProgressEl.style.display = '';
-      let parts = [];
+      const parts = [];
       let status = '';
 
       const deadlineDiffMs = goal.endTime ? getGoalDeadlineInfo(goal.endTime).diffMs : null;

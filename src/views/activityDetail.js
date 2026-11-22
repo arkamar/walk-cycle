@@ -8,6 +8,9 @@ import {
   deleteRecord,
 } from '../db.js';
 
+const _mouseUpHandlers = new Map();
+const _resizeObservers = new Map();
+
 export async function renderActivityDetail(target, { id }) {
   const activity = await getActivity(id);
   if (!activity) {
@@ -222,7 +225,7 @@ export async function renderActivityDetail(target, { id }) {
         prevYear = year;
       }
       const dateSpan = el('span', { dataset: { edit: 'date' }, style: { cursor: 'pointer' } }, new Date(`${r.date}T00:00:00`).toLocaleDateString());
-      const dateInput = el('input', {
+      const editDateInput = el('input', {
         type: 'date',
         value: r.date,
         dataset: { edit: 'date-input' },
@@ -231,40 +234,40 @@ export async function renderActivityDetail(target, { id }) {
         onKeydown: (e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
-            dateInput.blur();
+            editDateInput.blur();
           }
         },
       });
       async function saveDate() {
-        const newDate = dateInput.value;
+        const newDate = editDateInput.value;
         if (newDate === r.date) {
           dateSpan.style.display = '';
-          dateInput.style.display = 'none';
+          editDateInput.style.display = 'none';
           return;
         }
         const existing = await listRecordsByActivity(activity.id);
         if (existing.find(rec => rec.date === newDate && rec.id !== r.id)) {
           toast('Record already exists for this date');
-          dateInput.value = r.date;
+          editDateInput.value = r.date;
           dateSpan.style.display = '';
-          dateInput.style.display = 'none';
+          editDateInput.style.display = 'none';
           return;
         }
         await updateRecord(r.id, { date: newDate });
         r.date = newDate;
         dateSpan.textContent = new Date(`${newDate}T00:00:00`).toLocaleDateString();
         dateSpan.style.display = '';
-        dateInput.style.display = 'none';
+        editDateInput.style.display = 'none';
         toast('Date updated');
       }
       dateSpan.onclick = () => {
         dateSpan.style.display = 'none';
-        dateInput.style.display = '';
-        dateInput.focus();
+        editDateInput.style.display = '';
+        editDateInput.focus();
       };
 
       const countSpan = el('span', { dataset: { edit: 'count' }, style: { cursor: 'pointer' } }, `${r.count}`);
-      const countInput = el('input', {
+      const editCountInput = el('input', {
         type: 'number',
         min: 1,
         value: r.count,
@@ -274,12 +277,12 @@ export async function renderActivityDetail(target, { id }) {
         onKeydown: (e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
-            countInput.blur();
+            editCountInput.blur();
           }
         },
       });
       async function saveCount() {
-        const val = Number(countInput.value);
+        const val = Number(editCountInput.value);
         if (val !== r.count) {
           await updateRecord(r.id, { count: val });
           toast('Count updated');
@@ -288,12 +291,12 @@ export async function renderActivityDetail(target, { id }) {
           return;
         }
         countSpan.style.display = '';
-        countInput.style.display = 'none';
+        editCountInput.style.display = 'none';
       }
       countSpan.onclick = () => {
         countSpan.style.display = 'none';
-        countInput.style.display = '';
-        countInput.focus();
+        editCountInput.style.display = '';
+        editCountInput.focus();
       };
 
       const writtenChk = el('input', {
@@ -347,12 +350,12 @@ export async function renderActivityDetail(target, { id }) {
       const children = [
         el('span', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem' } }, [
           writtenChk,
-          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [dateSpan, dateInput]),
+          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [dateSpan, editDateInput]),
           noteSpan,
           noteInput,
         ]),
         el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.75rem' } }, [
-          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [countSpan, countInput]),
+          el('span', { style: { display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' } }, [countSpan, editCountInput]),
           el('span', { style: { color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' } }, cumulativeById.has(r.id) ? String(cumulativeById.get(r.id)) : ''),
           el('button', {
             class: 'btn btn-ghost',
@@ -498,9 +501,6 @@ export async function renderActivityDetail(target, { id }) {
     _resizeObservers.delete(canvasWrap);
   };
 }
-
-const _mouseUpHandlers = new Map();
-const _resizeObservers = new Map();
 
 function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, onZoomChange) {
   const currentYear = new Date().getFullYear();
@@ -809,11 +809,11 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
           );
         }
       } else if (visibleUnits <= 16) {
-        for (let w = visibleStart; w <= visibleEnd; w++) {
-          const d = w === 0 ? new Date(currentYear, 0, 1) : new Date(currentYear, 0, firstWeekStart + (w - 1) * 7 + 1);
+        for (let week = visibleStart; week <= visibleEnd; week++) {
+          const d = week === 0 ? new Date(currentYear, 0, 1) : new Date(currentYear, 0, firstWeekStart + (week - 1) * 7 + 1);
           ctx.fillText(
             df.format(d),
-            x(w),
+            x(week),
             pad.top + plotH + 4,
           );
         }
@@ -990,7 +990,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       const curStart = zoom ? zoom.start : 0;
       const curEnd = zoom ? zoom.end : totalUnits - 1;
       const curW = curEnd - curStart + 1;
-      let newW = Math.max(2, Math.min(totalUnits, Math.round(curW * scale)));
+      const newW = Math.max(2, Math.min(totalUnits, Math.round(curW * scale)));
       let newStart = Math.round(pinchFocalIndex - (pinchFocalIndex - curStart) * (newW / curW));
       let newEnd = newStart + newW - 1;
       if (newStart < 0) {

@@ -667,18 +667,18 @@ describe('findPrevSameType', () => {
   });
 
   it('should return null for index 0 (no previous events)', () => {
-    const events = [
+    const singleEvent = [
       { type: 'up', ts: 1000, nextTs: 5000 },
     ];
-    expect(findPrevSameType(0, 'up', events)).toBeNull();
+    expect(findPrevSameType(0, 'up', singleEvent)).toBeNull();
   });
 
   it('should handle out of bounds by returning null (with bounds check)', () => {
-    const events = [
+    const singleEvent = [
       { type: 'up', ts: 1000, nextTs: 5000 },
     ];
     // The function will crash on negative index, so we test valid boundary
-    expect(findPrevSameType(0, 'up', events)).toBeNull();
+    expect(findPrevSameType(0, 'up', singleEvent)).toBeNull();
   });
 
   it('should handle empty events array', () => {
