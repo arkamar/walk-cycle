@@ -54,11 +54,9 @@ for (const t of TABS) {
 document.addEventListener('route:changed', (e) => {
   const path = e.detail.path;
   // Detail routes still highlight their parent tab.
-  const tabPath = path.startsWith('/sessions')
-    ? '/sessions'
-    : path.startsWith('/activities')
-      ? '/activities'
-      : path;
+  let tabPath = path;
+  if (path.startsWith('/sessions')) tabPath = '/sessions';
+  else if (path.startsWith('/activities')) tabPath = '/activities';
   for (const a of tabBar.querySelectorAll('.tab')) {
     if (a.dataset.path === tabPath) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');

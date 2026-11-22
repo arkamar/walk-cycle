@@ -528,9 +528,11 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       ? Math.ceil(daysInYear / 7)
       : 1 + Math.ceil((daysInYear - firstWeekStart) / 7);
 
-    todayIndex = todayDayIndex < firstWeekStart
-      ? todayDayIndex / firstWeekStart
-      : (firstWeekStart > 0 ? 1 : 0) + (todayDayIndex - firstWeekStart) / 7;
+    if (todayDayIndex < firstWeekStart) {
+      todayIndex = todayDayIndex / firstWeekStart;
+    } else {
+      todayIndex = (firstWeekStart > 0 ? 1 : 0) + (todayDayIndex - firstWeekStart) / 7;
+    }
     todayIndex = Math.min(todayIndex, totalUnits - 1);
 
     const weekCounts = new Map();
@@ -584,9 +586,12 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
   if (mode === 'week') {
     for (let w = 0; w < totalUnits; w++) {
       const prev = cumDays[w];
-      const span = w === 0
-        ? (firstWeekStart > 0 ? firstWeekStart : 7)
-        : (w === totalUnits - 1 ? daysInYear - prev : 7);
+      let span = 7;
+      if (w === 0) {
+        span = firstWeekStart > 0 ? firstWeekStart : 7;
+      } else if (w === totalUnits - 1) {
+        span = daysInYear - prev;
+      }
       cumDays.push(prev + span);
     }
   } else if (mode === 'pace') {
@@ -680,9 +685,10 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     const monthIdx = (dayOfMonth) => {
       if (mode === 'day') return dayOfMonth;
       if (mode === 'pace') return dayOfMonth / stepWidth;
-      return dayOfMonth < firstWeekStart
-        ? dayOfMonth / (firstWeekStart || 1)
-        : (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
+      if (dayOfMonth < firstWeekStart) {
+        return dayOfMonth / (firstWeekStart || 1);
+      }
+      return (firstWeekStart > 0 ? 1 : 0) + (dayOfMonth - firstWeekStart) / 7;
     };
 
     ctx.clearRect(0, 0, w, h);

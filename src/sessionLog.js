@@ -93,9 +93,12 @@ export function renderLogEntries(container, events, options = {}) {
     let diffStr = '';
     const thisCycle = cycleCounts[i];
 
-    const thisDuration = i < events.length - 1
-      ? events[i + 1].ts - ev.ts
-      : (ev.nextTs ? ev.nextTs - ev.ts : null);
+    let thisDuration = null;
+    if (i < events.length - 1) {
+      thisDuration = events[i + 1].ts - ev.ts;
+    } else if (ev.nextTs) {
+      thisDuration = ev.nextTs - ev.ts;
+    }
 
     let displayDuration;
     if (isRunning && i === events.length - 1) {

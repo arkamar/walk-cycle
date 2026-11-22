@@ -28,7 +28,6 @@ export default [
       // SonarJS rules are enabled in later commits, together with the fixes
       // they require, so every commit stays lint-clean.
       'sonarjs/cognitive-complexity': ['error', 60],
-      'sonarjs/no-nested-conditional': 'off',
       'sonarjs/no-os-command-from-path': 'off',
       'sonarjs/parameterized-tests': 'off',
 

@@ -73,55 +73,60 @@ export async function renderSessionDetail(target, { id }) {
   const isCurrent = current && current.id === id;
   const promoteLabel = sessionStatus(session) === 'stopped' ? 'Resume' : 'Set as current';
 
+  let headerAction;
+  if (isCurrent && !session.isStopped) {
+    headerAction = el(
+      'button',
+      {
+        class: 'btn btn-primary',
+        type: 'button',
+        onClick: async () => {
+          await stopSession(id);
+          toast('Session stopped');
+          target.innerHTML = '';
+          renderSessionDetail(target, { id });
+        },
+      },
+      'Stop',
+    );
+  } else if (isCurrent && session.isStopped) {
+    headerAction = el(
+      'button',
+      {
+        class: 'btn btn-primary',
+        type: 'button',
+        onClick: async () => {
+          await resumeSession(id);
+          toast('Session resumed');
+          target.innerHTML = '';
+          renderSessionDetail(target, { id });
+        },
+      },
+      'Resume',
+    );
+  } else {
+    headerAction = el(
+      'button',
+      {
+        class: 'btn btn-primary',
+        type: 'button',
+        onClick: async () => {
+          await setCurrentSession(id);
+          toast('Session is now current');
+          window.location.hash = '/';
+        },
+      },
+      promoteLabel,
+    );
+  }
+
   const headerRow = el('div', { class: 'row between' }, [
     el(
       'a',
       { class: 'btn btn-ghost', href: '#/sessions' },
       '← Back',
     ),
-    isCurrent && !session.isStopped
-      ? el(
-        'button',
-        {
-          class: 'btn btn-primary',
-          type: 'button',
-          onClick: async () => {
-            await stopSession(id);
-            toast('Session stopped');
-            target.innerHTML = '';
-            renderSessionDetail(target, { id });
-          },
-        },
-        'Stop',
-      )
-      : isCurrent && session.isStopped
-        ? el(
-          'button',
-          {
-            class: 'btn btn-primary',
-            type: 'button',
-            onClick: async () => {
-              await resumeSession(id);
-              toast('Session resumed');
-              target.innerHTML = '';
-              renderSessionDetail(target, { id });
-            },
-          },
-          'Resume',
-        )
-        : el(
-          'button',
-          {
-            class: 'btn btn-primary',
-            type: 'button',
-            onClick: async () => {
-              await setCurrentSession(id);
-              toast('Session is now current');
-              window.location.hash = '/';
-            },
-          },
-          promoteLabel,
-        ),
+    headerAction,
     el(
       'button',
       {
@@ -137,6 +142,14 @@ export async function renderSessionDetail(target, { id }) {
       'Delete',
     ),
   ]);
+
+  let statusText = 'Active · ';
+  if (sessionStatus(session) === 'stopped') {
+    const stoppedAt = events.length ? events[events.length - 1].nextTs : session.createdAt;
+    statusText = `Stopped ${formatDateTime(stoppedAt)} · `;
+  } else if (isCurrent) {
+    statusText = 'Current · ';
+  }
 
   const headerCard = el('div', { class: 'card' }, [
     el('div', { style: { display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' } }, [
@@ -181,11 +194,7 @@ export async function renderSessionDetail(target, { id }) {
       ]),
     ]),
     el('p', { class: 'muted' }, [
-      sessionStatus(session) === 'stopped'
-        ? `Stopped ${formatDateTime(events.length ? events[events.length - 1].nextTs : session.createdAt)} · `
-        : isCurrent
-          ? 'Current · '
-          : 'Active · ',
+      statusText,
       `${cycles.length} ${cycles.length === 1 ? 'cycle' : 'cycles'} · ${events.length} presses`,
     ]),
   ]);
@@ -299,7 +308,10 @@ export async function renderSessionDetail(target, { id }) {
       let partialDuration = 0;
       for (let i = lastUpIdx + 1; i < events.length; i++) {
         const seg = events[i];
-        const segType = seg.type === 'pause' ? (i === lastUpIdx + 1 ? 'top' : 'bot') : 'down';
+        let segType = 'down';
+        if (seg.type === 'pause') {
+          segType = i === lastUpIdx + 1 ? 'top' : 'bot';
+        }
         const dur = seg.ts - events[i - 1].ts;
         parts.push(`${segType} ${formatDuration(dur)}`);
         partialDuration += dur;
