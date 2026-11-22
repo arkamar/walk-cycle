@@ -343,7 +343,6 @@ describe('tracker.js', () => {
       expect(resumeSession).toHaveBeenCalledWith(2);
       expect(toast).toHaveBeenCalledWith('Session resumed');
     });
-
   });
 
   describe('onUndo', () => {
