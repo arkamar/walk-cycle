@@ -198,7 +198,9 @@ describe('sessionLog.js', () => {
       { id: 4, type: 'pause', ts: 15000 },
     ];
     findPrevSameType.mockImplementation((idx, type) => {
-      if (type === 'up' && idx === 2) return { ...events[0], nextTs: events[1].ts };
+      if (type === 'up' && idx === 2) {
+        return { ...events[0], nextTs: events[1].ts };
+      }
       return null;
     });
     renderLogEntries(container, events);
@@ -216,7 +218,9 @@ describe('sessionLog.js', () => {
       { id: 4, type: 'pause', ts: 8000 },
     ];
     findPrevSameType.mockImplementation((idx, type) => {
-      if (type === 'up' && idx === 2) return { ...events[0], nextTs: events[1].ts };
+      if (type === 'up' && idx === 2) {
+        return { ...events[0], nextTs: events[1].ts };
+      }
       return null;
     });
     renderLogEntries(container, events);
@@ -233,7 +237,9 @@ describe('sessionLog.js', () => {
       { id: 2, type: 'pause', ts: 3000 },
     ];
     findPrevSameType.mockImplementation((idx, type) => {
-      if (type === 'pause' && idx === 1) return { ...events[0], nextTs: events[1].ts };
+      if (type === 'pause' && idx === 1) {
+        return { ...events[0], nextTs: events[1].ts };
+      }
       return null;
     });
     renderLogEntries(container, events);
@@ -267,7 +273,9 @@ describe('sessionLog.js', () => {
     ];
     enrichNextTs(events, 16000);
     findPrevSameType.mockImplementation((idx, type) => {
-      if (type === 'pause' && idx === 5) return events[1];
+      if (type === 'pause' && idx === 5) {
+        return events[1];
+      }
       return null;
     });
     renderLogEntries(container, events);
@@ -297,7 +305,9 @@ describe('sessionLog.js', () => {
     ];
     enrichNextTs(events, 30000);
     findPrevSameType.mockImplementation((idx, type) => {
-      if (type === 'pause' && idx === 7) return events[3];
+      if (type === 'pause' && idx === 7) {
+        return events[3];
+      }
       return null;
     });
     renderLogEntries(container, events);

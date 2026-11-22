@@ -230,7 +230,9 @@ describe('sessionDetail.js', () => {
     const { findPrevSameType } = await import('../analytics.js');
     // Mock findPrevSameType to return the first up event when looking for second up
     findPrevSameType.mockImplementation((idx, type, events) => {
-      if (type === 'up' && idx === 2) return { ...events[0], nextTs: events[1].ts };
+      if (type === 'up' && idx === 2) {
+        return { ...events[0], nextTs: events[1].ts };
+      }
       return null;
     });
 

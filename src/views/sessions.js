@@ -68,8 +68,11 @@ export async function renderSessions(target) {
 
     const rowClass = `list-item${isCurrent ? ' list-item--current' : ''}`;
     let statusIcon = '';
-    if (status === 'active') statusIcon = ' ▶';
-    else if (status === 'stopped') statusIcon = ' ■';
+    if (status === 'active') {
+      statusIcon = ' ▶';
+    } else if (status === 'stopped') {
+      statusIcon = ' ■';
+    }
 
     const baseMeta = `${cycleCount} ${cycleCount === 1 ? 'cycle' : 'cycles'}${statusIcon} · ${formatDuration(durationMs)}`;
     const metaText = s.name
@@ -104,7 +107,9 @@ export async function renderSessions(target) {
       class: 'btn btn-ghost',
       style: { color: 'var(--danger)', padding: '0.5rem' },
       onClick: async () => {
-        if (!confirm('Delete this session?')) return;
+        if (!confirm('Delete this session?')) {
+          return;
+        }
         await deleteSession(s.id);
         toast('Session deleted');
         target.innerHTML = '';

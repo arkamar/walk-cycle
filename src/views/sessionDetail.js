@@ -51,8 +51,12 @@ export async function renderSessionDetail(target, { id }) {
   const includeTopRest = session.includeTopRest !== false;
   const includeBottomRest = session.includeBottomRest !== false;
   const excludedKinds = new Set();
-  if (!includeTopRest) excludedKinds.add(SEGMENT_KINDS.TOP_REST);
-  if (!includeBottomRest) excludedKinds.add(SEGMENT_KINDS.BOTTOM_REST);
+  if (!includeTopRest) {
+    excludedKinds.add(SEGMENT_KINDS.TOP_REST);
+  }
+  if (!includeBottomRest) {
+    excludedKinds.add(SEGMENT_KINDS.BOTTOM_REST);
+  }
   const effectiveTotalMs = c => cycleTotalMs(c, { excludeTopRest: !includeTopRest, excludeBottomRest: !includeBottomRest });
 
   const EVENT_LABELS = {
@@ -133,7 +137,9 @@ export async function renderSessionDetail(target, { id }) {
         class: 'btn btn-danger',
         type: 'button',
         onClick: async () => {
-          if (!confirm('Delete this session and all its events?')) return;
+          if (!confirm('Delete this session and all its events?')) {
+            return;
+          }
           await deleteSession(id);
           toast('Session deleted');
           window.location.hash = '/sessions';
@@ -336,7 +342,9 @@ export async function renderSessionDetail(target, { id }) {
   const CSS_DARK = matchMedia('(prefers-color-scheme: dark)');
   const themeListener = () => {
     if (chartLabels && chartDatasets) {
-      if (cycleChart) cycleChart.destroy();
+      if (cycleChart) {
+        cycleChart.destroy();
+      }
       cycleChart = createTrendChart(cycleChartCanvas, chartLabels, chartDatasets);
     }
   };
@@ -344,6 +352,8 @@ export async function renderSessionDetail(target, { id }) {
 
   return () => {
     CSS_DARK.removeEventListener('change', themeListener);
-    if (cycleChart) cycleChart.destroy();
+    if (cycleChart) {
+      cycleChart.destroy();
+    }
   };
 }

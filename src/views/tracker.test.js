@@ -688,7 +688,9 @@ describe('tracker.js', () => {
 
       const { findPrevSameType } = await import('../analytics.js');
       findPrevSameType.mockImplementation((idx, type) => {
-        if (idx === 2 && type === 'up') return { ...mockEvents[0], nextTs: mockEvents[1].ts };
+        if (idx === 2 && type === 'up') {
+          return { ...mockEvents[0], nextTs: mockEvents[1].ts };
+        }
         return null;
       });
 

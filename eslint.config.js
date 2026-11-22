@@ -33,7 +33,7 @@ export default [
 
       // Strict correctness and modern-JS best practices
       'array-callback-return': 'error',
-      'curly': ['error', 'multi-line'],
+      'curly': ['error', 'all'],
       'eqeqeq': ['error', 'always', { null: 'ignore' }],
       'no-async-promise-executor': 'error',
       'no-duplicate-imports': 'error',

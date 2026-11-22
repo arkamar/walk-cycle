@@ -45,9 +45,13 @@ export function showEventEditor(ev, onSave) {
         type: 'button',
         onClick: () => {
           const val = timeInput.value;
-          if (!val) return;
+          if (!val) {
+            return;
+          }
           const newTs = new Date(val).getTime();
-          if (isNaN(newTs)) return;
+          if (isNaN(newTs)) {
+            return;
+          }
           overlay.remove();
           onSave({ ts: newTs });
         },
@@ -57,7 +61,9 @@ export function showEventEditor(ev, onSave) {
 
   overlay.appendChild(card);
   overlay.addEventListener('pointerdown', (e) => {
-    if (e.target === overlay) overlay.remove();
+    if (e.target === overlay) {
+      overlay.remove();
+    }
   });
 
   timeInput.addEventListener('keydown', (e) => {
@@ -84,7 +90,9 @@ export function renderLogEntries(container, events, options = {}) {
   const cycleCounts = [];
   let cycleNum = 0;
   for (let i = 0; i < events.length; i++) {
-    if (events[i].type === 'up') cycleNum++;
+    if (events[i].type === 'up') {
+      cycleNum++;
+    }
     cycleCounts[i] = cycleNum;
   }
 

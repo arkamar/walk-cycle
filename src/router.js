@@ -10,7 +10,9 @@
 
 export function createRouter(routes, { mount = '#view', notFound } = {}) {
   const target = typeof mount === 'string' ? document.querySelector(mount) : mount;
-  if (!target) throw new Error(`Router mount not found: ${mount}`);
+  if (!target) {
+    throw new Error(`Router mount not found: ${mount}`);
+  }
 
   let currentCleanup = null;
 

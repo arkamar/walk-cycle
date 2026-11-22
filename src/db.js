@@ -163,7 +163,9 @@ export async function createSession(createdAt = Date.now(), note = '') {
 export async function updateSession(id, patch) {
   const db = await getDB();
   const session = await db.get(STORE_SESSIONS, id);
-  if (!session) return null;
+  if (!session) {
+    return null;
+  }
   Object.assign(session, patch);
   await db.put(STORE_SESSIONS, session);
   return session;
@@ -223,7 +225,9 @@ async function findSession(predicate) {
   const db = await getDB();
   const all = await db.getAllFromIndex(STORE_SESSIONS, 'createdAt');
   for (let i = all.length - 1; i >= 0; i--) {
-    if (predicate(all[i])) return all[i];
+    if (predicate(all[i])) {
+      return all[i];
+    }
   }
   return null;
 }
@@ -238,7 +242,9 @@ export function getStoppedSession() {
 
 export async function getCurrentSession() {
   const id = getCurrentSessionId();
-  if (id == null) return null;
+  if (id == null) {
+    return null;
+  }
   const db = await getDB();
   return db.get(STORE_SESSIONS, id);
 }
@@ -250,7 +256,9 @@ export async function getCurrentSession() {
 export async function setCurrentSession(id) {
   const db = await getDB();
   const session = await db.get(STORE_SESSIONS, id);
-  if (!session) return null;
+  if (!session) {
+    return null;
+  }
   setCurrentSessionId(id);
   return session;
 }
@@ -299,7 +307,9 @@ export async function getActivity(id) {
 export async function updateActivity(id, patch) {
   const db = await getDB();
   const activity = await db.get(STORE_ACTIVITIES, id);
-  if (!activity) return null;
+  if (!activity) {
+    return null;
+  }
   Object.assign(activity, patch);
   await db.put(STORE_ACTIVITIES, activity);
   return activity;
@@ -334,8 +344,12 @@ export async function listRecordsByActivity(activityId) {
   const db = await getDB();
   const records = await db.getAllFromIndex(STORE_RECORDS, 'activityId', activityId);
   records.sort((a, b) => {
-    if (a.date > b.date) return -1;
-    if (a.date < b.date) return 1;
+    if (a.date > b.date) {
+      return -1;
+    }
+    if (a.date < b.date) {
+      return 1;
+    }
     return 0;
   });
   return records;
@@ -344,7 +358,9 @@ export async function listRecordsByActivity(activityId) {
 export async function updateRecord(id, patch) {
   const db = await getDB();
   const record = await db.get(STORE_RECORDS, id);
-  if (!record) return null;
+  if (!record) {
+    return null;
+  }
   Object.assign(record, patch);
   await db.put(STORE_RECORDS, record);
   return record;
@@ -369,7 +385,9 @@ export async function addEvent({ sessionId, type, ts = Date.now() }) {
 export async function updateEvent(id, patch) {
   const db = await getDB();
   const event = await db.get(STORE_EVENTS, id);
-  if (!event) return null;
+  if (!event) {
+    return null;
+  }
   Object.assign(event, patch);
   await db.put(STORE_EVENTS, event);
   return event;

@@ -29,7 +29,9 @@ function getGoalDeadlineInfo(endTime) {
   const [h, m] = endTime.split(':').map(Number);
   const target = new Date(now);
   target.setHours(h, m, 0, 0);
-  if (target < now) target.setDate(target.getDate() + 1);
+  if (target < now) {
+    target.setDate(target.getDate() + 1);
+  }
   return { target, diffMs: target - now };
 }
 
@@ -130,7 +132,9 @@ export async function renderTracker(target) {
     if (events.length > 0) {
       const allEvents = await listEventsBySession(session.id);
       const stoppedEvent = allEvents.findLast(e => e.type === 'session_stopped');
-      if (stoppedEvent?.ts) lastNextTs = stoppedEvent.ts;
+      if (stoppedEvent?.ts) {
+        lastNextTs = stoppedEvent.ts;
+      }
     }
     enrichNextTs(events, lastNextTs);
     state = stateFromEvents(events);
@@ -151,7 +155,9 @@ export async function renderTracker(target) {
   window.addEventListener('current-session-changed', onCurrentSessionChanged);
 
   async function onUndo() {
-    if (events.length === 0) return;
+    if (events.length === 0) {
+      return;
+    }
     const lastEvent = events[events.length - 1];
     if (confirm(`Undo last ${lastEvent.type}?`)) {
       await deleteEvent(lastEvent.id);
@@ -166,7 +172,9 @@ export async function renderTracker(target) {
   }
 
   async function onStopSession() {
-    if (isProcessing) return;
+    if (isProcessing) {
+      return;
+    }
     isProcessing = true;
     try {
       if (!session) {
@@ -235,7 +243,9 @@ export async function renderTracker(target) {
         const pauseEv = await addEvent({ sessionId: session.id, type: EVENTS.PAUSE });
         events.push(pauseEv);
         const newState = nextState(state, EVENTS.PAUSE);
-        if (newState) state = newState;
+        if (newState) {
+          state = newState;
+        }
         lastEventTs = pauseEv.ts;
 
         const newEv = await addEvent({ sessionId: session.id, type: kind });
@@ -329,7 +339,9 @@ export async function renderTracker(target) {
     const btnStates = buttonStatesFor({ session, events });
 
     for (const b of BUTTONS) {
-      if (b.kind === 'stop') continue;
+      if (b.kind === 'stop') {
+        continue;
+      }
       const node = buttonNodes[b.kind];
       const s = btnStates[b.kind];
       node.disabled = !s.enabled;
@@ -348,7 +360,9 @@ export async function renderTracker(target) {
   }
 
   function renderLog() {
-    if (session) enrichNextTs(events);
+    if (session) {
+      enrichNextTs(events);
+    }
 
     renderLogEntries(logList, events, {
       isRunning: session && !session.isStopped,
@@ -369,10 +383,14 @@ export async function renderTracker(target) {
   }
 
   function updateLiveTimer() {
-    if (!session || !lastEventTs || events.length === 0) return;
+    if (!session || !lastEventTs || events.length === 0) {
+      return;
+    }
 
     const firstRow = logList.firstChild;
-    if (!firstRow) return;
+    if (!firstRow) {
+      return;
+    }
 
     const startTs = events[events.length - 1].ts;
     const now = Date.now();
@@ -403,14 +421,18 @@ export async function renderTracker(target) {
 
   function calcCycleTrend() {
     const upEvents = events.filter(e => e.type === EVENTS.UP);
-    if (upEvents.length < 2) return { avg: 0, trend: 0, trendDir: 'flat' };
+    if (upEvents.length < 2) {
+      return { avg: 0, trend: 0, trendDir: 'flat' };
+    }
 
     const recent = upEvents.slice(-5);
     const cycles = [];
     for (let i = 1; i < recent.length; i++) {
       cycles.push(recent[i].ts - recent[i - 1].ts);
     }
-    if (cycles.length < 2) return { avg: 0, trend: 0, trendDir: 'flat' };
+    if (cycles.length < 2) {
+      return { avg: 0, trend: 0, trendDir: 'flat' };
+    }
 
     let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
     for (let i = 0; i < cycles.length; i++) {
@@ -424,8 +446,11 @@ export async function renderTracker(target) {
 
     const avg = cycles.reduce((a, b) => a + b, 0) / n;
     let trendDir = 'flat';
-    if (slope > 500) trendDir = 'slower';
-    else if (slope < -500) trendDir = 'faster';
+    if (slope > 500) {
+      trendDir = 'slower';
+    } else if (slope < -500) {
+      trendDir = 'faster';
+    }
 
     return { avg, trend: slope, trendDir };
   }
