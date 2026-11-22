@@ -60,7 +60,7 @@ describe('renderActivities', () => {
     await renderActivities(target);
 
     const items = target.querySelectorAll('.list-item');
-    expect(items.length).toBe(2);
+    expect(items).toHaveLength(2);
     expect(items[0].textContent).toContain('Hills');
     expect(items[1].textContent).toContain('Trails');
   });

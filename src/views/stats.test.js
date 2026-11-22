@@ -91,7 +91,7 @@ describe('stats.js', () => {
   it('renders toolbar with range and view selectors', async () => {
     const cleanup = await renderStats(target);
     expect(target.querySelector('h2').textContent).toBe('Stats');
-    expect(target.querySelectorAll('select').length).toBe(2);
+    expect(target.querySelectorAll('select')).toHaveLength(2);
     if (cleanup) cleanup();
   });
 

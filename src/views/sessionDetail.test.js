@@ -211,7 +211,7 @@ describe('sessionDetail.js', () => {
 
     await renderSessionDetail(target, { id: 1 });
     const logEntries = target.querySelectorAll('.log-entry');
-    expect(logEntries.length).toBe(4);
+    expect(logEntries).toHaveLength(4);
     // Cycle counts should be shown
     expect(target.textContent).toContain('#1');
     expect(target.textContent).toContain('#2');
@@ -395,7 +395,7 @@ describe('sessionDetail.js', () => {
     it('renders both checkboxes checked by default', async () => {
       await renderSessionDetail(target, { id: 1 });
       const checkboxes = target.querySelectorAll('input[type="checkbox"]');
-      expect(checkboxes.length).toBe(2);
+      expect(checkboxes).toHaveLength(2);
       expect(checkboxes[0].checked).toBe(true);
       expect(checkboxes[1].checked).toBe(true);
     });
@@ -408,7 +408,7 @@ describe('sessionDetail.js', () => {
       });
       await renderSessionDetail(target, { id: 1 });
       const checkboxes = target.querySelectorAll('input[type="checkbox"]');
-      expect(checkboxes.length).toBe(2);
+      expect(checkboxes).toHaveLength(2);
       expect(checkboxes[0].checked).toBe(false);
       expect(checkboxes[1].checked).toBe(false);
     });
@@ -433,7 +433,7 @@ describe('sessionDetail.js', () => {
       await renderSessionDetail(target, { id: 1 });
       const labels = target.querySelectorAll('label');
       const checkboxLabels = Array.from(labels).filter(l => l.querySelector('input[type="checkbox"]'));
-      expect(checkboxLabels.length).toBe(2);
+      expect(checkboxLabels).toHaveLength(2);
       expect(checkboxLabels[0].textContent).toContain('Include top rest');
       expect(checkboxLabels[1].textContent).toContain('Include bottom rest');
     });

@@ -332,7 +332,7 @@ describe('listSessions', () => {
     for (let i = 0; i < 5; i++) {
       await createSession(i, `s${i}`);
     }
-    expect((await listSessions({ limit: 2 })).length).toBe(2);
+    expect(await listSessions({ limit: 2 })).toHaveLength(2);
   });
 
   it('returns empty array for limit 0', async () => {
@@ -361,7 +361,7 @@ describe('deleteSession', () => {
     await addEvent({ sessionId: id, type: 'up' });
     await addEvent({ sessionId: id, type: 'pause' });
     await deleteSession(id);
-    expect((await listEventsBySession(id)).length).toBe(0);
+    expect(await listEventsBySession(id)).toHaveLength(0);
   });
 
   it('leaves other sessions and events untouched', async () => {
@@ -604,9 +604,9 @@ describe('importAll', () => {
     const aid = await createActivity('test');
     await addRecord({ activityId: aid, date: '2026-05-11' });
     await importAll({ sessions: [], events: [], activities: [], records: [] });
-    expect((await listSessions()).length).toBe(0);
-    expect((await listAllEvents()).length).toBe(0);
-    expect((await listActivities()).length).toBe(0);
+    expect(await listSessions()).toHaveLength(0);
+    expect(await listAllEvents()).toHaveLength(0);
+    expect(await listActivities()).toHaveLength(0);
   });
 
   it('merge mode preserves existing data', async () => {
@@ -683,8 +683,8 @@ describe('importAll', () => {
 
   it('imports data without activities/records arrays (backward compat)', async () => {
     await importAll({ sessions: [], events: [] });
-    expect((await listActivities()).length).toBe(0);
-    expect((await listRecordsByActivity(0)).length).toBe(0);
+    expect(await listActivities()).toHaveLength(0);
+    expect(await listRecordsByActivity(0)).toHaveLength(0);
   });
 
   it('keeps session ids that are not in the import map (fallback)', async () => {

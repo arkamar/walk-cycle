@@ -27,16 +27,11 @@ export default [
 
       // SonarJS rules are enabled in later commits, together with the fixes
       // they require, so every commit stays lint-clean.
-      'sonarjs/assertions-in-tests': 'off',
       'sonarjs/cognitive-complexity': ['error', 60],
-      'sonarjs/no-duplicate-test-title': 'off',
       'sonarjs/no-extra-arguments': 'off',
-      'sonarjs/no-identical-functions': 'off',
       'sonarjs/no-nested-conditional': 'off',
       'sonarjs/no-os-command-from-path': 'off',
-      'sonarjs/no-trivial-assertions': 'off',
       'sonarjs/parameterized-tests': 'off',
-      'sonarjs/prefer-specific-assertions': 'off',
 
       // Strict correctness and modern-JS best practices
       'array-callback-return': 'error',
