@@ -26,7 +26,9 @@ export default [
       // Strict correctness and modern-JS best practices
       'array-callback-return': 'error',
       'curly': ['error', 'multi-line'],
+      'eqeqeq': ['error', 'always', { null: 'ignore' }],
       'no-duplicate-imports': 'error',
+      'no-implicit-coercion': ['error', { allow: ['!!'] }],
       'no-implied-eval': 'error',
       'no-loop-func': 'error',
       'no-lonely-if': 'error',
@@ -41,6 +43,7 @@ export default [
       'no-sequences': 'error',
       'no-throw-literal': 'error',
       'no-unassigned-vars': 'error',
+      'no-void': 'error',
       'no-unexpected-multiline': 'error',
       'no-unmodified-loop-condition': 'error',
       'no-unused-expressions': ['error', { allowShortCircuit: true, allowTernary: true }],
@@ -57,6 +60,7 @@ export default [
       'prefer-object-spread': 'error',
       'prefer-rest-params': 'error',
       'prefer-spread': 'error',
+      'prefer-template': 'error',
       'yoda': 'error',
 
       // Override stylistic recommended rules to match existing code style

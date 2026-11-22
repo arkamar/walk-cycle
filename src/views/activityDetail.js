@@ -221,7 +221,7 @@ export async function renderActivityDetail(target, { id }) {
         }
         prevYear = year;
       }
-      const dateSpan = el('span', { dataset: { edit: 'date' }, style: { cursor: 'pointer' } }, new Date(r.date + 'T00:00:00').toLocaleDateString());
+      const dateSpan = el('span', { dataset: { edit: 'date' }, style: { cursor: 'pointer' } }, new Date(`${r.date}T00:00:00`).toLocaleDateString());
       const dateInput = el('input', {
         type: 'date',
         value: r.date,
@@ -252,7 +252,7 @@ export async function renderActivityDetail(target, { id }) {
         }
         await updateRecord(r.id, { date: newDate });
         r.date = newDate;
-        dateSpan.textContent = new Date(newDate + 'T00:00:00').toLocaleDateString();
+        dateSpan.textContent = new Date(`${newDate}T00:00:00`).toLocaleDateString();
         dateSpan.style.display = '';
         dateInput.style.display = 'none';
         toast('Date updated');
@@ -740,7 +740,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     const monthStartDay = Array.from({ length: 12 }, (_, m) =>
       Math.floor((Date.UTC(currentYear, m, 1) - Date.UTC(currentYear, 0, 1)) / 86400000));
 
-    ctx.strokeStyle = muted + '60';
+    ctx.strokeStyle = `${muted}60`;
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 4]);
     for (let m = 1; m < 12; m++) {
@@ -845,7 +845,7 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     ctx.lineTo(pad.left + plotW, y(0));
     ctx.lineTo(x(visibleStart), y(0));
     ctx.closePath();
-    ctx.fillStyle = (belowGoal ? danger : success) + '18';
+    ctx.fillStyle = `${belowGoal ? danger : success}18`;
     ctx.fill();
 
     ctx.beginPath();

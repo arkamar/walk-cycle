@@ -44,7 +44,7 @@ export function toast(message, ms = 1800) {
   }
   t.textContent = message;
   // Force reflow so the transition runs.
-  void t.offsetWidth;
+  t.getBoundingClientRect();
   t.classList.add('show');
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), ms);
