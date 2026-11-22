@@ -1,5 +1,10 @@
 // Tiny UI helpers shared across views.
 
+/**
+ * @param {string} tag
+ * @param {Record<string, any>} [attrs]
+ * @param {any} [children]
+ */
 export function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
