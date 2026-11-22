@@ -87,7 +87,12 @@ export async function renderActivityDetail(target, { id }) {
     dataset: { edit: 'goal-input' },
     style: { width: '3rem', display: 'none' },
     onBlur: async () => { await saveGoal(); },
-    onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); goalInput.blur(); } },
+    onKeydown: (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        goalInput.blur();
+      }
+    },
   });
 
   async function saveGoal() {
@@ -223,7 +228,12 @@ export async function renderActivityDetail(target, { id }) {
         dataset: { edit: 'date-input' },
         style: { display: 'none' },
         onBlur: async () => { await saveDate(); },
-        onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); dateInput.blur(); } },
+        onKeydown: (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            dateInput.blur();
+          }
+        },
       });
       async function saveDate() {
         const newDate = dateInput.value;
@@ -261,7 +271,12 @@ export async function renderActivityDetail(target, { id }) {
         dataset: { edit: 'count-input' },
         style: { width: '3rem', display: 'none' },
         onBlur: async () => { await saveCount(); },
-        onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); countInput.blur(); } },
+        onKeydown: (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            countInput.blur();
+          }
+        },
       });
       async function saveCount() {
         const val = Number(countInput.value);
@@ -304,7 +319,12 @@ export async function renderActivityDetail(target, { id }) {
         dataset: { edit: 'note-input' },
         style: { flex: 1, display: 'none', fontSize: '0.85rem' },
         onBlur: async () => { await saveNote(); },
-        onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); noteInput.blur(); } },
+        onKeydown: (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            noteInput.blur();
+          }
+        },
       });
       async function saveNote() {
         const val = noteInput.value.trim();
@@ -923,12 +943,18 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
     if (onZoomChange) onZoomChange(zoom);
   };
 
-  canvas.addEventListener('mousedown', (e) => { startDrag(e.clientX); });
-  canvas.addEventListener('mousemove', (e) => { moveDrag(e.clientX); });
+  canvas.addEventListener('mousedown', (e) => {
+    startDrag(e.clientX);
+  });
+  canvas.addEventListener('mousemove', (e) => {
+    moveDrag(e.clientX);
+  });
 
   const prevHandler = _mouseUpHandlers.get(container);
   if (prevHandler) window.removeEventListener('mouseup', prevHandler);
-  const onMouseUp = () => { endDrag(); };
+  const onMouseUp = () => {
+    endDrag();
+  };
   window.addEventListener('mouseup', onMouseUp);
   _mouseUpHandlers.set(container, onMouseUp);
 
@@ -967,8 +993,14 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       let newW = Math.max(2, Math.min(totalUnits, Math.round(curW * scale)));
       let newStart = Math.round(pinchFocalIndex - (pinchFocalIndex - curStart) * (newW / curW));
       let newEnd = newStart + newW - 1;
-      if (newStart < 0) { newStart = 0; newEnd = newW - 1; }
-      if (newEnd >= totalUnits) { newEnd = totalUnits - 1; newStart = newEnd - newW + 1; }
+      if (newStart < 0) {
+        newStart = 0;
+        newEnd = newW - 1;
+      }
+      if (newEnd >= totalUnits) {
+        newEnd = totalUnits - 1;
+        newStart = newEnd - newW + 1;
+      }
       if (newStart < 0) newStart = 0;
 
       if (newStart !== curStart || newEnd !== curEnd) {
@@ -988,8 +1020,14 @@ function renderMotivationChart(container, yearRecords, goal, mode, initialZoom, 
       const deltaIdx = Math.round(-(deltaPx / plotW) * vu);
       let newStart = panStartZoom.start + deltaIdx;
       let newEnd = panStartZoom.end + deltaIdx;
-      if (newStart < 0) { newStart = 0; newEnd = vu - 1; }
-      if (newEnd >= totalUnits) { newEnd = totalUnits - 1; newStart = newEnd - vu + 1; }
+      if (newStart < 0) {
+        newStart = 0;
+        newEnd = vu - 1;
+      }
+      if (newEnd >= totalUnits) {
+        newEnd = totalUnits - 1;
+        newStart = newEnd - vu + 1;
+      }
       if (newStart < 0) newStart = 0;
       if (newStart !== zoom.start || newEnd !== zoom.end) {
         zoom = { start: newStart, end: newEnd };

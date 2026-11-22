@@ -70,8 +70,14 @@ let swipeStartX = 0;
 let swipeStartY = 0;
 
 document.addEventListener('touchstart', (e) => {
-  if (e.touches.length !== 1) { swipeStartX = 0; return; }
-  if (e.target.closest('canvas, input, textarea, select, .tab-bar')) { swipeStartX = 0; return; }
+  if (e.touches.length !== 1) {
+    swipeStartX = 0;
+    return;
+  }
+  if (e.target.closest('canvas, input, textarea, select, .tab-bar')) {
+    swipeStartX = 0;
+    return;
+  }
   swipeStartX = e.touches[0].clientX;
   swipeStartY = e.touches[0].clientY;
 }, { passive: true });

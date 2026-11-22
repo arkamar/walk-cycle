@@ -148,7 +148,9 @@ describe('db session queries', () => {
     it('dispatches current-session-changed event', async () => {
       const id = await createSession(Date.now(), 'test');
       let fired = false;
-      const handler = () => { fired = true; };
+      const handler = () => {
+        fired = true;
+      };
       window.addEventListener('current-session-changed', handler);
       await setCurrentSession(id);
       window.removeEventListener('current-session-changed', handler);

@@ -143,13 +143,22 @@ export function renderLogEntries(container, events, options = {}) {
         }, 500);
       });
       row.addEventListener('pointerup', () => {
-        if (timer) { clearTimeout(timer); timer = null; }
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
       });
       row.addEventListener('pointerleave', () => {
-        if (timer) { clearTimeout(timer); timer = null; }
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
       });
       row.addEventListener('pointercancel', () => {
-        if (timer) { clearTimeout(timer); timer = null; }
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
       });
     }
 

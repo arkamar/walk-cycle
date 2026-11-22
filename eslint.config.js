@@ -39,7 +39,6 @@ export default [
       '@stylistic/space-before-function-paren': ['error', { anonymous: 'never', named: 'never', asyncArrow: 'always' }],
 
       // Rules disabled to match existing code style
-      '@stylistic/max-statements-per-line': 'off',
       '@stylistic/padded-blocks': 'off',
       '@stylistic/quote-props': 'off',
       '@stylistic/operator-linebreak': 'off',
