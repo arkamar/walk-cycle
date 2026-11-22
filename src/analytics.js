@@ -82,7 +82,7 @@ export function cyclesFromSegments(segments, includeIncomplete = true) {
   const cycles = [];
   let current = null;
 
-  const open = (seg) => ({
+  const open = seg => ({
     index: cycles.length,
     startTs: seg.startTs,
     endTs: null,
@@ -207,7 +207,7 @@ export function formatLive(ms) {
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
   ms = ms % 1000;
-  const pad = (n) => String(n).padStart(2, '0');
+  const pad = n => String(n).padStart(2, '0');
   if (h > 0) return `${h}:${pad(m)}:${pad(s)}`;
   return `${pad(m)}:${pad(s)}:${pad(ms)}`;
 }

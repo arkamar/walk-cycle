@@ -342,8 +342,8 @@ export async function renderTracker(target) {
     stopNode.disabled = !btnStates.stop.enabled;
     stopNode.style.display = '';
     stopNode.dataset.active = btnStates.stop.enabled ? 'true' : 'false';
-    stopNode.querySelector('.action-icon').textContent =
-      btnStates.stop.label === 'Resume' ? '▶' : '■';
+    stopNode.querySelector('.action-icon').textContent
+      = btnStates.stop.label === 'Resume' ? '▶' : '■';
     stopNode.querySelector('span:last-child').textContent = btnStates.stop.label;
   }
 

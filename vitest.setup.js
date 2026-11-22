@@ -24,7 +24,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 });
 
 // Polyfill matchMedia for jsdom (needed by stats.js)
-globalThis.matchMedia = (query) => ({
+globalThis.matchMedia = query => ({
   matches: false,
   media: query,
   onchange: null,

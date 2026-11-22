@@ -18,7 +18,7 @@ export function enrichNextTs(events, lastNextTs = Date.now()) {
 
 function tsToDatetimeLocal(ts) {
   const d = new Date(ts);
-  const pad = (n) => String(n).padStart(2, '0');
+  const pad = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
@@ -143,13 +143,22 @@ export function renderLogEntries(container, events, options = {}) {
         }, 500);
       });
       row.addEventListener('pointerup', () => {
-        if (timer) { clearTimeout(timer); timer = null; }
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
       });
       row.addEventListener('pointerleave', () => {
-        if (timer) { clearTimeout(timer); timer = null; }
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
       });
       row.addEventListener('pointercancel', () => {
-        if (timer) { clearTimeout(timer); timer = null; }
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
       });
     }
 

@@ -20,7 +20,7 @@ describe('el()', () => {
   });
 
   it('skips null/undefined attribute values (line 6)', () => {
-    const node = el('div', { id: null, 'data-val': undefined, className: 'test' });
+    const node = el('div', { 'id': null, 'data-val': undefined, 'className': 'test' });
     expect(node.id).toBe('');
     expect(node.dataset.val).toBeUndefined();
     expect(node.className).toBe('test');

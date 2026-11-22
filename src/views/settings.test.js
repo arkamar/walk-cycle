@@ -44,7 +44,7 @@ vi.mock('../ui.js', () => ({
     return node;
   }),
   toast: vi.fn(),
-  formatDateTime: vi.fn((ts) => `formatted-${ts}`),
+  formatDateTime: vi.fn(ts => `formatted-${ts}`),
   formatTime: vi.fn(),
   formatDate: vi.fn(),
 }));
@@ -273,7 +273,7 @@ describe('settings.js', () => {
       exportBtn.click();
 
       // Wait for async doExport
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
 
       expect(exportAll).toHaveBeenCalled();
       expect(global.URL.createObjectURL).toHaveBeenCalled();
@@ -291,7 +291,7 @@ describe('settings.js', () => {
       const exportBtn = container.querySelector('.btn-primary');
       exportBtn.click();
 
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
 
       const blobCall = global.URL.createObjectURL.mock.calls[0];
       expect(blobCall).toBeTruthy();
@@ -305,7 +305,7 @@ describe('settings.js', () => {
       const exportBtn = container.querySelector('.btn-primary');
       exportBtn.click();
 
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
 
       expect(toast).toHaveBeenCalledWith('Export failed');
     });
@@ -338,7 +338,7 @@ describe('settings.js', () => {
 
       importInput.dispatchEvent(new Event('change'));
 
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
 
       expect(importAll).toHaveBeenCalledWith(
         expect.any(Object),
@@ -368,7 +368,7 @@ describe('settings.js', () => {
 
       importInput.dispatchEvent(new Event('change'));
 
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
 
       expect(importAll).toHaveBeenCalledWith(
         expect.any(Object),
@@ -398,7 +398,7 @@ describe('settings.js', () => {
 
       importInput.dispatchEvent(new Event('change'));
 
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
 
       expect(toast).toHaveBeenCalledWith('Import successful');
     });
@@ -423,7 +423,7 @@ describe('settings.js', () => {
 
       importInput.dispatchEvent(new Event('change'));
 
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
 
       expect(importAll).not.toHaveBeenCalled();
     });
@@ -450,7 +450,7 @@ describe('settings.js', () => {
 
       importInput.dispatchEvent(new Event('change'));
 
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
 
       expect(toast).toHaveBeenCalledWith('Import failed: Invalid data');
     });
@@ -466,7 +466,7 @@ describe('settings.js', () => {
       const deleteBtn = container.querySelector('.btn-danger');
       deleteBtn.click();
 
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
 
       expect(clearAll).toHaveBeenCalled();
       expect(toast).toHaveBeenCalledWith('All data deleted');
@@ -480,7 +480,7 @@ describe('settings.js', () => {
       const deleteBtn = container.querySelector('.btn-danger');
       deleteBtn.click();
 
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
 
       expect(clearAll).not.toHaveBeenCalled();
       expect(toast).toHaveBeenCalledWith('Cancelled');
@@ -494,7 +494,7 @@ describe('settings.js', () => {
       const deleteBtn = container.querySelector('.btn-danger');
       deleteBtn.click();
 
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0));
 
       expect(clearAll).not.toHaveBeenCalled();
       expect(toast).toHaveBeenCalledWith('Cancelled');

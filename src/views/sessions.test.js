@@ -10,7 +10,7 @@ vi.mock('../ui.js', async () => {
   return {
     ...actual,
     toast: vi.fn(),
-    formatDateTime: vi.fn((ts) => new Date(ts).toLocaleString()),
+    formatDateTime: vi.fn(ts => new Date(ts).toLocaleString()),
   };
 });
 
@@ -28,7 +28,7 @@ vi.mock('../db.js', () => ({
 vi.mock('../analytics.js', () => ({
   segmentsFromEvents: vi.fn(() => []),
   cyclesFromSegments: vi.fn(() => []),
-  formatDuration: vi.fn((ms) => `${Math.round(ms / 1000)}s`),
+  formatDuration: vi.fn(ms => `${Math.round(ms / 1000)}s`),
 }));
 
 // Mock stateMachine.js

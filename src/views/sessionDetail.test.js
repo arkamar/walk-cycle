@@ -6,8 +6,8 @@ vi.mock('../ui.js', async () => {
   return {
     ...actual,
     toast: vi.fn(),
-    formatTime: vi.fn((ts) => new Date(ts).toLocaleTimeString()),
-    formatDateTime: vi.fn((ts) => new Date(ts).toLocaleString()),
+    formatTime: vi.fn(ts => new Date(ts).toLocaleTimeString()),
+    formatDateTime: vi.fn(ts => new Date(ts).toLocaleString()),
   };
 });
 
@@ -32,7 +32,7 @@ vi.mock('../db.js', () => ({
 vi.mock('../analytics.js', () => ({
   segmentsFromEvents: vi.fn().mockReturnValue([]),
   cyclesFromSegments: vi.fn().mockReturnValue([]),
-  cycleTotalMs: vi.fn((cycle) => cycle.totalMs),
+  cycleTotalMs: vi.fn(cycle => cycle.totalMs),
   aggregateBySegmentKind: vi.fn().mockReturnValue({
     byKind: {
       up_duration: { count: 0, totalMs: 0, avgMs: 0, minMs: 0, maxMs: 0 },
@@ -41,8 +41,8 @@ vi.mock('../analytics.js', () => ({
       bottom_rest: { count: 0, totalMs: 0, avgMs: 0, minMs: 0, maxMs: 0 },
     },
   }),
-  formatDuration: vi.fn((ms) => `${ms}ms`),
-  formatLive: vi.fn((ms) => `${ms}ms`),
+  formatDuration: vi.fn(ms => `${ms}ms`),
+  formatLive: vi.fn(ms => `${ms}ms`),
   SEGMENT_KINDS: { UP: 'up_duration', TOP_REST: 'top_rest', DOWN: 'down_duration', BOTTOM_REST: 'bottom_rest' },
   SEGMENT_LABELS: { up_duration: 'Up', top_rest: 'Top rest', down_duration: 'Down', bottom_rest: 'Bottom rest' },
   SEGMENT_COLORS: { up_duration: '#4ade80', top_rest: '#fbbf24', down_duration: '#f87171', bottom_rest: '#94a3b8' },
