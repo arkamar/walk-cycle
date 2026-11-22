@@ -232,8 +232,7 @@ export async function renderSessionDetail(target, { id }) {
                 : 'no data',
             ),
           ],
-        ),
-      ),
+        )),
     ),
   ]);
 

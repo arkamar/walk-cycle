@@ -83,10 +83,14 @@ describe('stateFromEvents', () => {
 
   it('reproduces two full cycles', () => {
     const events = [
-      { type: EVENTS.UP }, { type: EVENTS.PAUSE },
-      { type: EVENTS.DOWN }, { type: EVENTS.PAUSE },
-      { type: EVENTS.UP }, { type: EVENTS.PAUSE },
-      { type: EVENTS.DOWN }, { type: EVENTS.PAUSE },
+      { type: EVENTS.UP },
+      { type: EVENTS.PAUSE },
+      { type: EVENTS.DOWN },
+      { type: EVENTS.PAUSE },
+      { type: EVENTS.UP },
+      { type: EVENTS.PAUSE },
+      { type: EVENTS.DOWN },
+      { type: EVENTS.PAUSE },
     ];
     expect(stateFromEvents(events)).toBe(STATES.AT_BOTTOM);
   });

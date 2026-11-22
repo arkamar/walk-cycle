@@ -268,8 +268,7 @@ export async function renderStats(target) {
       }
       const sortedDays = [...byDay.keys()].sort((a, b) => a - b);
       labels = sortedDays.map((t) =>
-        new Date(t).toLocaleDateString(undefined, { month: 'short', day: '2-digit' }),
-      );
+        new Date(t).toLocaleDateString(undefined, { month: 'short', day: '2-digit' }));
       for (const k of Object.values(SEGMENT_KINDS)) {
         const data = sortedDays.map((t) => {
           const b = byDay.get(t)[k];
