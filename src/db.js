@@ -228,11 +228,11 @@ async function findSession(predicate) {
   return null;
 }
 
-export async function getActiveSession() {
+export function getActiveSession() {
   return findSession(s => !s.isStopped);
 }
 
-export async function getStoppedSession() {
+export function getStoppedSession() {
   return findSession(s => s.isStopped);
 }
 

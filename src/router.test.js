@@ -117,7 +117,9 @@ describe('createRouter', () => {
       const handler = vi.fn().mockResolvedValue(undefined);
       const router = createRouter({ '/': handler }, { mount: container });
       router.start();
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise((r) => {
+        setTimeout(r, 50);
+      });
       expect(handler).toHaveBeenCalled();
     });
   });
@@ -177,7 +179,9 @@ describe('createRouter', () => {
 
       // Navigate to /b
       router.navigate('/b');
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise((r) => {
+        setTimeout(r, 100);
+      });
 
       // cleanup1 should have been called when leaving /a
       expect(cleanup1).toHaveBeenCalled();
@@ -202,7 +206,9 @@ describe('createRouter', () => {
         router.navigate('/b');
       }).not.toThrow();
 
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise((r) => {
+        setTimeout(r, 100);
+      });
 
       expect(cleanup).toHaveBeenCalled();
       expect(handler2).toHaveBeenCalled();
@@ -219,7 +225,9 @@ describe('createRouter', () => {
       router.start();
       router.navigate('/b');
 
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise((r) => {
+        setTimeout(r, 100);
+      });
 
       expect(handler2).toHaveBeenCalled();
     });

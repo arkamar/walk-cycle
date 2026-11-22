@@ -275,7 +275,9 @@ describe('renderActivityDetail', () => {
     editInput.value = '5';
     editInput.dispatchEvent(new Event('blur'));
 
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { count: 5 });
   });
@@ -303,7 +305,9 @@ describe('renderActivityDetail', () => {
     input.value = '42';
     input.dispatchEvent(new Event('blur'));
 
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockDb.updateActivity).toHaveBeenCalledWith(1, { goal: 42 });
   });
@@ -329,7 +333,9 @@ describe('renderActivityDetail', () => {
     dateInput.value = '2026-06-01';
     dateInput.dispatchEvent(new Event('blur', { bubbles: true }));
 
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { date: '2026-06-01' });
   });
@@ -364,7 +370,9 @@ describe('renderActivityDetail', () => {
 
     const dateInput = target.querySelector('input[data-edit="date-input"]');
     dateInput.dispatchEvent(new Event('blur', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockDb.updateRecord).not.toHaveBeenCalled();
     expect(dateSpan.style.display).not.toBe('none');
@@ -392,7 +400,9 @@ describe('renderActivityDetail', () => {
     const dateInputs = target.querySelectorAll('input[data-edit="date-input"]');
     dateInputs[0].value = '2026-06-01';
     dateInputs[0].dispatchEvent(new Event('blur', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockToast).toHaveBeenCalledWith('Record already exists for this date');
     expect(mockDb.updateRecord).not.toHaveBeenCalled();
@@ -414,7 +424,9 @@ describe('renderActivityDetail', () => {
     const dateInput = target.querySelector('input[data-edit="date-input"]');
     dateInput.value = '2026-06-01';
     dateInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { date: '2026-06-01' });
   });
@@ -433,7 +445,9 @@ describe('renderActivityDetail', () => {
 
     const countInput = target.querySelector('input[data-edit="count-input"]');
     countInput.dispatchEvent(new Event('blur'));
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockDb.updateRecord).not.toHaveBeenCalled();
     expect(countSpan.style.display).not.toBe('none');
@@ -455,7 +469,9 @@ describe('renderActivityDetail', () => {
     const countInput = target.querySelector('input[data-edit="count-input"]');
     countInput.value = '5';
     countInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { count: 5 });
   });
@@ -475,7 +491,9 @@ describe('renderActivityDetail', () => {
     const input = target.querySelector('input[data-edit="goal-input"]');
     input.value = '';
     input.dispatchEvent(new Event('blur'));
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockDb.updateActivity).toHaveBeenCalledWith(1, { goal: null });
   });
@@ -495,7 +513,9 @@ describe('renderActivityDetail', () => {
     const input = target.querySelector('input[data-edit="goal-input"]');
     input.value = '42';
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockDb.updateActivity).toHaveBeenCalledWith(1, { goal: 42 });
   });
@@ -582,7 +602,9 @@ describe('renderActivityDetail', () => {
     checkbox.checked = true;
     checkbox.dispatchEvent(new Event('change', { bubbles: true }));
 
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { written: true });
   });
@@ -616,7 +638,9 @@ describe('renderActivityDetail', () => {
 
     noteInputs[0].value = 'River trail';
     noteInputs[0].dispatchEvent(new Event('blur'));
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { note: 'River trail' });
   });
@@ -639,7 +663,9 @@ describe('renderActivityDetail', () => {
 
     noteInput.value = 'Lake view';
     noteInput.dispatchEvent(new Event('blur'));
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     expect(mockDb.updateRecord).toHaveBeenCalledWith(10, { note: 'Lake view' });
   });

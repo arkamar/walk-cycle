@@ -198,7 +198,7 @@ export async function renderSessionDetail(target, { id }) {
   const logList = logCard.querySelector('.log-list');
   renderLogEntries(logList, events, {
     eventLabels: EVENT_LABELS,
-    onEdit: async (event) => {
+    onEdit: (event) => {
       showEventEditor(event, async (patch) => {
         await updateEvent(event.id, patch);
         target.innerHTML = '';
@@ -295,7 +295,7 @@ export async function renderSessionDetail(target, { id }) {
     if (upEvents.length > cycles.length) {
       const lastUp = upEvents[upEvents.length - 1];
       const lastUpIdx = events.indexOf(lastUp);
-      let parts = [];
+      const parts = [];
       let partialDuration = 0;
       for (let i = lastUpIdx + 1; i < events.length; i++) {
         const seg = events[i];

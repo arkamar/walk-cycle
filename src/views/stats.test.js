@@ -222,7 +222,9 @@ describe('stats.js', () => {
     rangeSelect.dispatchEvent(new Event('change'));
 
     // Give the async render a tick to settle
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
 
     const grid = target.querySelector('#summary-grid');
     expect(grid.textContent).toContain('1'); // one cycle
@@ -233,7 +235,7 @@ describe('stats.js', () => {
     const { createTrendChart } = await import('../chart.js');
     const { cyclesFromSegments } = await import('../analytics.js');
 
-    let chartInstance = { destroy: vi.fn() };
+    const chartInstance = { destroy: vi.fn() };
     createTrendChart.mockReturnValue(chartInstance);
 
     cyclesFromSegments.mockReturnValue([
